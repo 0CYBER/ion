@@ -168,7 +168,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 if (mutable.value.verifiedHt) {
                     V12Protocol.telemetry(f)?.let { t -> mutable.update { it.copy(telemetry = t,
                         phase = Phase.CONNECTED, message = "Данные с колеса", lastPacketAt = SystemClock.elapsedRealtime(), packets = it.packets + 1,
-                        stationaryPackets = if(kotlin.math.abs(t.speed)<0.1 && !t.charging && !t.firmwareUpdate) (it.stationaryPackets+1).coerceAtMost(100) else 0) } }
+                        // Stillness counter: charging does not reset it — a charging wheel is not moving.
+                        stationaryPackets = if(kotlin.math.abs(t.speed)<0.1 && !t.firmwareUpdate) (it.stationaryPackets+1).coerceAtMost(100) else 0) } }
                     V12Protocol.settings(f)?.let { v -> mutable.update { it.copy(settings = v, settingsAt = SystemClock.elapsedRealtime()) } }
                 }
                 responses.trySend(f)

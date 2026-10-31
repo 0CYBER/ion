@@ -169,5 +169,8 @@ class ControlsTest {
         assertTrue(ui2.safeWrite);assertFalse(ui2.stoppedWrite)
         assertTrue(ui3.safeWrite);assertTrue(ui3.stoppedWrite)
         assertFalse(VelaUi(s.copy(stationaryPackets=3),now=3000).stoppedWrite)
+        // Charging on the charger keeps STATIONARY controls available: stillness is what matters.
+        val charging=s.copy(stationaryPackets=3,telemetry=t.copy(charging=true))
+        assertTrue(VelaUi(charging,now=1100).stoppedWrite)
     }
 }
