@@ -16,6 +16,13 @@ import kotlinx.coroutines.flow.update
 import java.util.UUID
 
 enum class Phase { OFFLINE, SCANNING, CONNECTING, DISCOVERING, IDENTIFYING, CONNECTED, ERROR }
+/** One telemetry timeout must not exceed the UI freshness window: ask+delay stays under FRESH_WINDOW_MS. */
+internal object Timing {
+    const val TELEMETRY_ASK_MS = 1200L
+    const val POLL_DELAY_MS = 500L
+    const val FRESH_WINDOW_MS = 2500L
+    const val STALE_HYSTERESIS_MS = 1000L
+}
 data class WheelDevice(val address: String, val name: String, val rssi: Int)
 data class PacketRecord(val read: V12Protocol.Read, val frame: V12Protocol.Frame? = null, val at: Long? = null, val status: String = "Ещё не запрошено")
 data class WheelState(
@@ -57,16 +64,18 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         data class Write(val command: V12Protocol.Write) : Work
     }
     private val work = Channel<Work>(1)
-    private fun mayWrite(ignorePending: Boolean = false): Boolean {
+    private fun mayWrite(tier: V12Protocol.Tier, ignorePending: Boolean = false): Boolean {
         val s = mutable.value; val t = s.telemetry
-        return s.stationaryPackets >= 3 && V12Protocol.canWrite(s.verifiedHt, s.phase == Phase.CONNECTED,
+        return (tier != V12Protocol.Tier.STATIONARY || s.stationaryPackets >= 3) && V12Protocol.canWrite(tier, s.verifiedHt, s.phase == Phase.CONNECTED,
             s.lastPacketAt?.let { SystemClock.elapsedRealtime()-it }, t?.speed, t?.charging ?: true,
             t?.firmwareUpdate ?: true, s.workPending && !ignorePending)
     }
     fun readAll() = enqueue(Work.ReadAll)
     fun read(read: V12Protocol.Read) = enqueue(Work.ReadOne(read))
     fun apply(command: V12Protocol.Write) {
-        if(!mayWrite()) { mutable.update { it.copy(writeMessage="Запись заблокирована: нужны свежие данные и остановленное колесо.") }; return }
+        if(!mayWrite(command.kind.tier)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
+            "Запись заблокирована: нужны свежие данные с колеса." else
+            "Запись заблокирована: нужны свежие данные и остановленное колесо.") }; return }
         enqueue(Work.Write(command))
     }
     private fun enqueue(item: Work) {
@@ -125,8 +134,12 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             scope.launch {
                 if (g !== gatt) return@launch
-                if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED) {
+                // A single non-success status on a live link (e.g. transient 133/8/19) is not a disconnect:
+                // only STATE_DISCONNECTED ends the session. Setup-time failures still fail via waitEvent.
+                if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     error("Связь прервана${if (status != 0) " (GATT $status)" else ""}. Данные больше не обновляются.")
+                } else if (status != BluetoothGatt.GATT_SUCCESS) {
+                    mutable.update { it.copy(message = "Предупреждение BLE (GATT $status); соединение удерживается.") }
                 } else if (newState == BluetoothProfile.STATE_CONNECTED) events.trySend(Event("connected", status))
             }
         }
@@ -214,7 +227,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 var settingsDue = SystemClock.elapsedRealtime() + 5000
                 while (isActive) {
                     try {
-                        val frame = ask(link, write, V12Protocol.Read.TELEMETRY)
+                        val frame = ask(link, write, V12Protocol.Read.TELEMETRY, Timing.TELEMETRY_ASK_MS)
                         checkNotNull(V12Protocol.telemetry(frame)) { "Неподдерживаемый формат телеметрии. Нужна проверка прошивки." }
                         missed = 0
                         if(!saved) { onConnected(device); saved = true }
@@ -233,16 +246,22 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                 }
                                 is Work.ReadOne -> optionalRead(link,write,job.read)
                                 is Work.Write -> {
-                                    if(!mayWrite(ignorePending=true)) mutable.update { it.copy(writeMessage="Не отправлено: колесо движется, связь устарела или запись запрещена.") }
+                                    if(!mayWrite(job.command.kind.tier, ignorePending=true)) mutable.update { it.copy(writeMessage=
+                                        if(job.command.kind.tier == V12Protocol.Tier.SAFE) "Не отправлено: связь устарела или запись запрещена."
+                                        else "Не отправлено: колесо движется, связь устарела или запись запрещена.") }
                                     else {
                                         mutable.update { it.copy(writeMessage="Отправляю: ${job.command.label}") }
                                         send(link,write,job.command.bytes())
-                                        mutable.update { it.copy(writeMessage="Отправлено · проверяю ответ колеса…") }
-                                        delay(200)
-                                        val answer = optionalRead(link,write,job.command.readBack)
-                                        val confirmed = answer?.let { job.command.confirmed(it) }
-                                        mutable.update { it.copy(writeMessage=if(confirmed == true) "Подтверждено колесом: ${job.command.label}" else
-                                            "Изменение НЕ подтверждено. Проверь значения; автоматического повтора нет.") }
+                                        val back = job.command.readBack
+                                        if(back == null) mutable.update { it.copy(writeMessage="Отправлено: ${job.command.label}. У этой команды нет читаемого подтверждения — проверь результат на колесе.") }
+                                        else {
+                                            mutable.update { it.copy(writeMessage="Отправлено · проверяю ответ колеса…") }
+                                            delay(200)
+                                            val answer = optionalRead(link,write,back)
+                                            val confirmed = answer?.let { job.command.confirmed(it) }
+                                            mutable.update { it.copy(writeMessage=if(confirmed == true) "Подтверждено колесом: ${job.command.label}" else
+                                                "Изменение НЕ подтверждено. Проверь значения; автоматического повтора нет.") }
+                                        }
                                     }
                                 }
                             }
@@ -252,7 +271,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                         optionalRead(link,write,V12Protocol.Read.SETTINGS)
                         settingsDue=SystemClock.elapsedRealtime()+5000
                     }
-                    delay(500)
+                    delay(Timing.POLL_DELAY_MS)
                 }
             } catch (_: TimeoutCancellationException) { error("Время ожидания BLE истекло. Проверь колесо и попробуй снова.") }
             catch (e: CancellationException) { throw e }
@@ -270,11 +289,11 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             if (e.kind == kind) { check(e.status == BluetoothGatt.GATT_SUCCESS) { "Ошибка BLE ${e.status}" }; break }
         }
     }
-    private suspend fun ask(g: BluetoothGatt, c: BluetoothGattCharacteristic, read: V12Protocol.Read): V12Protocol.Frame {
+    private suspend fun ask(g: BluetoothGatt, c: BluetoothGattCharacteristic, read: V12Protocol.Read, timeout: Long = 2000): V12Protocol.Frame {
         while (responses.tryReceive().isSuccess) { }
         record(read,status="Ожидаю ответ…")
         send(g,c,V12Protocol.request(read))
-        return withTimeout(2000) {
+        return withTimeout(timeout) {
             var found: V12Protocol.Frame? = null
             while (found == null) { val f = responses.receive(); if (read.matches(f)) found = f }
             found

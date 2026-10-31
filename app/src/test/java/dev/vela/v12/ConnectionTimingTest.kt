@@ -15,7 +15,7 @@ class ConnectionTimingTest {
         var sampled=0
         val ui=wheelUiSnapshot(packet,null) {sampled++;1251L}
         assertEquals(1,sampled);assertTrue(ui.fresh);assertTrue(ui.connected)
-        assertTrue(ui.settingsFresh);assertTrue(ui.canWrite)
+        assertTrue(ui.settingsFresh);assertTrue(ui.safeWrite);assertTrue(ui.stoppedWrite)
     }
     @Test fun repeatedPacketsAndTicksDoNotFlicker() {
         for(tick in 1000L..10000L step 500) {
@@ -24,7 +24,7 @@ class ConnectionTimingTest {
                 val onPacket=wheelUiSnapshot(packet,null) {packetAt+1}
                 val onTick=wheelUiSnapshot(packet,null) {tick+500}
                 assertTrue(onPacket.fresh);assertTrue(onTick.fresh)
-                assertTrue(onPacket.canWrite);assertTrue(onTick.canWrite)
+                assertTrue(onPacket.safeWrite);assertTrue(onTick.safeWrite)
                 assertTrue(onPacket.connected);assertTrue(onTick.connected)
             }
         }
@@ -32,15 +32,33 @@ class ConnectionTimingTest {
     @Test fun staleTelemetryDoesNotPretendBleDisconnectedButBlocksWrites() {
         val packet=state(1000)
         val ui=wheelUiSnapshot(packet,null) {4000L}
-        assertTrue(ui.connected);assertFalse(ui.fresh);assertFalse(ui.canWrite)
+        assertTrue(ui.connected);assertFalse(ui.fresh);assertFalse(ui.safeWrite);assertFalse(ui.stoppedWrite)
         assertFalse(wheelUiSnapshot(packet,null) {17000L}.settingsFresh)
         assertFalse(wheelUiSnapshot(packet,null) {999L}.fresh) // Never clamp invalid future timestamps.
-        assertFalse(wheelUiSnapshot(packet,null) {999L}.canWrite)
+        assertFalse(wheelUiSnapshot(packet,null) {999L}.safeWrite)
+    }
+    @Test fun stalenessNeedsSustainedHysteresisBeforeAnyBanner() {
+        val packet=state(1000)
+        // Brief staleness (a poll hiccup) never shows the banner, however fresh=false it is.
+        assertFalse(wheelUiSnapshot(packet,null,staleSince=3800L,clock={4000L}).staleConfirmed)
+        assertFalse(wheelUiSnapshot(packet,null,staleSince=3000L,clock={3999L}).staleConfirmed)
+        // Only a sustained gap (>=1s) counts.
+        assertTrue(wheelUiSnapshot(packet,null,staleSince=3000L,clock={4000L}).staleConfirmed)
+        assertTrue(wheelUiSnapshot(packet,null,staleSince=3000L,clock={12000L}).staleConfirmed)
+        // And a recovered packet is fresh again. (Resetting staleSince itself happens in the
+        // ViewModel combine, not in this stateless snapshot.)
+        val fresh=state(4000)
+        assertTrue(wheelUiSnapshot(fresh,null,staleSince=3000L,clock={4001L}).fresh)
+    }
+    @Test fun oneTelemetryTimeoutCannotExceedTheFreshnessWindow() {
+        // Worst case between telemetry packets: ask timeout + poll delay. It must stay inside the
+        // freshness window, otherwise one lost packet flashes the stale banner (the 0.2.x flash).
+        assertTrue(Timing.TELEMETRY_ASK_MS + Timing.POLL_DELAY_MS < Timing.FRESH_WINDOW_MS)
     }
     @Test fun actualDisconnectAndErrorsRemainDisconnected() {
         for(phase in listOf(Phase.OFFLINE,Phase.ERROR,Phase.IDENTIFYING)) {
             val ui=wheelUiSnapshot(state(1000).copy(phase=phase),null) {1001L}
-            assertFalse(ui.connected);assertFalse(ui.fresh);assertFalse(ui.canWrite)
+            assertFalse(ui.connected);assertFalse(ui.fresh);assertFalse(ui.safeWrite);assertFalse(ui.stoppedWrite)
         }
     }
 }

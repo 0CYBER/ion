@@ -71,9 +71,18 @@ class UiVerificationTest {
         rule.onNode(hasScrollToIndexAction()).performScrollToIndex(3);shot("sound-controls")
         rule.onNode(hasScrollToIndexAction()).performScrollToIndex(4);shot("standby-controls")
     }
-    @Test fun movingWheelControlsAreDisabled() {
+    @Test fun safeControlsStayUsableWhileMovingStationaryOnesLock() {
         val u=sample();val moving=u.copy(wheel=u.wheel.copy(telemetry=u.wheel.telemetry!!.copy(speed=10.0),stationaryPackets=0))
-        render(moving,2);rule.onAllNodes(isToggleable()).onFirst().assertIsNotEnabled();shot("moving-controls-locked")
+        render(moving,2);shot("moving-controls")
+        val states=rule.onAllNodes(isToggleable()).fetchSemanticsNodes()
+        assertTrue(states.isNotEmpty())
+        // SAFE tier stays usable while riding, like the vendor app.
+        assertTrue(states.any { !it.config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled) })
+        // STATIONARY tier (ride modes) locks while moving.
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Классический режим"));rule.waitForIdle()
+        val later=rule.onAllNodes(isToggleable()).fetchSemanticsNodes()
+        assertTrue(later.any { it.config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled) })
+        shot("moving-stationary-locked")
     }
     @Test fun savedWheelConnectsWithoutScanAndForgetRequiresConfirmation() {
         var connects=0;var scans=0;var forgotten=0
@@ -103,13 +112,25 @@ class UiVerificationTest {
             rule.runOnUiThread {current.value=wheelUiSnapshot(u.wheel.copy(lastPacketAt=at),u.saved) {at+1}}
             rule.waitForIdle();rule.onNodeWithText("На связи").assertExists();rule.onAllNodesWithText("Офлайн").assertCountEquals(0)
         }
-        rule.runOnUiThread {current.value=u.copy(now=14000)}
+        rule.runOnUiThread {current.value=u.copy(now=14000,staleSince=12800)} // sustained staleness (1.2 s)
         rule.waitForIdle();rule.onNodeWithText("На связи").assertExists()
-        rule.onNodeWithText("Показания устарели · BLE остаётся подключён").assertExists();shot("connected-stale")
+        rule.onNodeWithText("Показания не обновляются · BLE остаётся подключён").assertExists();shot("connected-stale")
         rule.onNodeWithText("Пульт").performClick();rule.waitForIdle()
         rule.onAllNodes(isToggleable()).onFirst().assertIsNotEnabled();shot("stale-controls-locked")
         rule.runOnUiThread {current.value=u.copy(wheel=u.wheel.copy(phase=Phase.OFFLINE,verifiedHt=false),now=14000)}
         rule.onNodeWithText("Связь").performClick();rule.waitForIdle();rule.onNodeWithText("Офлайн").assertExists()
+    }
+
+    @Test fun briefPollHiccupShowsNoStaleBanner() {
+        val u=sample()
+        val current=androidx.compose.runtime.mutableStateOf(u)
+        rule.runOnUiThread {rule.activity.setContent {VelaTheme(true) {VelaApp(current.value,true,Actions(),0)}}}
+        rule.waitForIdle()
+        // One missed poll (~1.7 s gap) enters staleness less than a second ago: no banner may flash.
+        rule.runOnUiThread {current.value=u.copy(now=12200,staleSince=12200)}
+        rule.waitForIdle()
+        rule.onNodeWithText("Показания не обновляются").assertDoesNotExist()
+        rule.onNodeWithText("На связи").assertExists()
     }
 
 }
