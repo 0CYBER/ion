@@ -287,7 +287,7 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
         item { Banner(when {
             ui.wheel.workPending -> "Запрос выполняется. Дождись результата."
             !ui.connected -> "Подключи V12 HT, чтобы читать и менять настройки."
-            !safe -> "Запись недоступна (обновление прошивки или разрыв связи)."
+            !safe -> "Колесо сообщает об обновлении прошивки — запись заблокирована."
             !stopped -> "Свет и звук — всегда при связи. Режимы, педали и служебное — только на остановленном колесе."
             else -> "Свет и звук — в любой момент, остальные — на стоянке. Каждое изменение с перечитыванием."
         }, if(safe) Icons.Rounded.VerifiedUser else Icons.Rounded.Lock, warning=!safe) }

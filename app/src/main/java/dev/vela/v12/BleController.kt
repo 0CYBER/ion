@@ -40,7 +40,9 @@ data class WheelState(
     val records: Map<V12Protocol.Read, PacketRecord> = emptyMap(),
     val workPending: Boolean = false,
     val writeMessage: String? = null,
-    val stationaryPackets: Int = 0
+    val stationaryPackets: Int = 0,
+    /** Consecutive telemetry packets carrying the firmware-update bit; the guard acts from 2 in a row. */
+    val firmwareUpdateStreak: Int = 0
 )
 /** Foreground-only BLE. Only serialized, validated reads/accessory controls. No internet access.
  * All GATT setup operations run sequentially; notifications are incrementally decoded.
@@ -166,10 +168,15 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     V12Protocol.Read.entries.firstOrNull { it.matches(f) }?.let { record(it,f,"Получено") }
                 }
                 if (mutable.value.verifiedHt) {
-                    V12Protocol.telemetry(f)?.let { t -> mutable.update { it.copy(telemetry = t,
-                        phase = Phase.CONNECTED, message = "Данные с колеса", lastPacketAt = SystemClock.elapsedRealtime(), packets = it.packets + 1,
+                    V12Protocol.telemetry(f)?.let { parsed ->
+                        // Debounce the firmware-update bit: one noisy packet must not lock the controls.
+                        val streak = if(parsed.firmwareUpdate) mutable.value.firmwareUpdateStreak+1 else 0
+                        val t = parsed.copy(firmwareUpdate = streak >= 2)
+                        mutable.update { s -> s.copy(telemetry = t,
+                        phase = Phase.CONNECTED, message = "Данные с колеса", lastPacketAt = SystemClock.elapsedRealtime(), packets = s.packets + 1,
+                        firmwareUpdateStreak = streak,
                         // Stillness counter: charging does not reset it — a charging wheel is not moving.
-                        stationaryPackets = if(kotlin.math.abs(t.speed)<0.1 && !t.firmwareUpdate) (it.stationaryPackets+1).coerceAtMost(100) else 0) } }
+                        stationaryPackets = if(kotlin.math.abs(t.speed)<0.1 && !t.firmwareUpdate) (s.stationaryPackets+1).coerceAtMost(100) else 0) } }
                     V12Protocol.settings(f)?.let { v -> mutable.update { it.copy(settings = v, settingsAt = SystemClock.elapsedRealtime()) } }
                 }
                 responses.trySend(f)
@@ -272,7 +279,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                         } finally { mutable.update { it.copy(workPending=false) } }
                     }
                     if(SystemClock.elapsedRealtime() >= settingsDue) {
-                        optionalRead(link,write,V12Protocol.Read.SETTINGS)
+                        // One retry keeps the 15s settings-freshness window stable on a flaky radio.
+                        if(optionalRead(link,write,V12Protocol.Read.SETTINGS) == null) optionalRead(link,write,V12Protocol.Read.SETTINGS)
                         settingsDue=SystemClock.elapsedRealtime()+5000
                     }
                     delay(Timing.POLL_DELAY_MS)
