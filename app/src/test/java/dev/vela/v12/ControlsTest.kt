@@ -5,7 +5,7 @@ import org.junit.Test
 class ControlsTest {
     private fun unpack(w: V12Protocol.Write) = V12Protocol.Decoder().feed(w.bytes()).single()
     @Test fun allowlistMatchesReferencePayloads() {
-        assertEquals(21,V12Protocol.Control.entries.size)
+        assertEquals(19,V12Protocol.Control.entries.size)
         val samples=listOf(
             V12Protocol.Write(V12Protocol.Control.LIGHTS,1,0) to byteArrayOf(0x50,1,0),
             V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,25,75) to byteArrayOf(0x2b,25,75),
@@ -15,8 +15,6 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,0) to byteArrayOf(0x39,0),
             V12Protocol.Write(V12Protocol.Control.STANDBY,10) to byteArrayOf(0x28,0x58,0x02),
             V12Protocol.Write(V12Protocol.Control.DRL,1) to byteArrayOf(0x2d,1),
-            V12Protocol.Write(V12Protocol.Control.FAN,0) to byteArrayOf(0x43,0),
-            V12Protocol.Write(V12Protocol.Control.FAN_QUIET,1) to byteArrayOf(0x38,1),
             V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,2) to byteArrayOf(0x51,2,0x01),
             V12Protocol.Write(V12Protocol.Control.CLASSIC,1) to byteArrayOf(0x23,1),
             V12Protocol.Write(V12Protocol.Control.FANCIER,0) to byteArrayOf(0x24,0),
@@ -40,26 +38,26 @@ class ControlsTest {
             assertThrows(IllegalArgumentException::class.java) { factory() }
         }
     }
-    @Test fun safeTierWorksWhileMovingAndChargingLikeVendorApp() {
+    @Test fun safeTierIgnoresMotionChargingAndTelemetryAgeLikeVendorApp() {
         fun allowed(tier: V12Protocol.Tier,age: Long?=100,speed: Double?=0.0,verified: Boolean=true,connected: Boolean=true,
                     charging: Boolean=false,fw: Boolean=false,pending: Boolean=false)=
             V12Protocol.canWrite(tier,verified,connected,age,speed,charging,fw,pending)
-        // SAFE: fresh data on a verified connected wheel is enough; riding and charging allowed.
+        // SAFE: a live verified link is enough; riding, charging and stale telemetry do not block it.
         assertTrue(allowed(V12Protocol.Tier.SAFE));assertTrue(allowed(V12Protocol.Tier.SAFE,speed=10.0))
         assertTrue(allowed(V12Protocol.Tier.SAFE,speed=-7.5,charging=true));assertTrue(allowed(V12Protocol.Tier.SAFE,age=1500))
-        // SAFE still refuses stale data, firmware update, unverified wheels and pending work.
-        assertFalse(allowed(V12Protocol.Tier.SAFE,age=1501));assertFalse(allowed(V12Protocol.Tier.SAFE,age=-1));assertFalse(allowed(V12Protocol.Tier.SAFE,age=null))
+        assertTrue(allowed(V12Protocol.Tier.SAFE,age=1501));assertTrue(allowed(V12Protocol.Tier.SAFE,age=null))
+        // SAFE still refuses firmware update, unverified wheels, disconnection and pending work.
         assertFalse(allowed(V12Protocol.Tier.SAFE,verified=false));assertFalse(allowed(V12Protocol.Tier.SAFE,connected=false))
         assertFalse(allowed(V12Protocol.Tier.SAFE,fw=true));assertFalse(allowed(V12Protocol.Tier.SAFE,pending=true))
-        // STATIONARY adds stillness and no-charging on top of the SAFE gate.
-        assertTrue(allowed(V12Protocol.Tier.STATIONARY))
+        // STATIONARY adds stillness; charging is allowed because a charging wheel is not moving.
+        assertTrue(allowed(V12Protocol.Tier.STATIONARY));assertTrue(allowed(V12Protocol.Tier.STATIONARY,charging=true))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=.1));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=-.1))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=null));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=Double.NaN))
-        assertFalse(allowed(V12Protocol.Tier.STATIONARY,charging=true));assertFalse(allowed(V12Protocol.Tier.STATIONARY,fw=true))
+        assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=1501));assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=null))
+        assertFalse(allowed(V12Protocol.Tier.STATIONARY,fw=true))
     }
     @Test fun unobservableControlsHaveNoReadback() {
-        listOf(V12Protocol.Control.DRL,V12Protocol.Control.FAN,V12Protocol.Control.FAN_QUIET,
-            V12Protocol.Control.PLAY_SOUND,V12Protocol.Control.LOCK).forEach { kind ->
+        listOf(V12Protocol.Control.DRL,V12Protocol.Control.PLAY_SOUND,V12Protocol.Control.LOCK).forEach { kind ->
             val w=V12Protocol.Write(kind,1);assertNull(w.readBack);assertNull(w.confirmed(V12Protocol.Frame(0x14,0xa0,ByteArray(42))))
         }
     }

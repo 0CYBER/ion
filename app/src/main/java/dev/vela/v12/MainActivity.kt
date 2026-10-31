@@ -116,7 +116,7 @@ internal data class Actions(
         text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)) { Text(c.label,fontWeight=FontWeight.SemiBold)
             if(c.kind in listOf(V12Protocol.Control.VOLUME,V12Protocol.Control.MUTE)) Text("Изменение звука может затронуть предупреждения колеса. Не отключай их перед поездкой.",color=MaterialTheme.colorScheme.error)
             if(c.kind == V12Protocol.Control.LOCK) Text("Заблокированное колесо может не поехать до разблокировки.",color=MaterialTheme.colorScheme.error)
-            if(c.kind.tier == V12Protocol.Tier.STATIONARY) Text("Убедись, что колесо неподвижно и не на зарядке.")
+            if(c.kind.tier == V12Protocol.Tier.STATIONARY) Text("Убедись, что колесо неподвижно.")
             Text("После отправки Ion перечитает значение${if(c.readBack==null) " — для этой команды подтверждение колесом недоступно" else ""}. Неподтверждённая команда не будет повторена автоматически.") }},
         confirmButton={TextButton(onClick={command=null;actions.write(c)},enabled=ui.canWrite(c)) { Text("Применить") }},dismissButton={TextButton(onClick={command=null}) { Text("Отмена") }}) }
     if(forget) AlertDialog(onDismissRequest={forget=false},title={Text("Забыть колесо?")},text={Text("Соединение будет закрыто. Для следующего подключения нужно будет выбрать устройство заново.")},
@@ -191,7 +191,8 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
         item { SectionHeader("Сейчас на колесе") }
         item { MetricPair(first={ m -> Metric("Батарея",t?.battery?.takeIf { it in 0.0..100.0 }?.roundToInt()?.toString() ?: "—","%",Icons.Rounded.BatteryFull,m,true) },
             second={m -> Metric("Напряжение",t?.voltage?.fmt(1) ?: "—","В",Icons.Rounded.ElectricBolt,m)}) }
-        item { MetricPair(first={m -> Metric("Пробег",t?.takeIf { it.mileageKm>0 }?.mileageKm?.fmt(1) ?: "—","км",Icons.Rounded.Route,m)},
+        item { val odo=ui.wheel.records[V12Protocol.Read.STATISTICS]?.frame?.let(V12Protocol::statistics)?.takeIf { it.totalKm>0 }?.totalKm
+            MetricPair(first={m -> Metric("Одометр",(odo ?: t?.takeIf { it.mileageKm>0 }?.mileageKm)?.fmt(1) ?: "—","км",Icons.Rounded.Route,m)},
             second={m -> Metric("Остаток пути",t?.takeIf { it.rangeKm>0 }?.rangeKm?.fmt(1) ?: "—","км",Icons.Rounded.Navigation,m)}) }
         item { MetricPair(first={m -> Metric("MOS",t?.mosTemp?.toString() ?: "—","°C",Icons.Rounded.Thermostat,m)},
             second={m -> Metric("Ток",t?.current?.fmt(1) ?: "—","А",Icons.Rounded.Waves,m)}) }
@@ -286,9 +287,9 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
         item { Banner(when {
             ui.wheel.workPending -> "Запрос выполняется. Дождись результата."
             !ui.connected -> "Подключи V12 HT, чтобы читать и менять настройки."
-            !safe -> "Запись недоступна: нужны свежие данные с колеса (до 1.5 с)."
-            !stopped -> "Свет и звук доступны всегда. Режимы, педали и служебное — только на остановленном колесе без зарядки."
-            else -> "Свежие данные есть. Свет и звук — в любой момент, остальные — на стоянке."
+            !safe -> "Запись недоступна (обновление прошивки или разрыв связи)."
+            !stopped -> "Свет и звук — всегда при связи. Режимы, педали и служебное — только на остановленном колесе."
+            else -> "Свет и звук — в любой момент, остальные — на стоянке. Каждое изменение с перечитыванием."
         }, if(safe) Icons.Rounded.VerifiedUser else Icons.Rounded.Lock, warning=!safe) }
         ui.wheel.writeMessage?.let { message -> item { Banner(message,Icons.Rounded.FactCheck,error=message.contains("НЕ подтверждено") || message.contains("заблокирована")) } }
         item { SectionHeader("Свет") }
@@ -325,11 +326,6 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
                         modifier=Modifier.heightIn(min=44.dp),contentPadding=PaddingValues(horizontal=14.dp)) {Text("$n",fontSize=14.sp)} }
                 }
             }
-        } }
-        item { SectionHeader("Вентилятор") }
-        item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            BlindSwitchRow(Icons.Rounded.Toys,"Вентилятор","Колесо не сообщает состояние этой настройки",safe) { request(V12Protocol.Write(V12Protocol.Control.FAN,if(it)1 else 0)) }
-            BlindSwitchRow(Icons.Rounded.Cyclone,"Тихий режим","Снижает обороты вентилятора; состояние не читается",safe) { request(V12Protocol.Write(V12Protocol.Control.FAN_QUIET,if(it)1 else 0)) }
         } }
         item { SectionHeader("Режимы езды · на стоянке") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {

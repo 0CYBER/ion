@@ -170,7 +170,7 @@ object V12Protocol {
     enum class Tier { SAFE, STATIONARY }
     enum class Control(val tier: Tier) {
         LIGHTS(Tier.SAFE), BRIGHTNESS(Tier.SAFE), AUTO_LIGHT(Tier.SAFE), DRL(Tier.SAFE),
-        VOLUME(Tier.SAFE), MUTE(Tier.SAFE), SOUND_WAVE(Tier.SAFE), FAN(Tier.SAFE), FAN_QUIET(Tier.SAFE), PLAY_SOUND(Tier.SAFE),
+        VOLUME(Tier.SAFE), MUTE(Tier.SAFE), SOUND_WAVE(Tier.SAFE), PLAY_SOUND(Tier.SAFE),
         CLASSIC(Tier.STATIONARY), FANCIER(Tier.STATIONARY), SPLIT_MODE(Tier.STATIONARY), SPLIT_ACCEL_BRAKE(Tier.STATIONARY),
         PEDAL_SENS(Tier.STATIONARY), PEDAL_TILT(Tier.STATIONARY), ALARMS(Tier.STATIONARY),
         HANDLE_BUTTON(Tier.STATIONARY), LOCK(Tier.STATIONARY), TRANSPORT(Tier.STATIONARY), STANDBY(Tier.STATIONARY)
@@ -191,7 +191,7 @@ object V12Protocol {
         /** Authoritative read-back target; null means the value is not observable in known reads. */
         val readBack: Read? get() = when(kind) {
             Control.LIGHTS -> Read.TELEMETRY
-            Control.DRL, Control.FAN, Control.FAN_QUIET, Control.PLAY_SOUND, Control.LOCK -> null
+            Control.DRL, Control.PLAY_SOUND, Control.LOCK -> null
             else -> Read.SETTINGS
         }
         val label get() = when(kind) {
@@ -202,8 +202,6 @@ object V12Protocol {
             Control.VOLUME -> "Громкость: $a%"
             Control.MUTE -> "Без звука: ${if(a==1) "да" else "нет"}"
             Control.SOUND_WAVE -> "Звук движения: ${if(a==1) "вкл" else "выкл"}"
-            Control.FAN -> "Вентилятор: ${if(a==1) "вкл" else "выкл"}"
-            Control.FAN_QUIET -> "Тихий режим вентилятора: ${if(a==1) "вкл" else "выкл"}"
             Control.PLAY_SOUND -> "Проиграть звук $a"
             Control.CLASSIC -> "Режим: ${if(a==1) "классический" else "fancier"}"
             Control.FANCIER -> "Режим: ${if(a==1) "fancier" else "классический"}"
@@ -226,8 +224,6 @@ object V12Protocol {
                 Control.VOLUME -> byteArrayOf(0x26, a.toByte())
                 Control.MUTE -> byteArrayOf(0x2c, (1-a).toByte())
                 Control.SOUND_WAVE -> byteArrayOf(0x39, a.toByte())
-                Control.FAN -> byteArrayOf(0x43, a.toByte())
-                Control.FAN_QUIET -> byteArrayOf(0x38, a.toByte())
                 Control.PLAY_SOUND -> byteArrayOf(0x51, a.toByte(), 0x01)
                 Control.CLASSIC -> byteArrayOf(0x23, a.toByte())
                 Control.FANCIER -> byteArrayOf(0x24, a.toByte())
@@ -270,13 +266,14 @@ object V12Protocol {
         }
     }
     private fun le16(v: Int) = byteArrayOf((v and 0xff).toByte(), ((v shr 8) and 0xff).toByte())
-    /** SAFE tier: fresh telemetry on a verified connected wheel; riding and charging allowed, like the vendor app. */
-    fun canWriteSafe(verified: Boolean, connected: Boolean, ageMs: Long?, firmwareUpdate: Boolean, pending: Boolean): Boolean =
-        verified && connected && !pending && ageMs != null && ageMs in 0..1500 && !firmwareUpdate
-    /** STATIONARY tier adds stillness and no-charging requirements on top of the SAFE gate. */
+    /** SAFE tier: a verified connected wheel without a firmware update; telemetry age and motion are
+     * not required, matching the vendor app. A live GATT link is enough — read-back still verifies. */
+    fun canWriteSafe(verified: Boolean, connected: Boolean, firmwareUpdate: Boolean, pending: Boolean): Boolean =
+        verified && connected && !pending && !firmwareUpdate
+    /** STATIONARY tier adds stillness on top of the SAFE gate. Charging is allowed: a charging wheel is not moving. */
     fun canWrite(tier: Tier, verified: Boolean, connected: Boolean, ageMs: Long?, speed: Double?, charging: Boolean,
-                 firmwareUpdate: Boolean, pending: Boolean): Boolean = canWriteSafe(verified, connected, ageMs, firmwareUpdate, pending) &&
-        (tier == Tier.SAFE || (speed != null && speed.isFinite() && kotlin.math.abs(speed) < 0.1 && !charging))
+                 firmwareUpdate: Boolean, pending: Boolean): Boolean = canWriteSafe(verified, connected, firmwareUpdate, pending) &&
+        (tier == Tier.SAFE || (ageMs != null && ageMs in 0..1500 && speed != null && speed.isFinite() && kotlin.math.abs(speed) < 0.1))
 
     data class Field(val key: String, val label: String, val value: String, val note: String = "")
     fun fields(f: Frame): List<Field> {
@@ -290,7 +287,7 @@ object V12Protocol {
             add("pwm","PWM · значение протокола",n(p.s16(8)/100.0,"%"),"Не оценка запаса безопасности")
             add("batteryPower","Мощность батареи", "${p.s16(10)} Вт"); add("motorPower","Мощность мотора","${p.s16(12)} Вт")
             add("pitch","Наклон",n(t.pitch,"°")); add("pitchAim","Целевой наклон",n(p.s16(18)/100.0,"°")); add("roll","Крен",n(t.roll,"°"))
-            add("mileage","Пробег",n(t.mileageKm,"км"),"WheelLog: u16[22] в единицах 10 м (×10 → метры); единицы подтверди на своей HT")
+            add("mileage","Пробег · поле телеметрии",n(t.mileageKm,"км"),"WheelLog трактует u16[22] как общий одометр, но на HT значение расходится со статистикой — семантика не подтверждена")
             add("battery","Батарея",n(t.battery,"%"),"Поле прошивки; на старых версиях возможны аномалии")
             add("range","Остаток пути",n(t.rangeKm,"км"),"WheelLog: u16[26] в единицах 10 м; единицы подтверди на своей HT")
             add("speedLimitDynamic","Динамический лимит скорости",n(p.u16(30)/100.0,"км/ч"))

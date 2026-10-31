@@ -16,13 +16,13 @@ data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? 
     val fresh get() = wheel.phase == Phase.CONNECTED && wheel.lastPacketAt?.let { now-it in 0..Timing.FRESH_WINDOW_MS } == true
     val busy get() = wheel.phase in listOf(Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING)
     val connected get() = wheel.verifiedHt && wheel.phase == Phase.CONNECTED
-    /** Staleness only surfaces after the hysteresis window, so one poll hiccup never flashes a banner. */
-    val staleConfirmed get() = connected && staleSince != null && now-staleSince >= Timing.STALE_HYSTERESIS_MS
+    /** Staleness only surfaces after a sustained gap, so brief packet lag never flashes a banner. */
+    val staleConfirmed get() = connected && staleSince != null && now-staleSince >= Timing.STALE_BANNER_AFTER_MS
     val safeWrite get() = V12Protocol.canWriteSafe(wheel.verifiedHt, connected,
-        wheel.lastPacketAt?.let { now-it }, wheel.telemetry?.firmwareUpdate ?: true, wheel.workPending)
+        wheel.telemetry?.firmwareUpdate ?: false, wheel.workPending)
     val stoppedWrite get() = wheel.stationaryPackets >= 3 && V12Protocol.canWrite(V12Protocol.Tier.STATIONARY,
         wheel.verifiedHt, connected, wheel.lastPacketAt?.let { now-it }, wheel.telemetry?.speed,
-        wheel.telemetry?.charging ?: true, wheel.telemetry?.firmwareUpdate ?: true, wheel.workPending)
+        wheel.telemetry?.charging ?: false, wheel.telemetry?.firmwareUpdate ?: false, wheel.workPending)
     fun canTier(tier: V12Protocol.Tier) = if(tier == V12Protocol.Tier.SAFE) safeWrite else stoppedWrite
     fun canWrite(command: V12Protocol.Write) = canTier(command.kind.tier)
     val settingsFresh get() = connected && wheel.settingsAt?.let { now-it in 0..15_000 } == true

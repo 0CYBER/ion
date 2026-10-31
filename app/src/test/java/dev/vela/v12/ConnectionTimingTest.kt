@@ -29,21 +29,24 @@ class ConnectionTimingTest {
             }
         }
     }
-    @Test fun staleTelemetryDoesNotPretendBleDisconnectedButBlocksWrites() {
+    @Test fun staleTelemetryDoesNotPretendBleDisconnectedAndOnlyBlocksStationaryWrites() {
         val packet=state(1000)
         val ui=wheelUiSnapshot(packet,null) {4000L}
-        assertTrue(ui.connected);assertFalse(ui.fresh);assertFalse(ui.safeWrite);assertFalse(ui.stoppedWrite)
+        assertTrue(ui.connected);assertFalse(ui.fresh)
+        // SAFE tier follows the vendor app: a live link is enough, staleness does not block it.
+        assertTrue(ui.safeWrite)
+        // STATIONARY tier still refuses stale data.
+        assertFalse(ui.stoppedWrite)
         assertFalse(wheelUiSnapshot(packet,null) {17000L}.settingsFresh)
         assertFalse(wheelUiSnapshot(packet,null) {999L}.fresh) // Never clamp invalid future timestamps.
-        assertFalse(wheelUiSnapshot(packet,null) {999L}.safeWrite)
     }
-    @Test fun stalenessNeedsSustainedHysteresisBeforeAnyBanner() {
+    @Test fun stalenessNeedsSustainedGapBeforeAnyBanner() {
         val packet=state(1000)
-        // Brief staleness (a poll hiccup) never shows the banner, however fresh=false it is.
-        assertFalse(wheelUiSnapshot(packet,null,staleSince=3800L,clock={4000L}).staleConfirmed)
-        assertFalse(wheelUiSnapshot(packet,null,staleSince=3000L,clock={3999L}).staleConfirmed)
-        // Only a sustained gap (>=1s) counts.
-        assertTrue(wheelUiSnapshot(packet,null,staleSince=3000L,clock={4000L}).staleConfirmed)
+        // Brief packet lag (1-2s) never shows the banner, however fresh=false it is.
+        assertFalse(wheelUiSnapshot(packet,null,staleSince=2800L,clock={4000L}).staleConfirmed)
+        assertFalse(wheelUiSnapshot(packet,null,staleSince=3000L,clock={5499L}).staleConfirmed)
+        // Only a gap sustained >= STALE_BANNER_AFTER_MS counts (total staleness ~5s).
+        assertTrue(wheelUiSnapshot(packet,null,staleSince=3000L,clock={5500L}).staleConfirmed)
         assertTrue(wheelUiSnapshot(packet,null,staleSince=3000L,clock={12000L}).staleConfirmed)
         // And a recovered packet is fresh again. (Resetting staleSince itself happens in the
         // ViewModel combine, not in this stateless snapshot.)

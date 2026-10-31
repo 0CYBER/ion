@@ -21,7 +21,8 @@ internal object Timing {
     const val TELEMETRY_ASK_MS = 1200L
     const val POLL_DELAY_MS = 500L
     const val FRESH_WINDOW_MS = 2500L
-    const val STALE_HYSTERESIS_MS = 1000L
+    /** Sustained staleness before any banner may appear: brief packet gaps never flash UI. */
+    const val STALE_BANNER_AFTER_MS = 2500L
 }
 data class WheelDevice(val address: String, val name: String, val rssi: Int)
 data class PacketRecord(val read: V12Protocol.Read, val frame: V12Protocol.Frame? = null, val at: Long? = null, val status: String = "Ещё не запрошено")
@@ -67,8 +68,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     private fun mayWrite(tier: V12Protocol.Tier, ignorePending: Boolean = false): Boolean {
         val s = mutable.value; val t = s.telemetry
         return (tier != V12Protocol.Tier.STATIONARY || s.stationaryPackets >= 3) && V12Protocol.canWrite(tier, s.verifiedHt, s.phase == Phase.CONNECTED,
-            s.lastPacketAt?.let { SystemClock.elapsedRealtime()-it }, t?.speed, t?.charging ?: true,
-            t?.firmwareUpdate ?: true, s.workPending && !ignorePending)
+            s.lastPacketAt?.let { SystemClock.elapsedRealtime()-it }, t?.speed, t?.charging ?: false,
+            t?.firmwareUpdate ?: false, s.workPending && !ignorePending)
     }
     fun readAll() = enqueue(Work.ReadAll)
     fun read(read: V12Protocol.Read) = enqueue(Work.ReadOne(read))
@@ -222,6 +223,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 check(model.isHt) { "Ожидалась V12 HT, ответ: ${model.label}. Опрос остановлен." }
                 mutable.update { it.copy(verifiedHt = true, deviceName = model.label, message = "V12 HT определена. Жду телеметрию…") }
                 optionalRead(link,write,V12Protocol.Read.SETTINGS)
+                optionalRead(link,write,V12Protocol.Read.STATISTICS) // one-time: odometer for the ride screen
                 var missed = 0
                 var saved = false
                 var settingsDue = SystemClock.elapsedRealtime() + 5000
@@ -257,7 +259,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                         else {
                                             mutable.update { it.copy(writeMessage="Отправлено · проверяю ответ колеса…") }
                                             delay(200)
-                                            val answer = optionalRead(link,write,back)
+                                            // Read-back is read-only, so one retry on a lost answer is safe.
+                                            var answer = optionalRead(link,write,back) ?: optionalRead(link,write,back)
                                             val confirmed = answer?.let { job.command.confirmed(it) }
                                             mutable.update { it.copy(writeMessage=if(confirmed == true) "Подтверждено колесом: ${job.command.label}" else
                                                 "Изменение НЕ подтверждено. Проверь значения; автоматического повтора нет.") }

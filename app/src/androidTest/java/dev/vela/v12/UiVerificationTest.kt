@@ -112,11 +112,12 @@ class UiVerificationTest {
             rule.runOnUiThread {current.value=wheelUiSnapshot(u.wheel.copy(lastPacketAt=at),u.saved) {at+1}}
             rule.waitForIdle();rule.onNodeWithText("На связи").assertExists();rule.onAllNodesWithText("Офлайн").assertCountEquals(0)
         }
-        rule.runOnUiThread {current.value=u.copy(now=14000,staleSince=12800)} // sustained staleness (1.2 s)
+        rule.runOnUiThread {current.value=u.copy(now=16000,staleSince=13000)} // sustained staleness (3 s)
         rule.waitForIdle();rule.onNodeWithText("На связи").assertExists()
         rule.onNodeWithText("Показания не обновляются · BLE остаётся подключён").assertExists();shot("connected-stale")
         rule.onNodeWithText("Пульт").performClick();rule.waitForIdle()
-        rule.onAllNodes(isToggleable()).onFirst().assertIsNotEnabled();shot("stale-controls-locked")
+        // SAFE tier stays usable on stale data; only stationary controls lock.
+        rule.onAllNodes(isToggleable()).onFirst().assertIsEnabled();shot("stale-controls-safe-still-usable")
         rule.runOnUiThread {current.value=u.copy(wheel=u.wheel.copy(phase=Phase.OFFLINE,verifiedHt=false),now=14000)}
         rule.onNodeWithText("Связь").performClick();rule.waitForIdle();rule.onNodeWithText("Офлайн").assertExists()
     }
