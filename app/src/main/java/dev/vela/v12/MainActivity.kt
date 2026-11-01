@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -220,6 +221,7 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
         } }
         if(!ui.fresh) item { Banner(if(ui.wheel.records.isEmpty()) "Подключи колесо. Здесь появятся реальные ответы, без подставных значений." else if(ui.connected) "Показаны последние ответы. BLE подключён, ожидаю свежую телеметрию." else "Показаны последние ответы. Сейчас колесо отключено.",Icons.Rounded.SensorsOff) }
         item { OutlinedTextField(value=query,onValueChange={query=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Найти поле или пакет")},leadingIcon={Icon(Icons.Rounded.Search,null)},shape=RoundedCornerShape(IonShapes.l)) }
+        item { ExportButton(ui,Modifier.fillMaxWidth()) }
         item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             listOf("Все поля","Телеметрия","Настройки","Raw / пакеты").forEachIndexed { i,label -> FilterChip(selected=mode==i,onClick={mode=i},label={Text(label,fontSize=14.sp)}) }
         } }
@@ -234,6 +236,40 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
         item { Text("Каталог: ${reads.size} запросов. Батарея, версии и некоторые служебные ответы могут отличаться по прошивке или не отвечать. Неизвестные байты остаются raw — без догадок об их смысле.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
+@Composable private fun ExportButton(ui: VelaUi,modifier: Modifier) {
+    val ctx=LocalContext.current
+    OutlinedButton(onClick={
+        val file=exportRecords(ctx,ui.wheel.records)
+        android.widget.Toast.makeText(ctx,if(file!=null) "Сохранено: ${file.name}" else "Нечего экспортировать",android.widget.Toast.LENGTH_LONG).show()
+    },enabled=ui.wheel.records.isNotEmpty(),modifier=modifier.heightIn(min=48.dp)) {
+        Icon(Icons.Rounded.IosShare,null,Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text("Экспорт пакетов",fontSize=14.sp)
+    }
+}
+
+/** Raw frame snapshot for offline diffing (e.g. finding the lock-state byte via before/after exports). */
+internal fun exportRecords(context: android.content.Context,records: Map<V12Protocol.Read,PacketRecord>): java.io.File? {
+    if(records.isEmpty()) return null
+    val dir=context.getExternalFilesDir(null) ?: return null
+    val stamp=java.text.SimpleDateFormat("yyyyMMdd-HHmmss",java.util.Locale.US).format(java.util.Date())
+    val file=java.io.File(dir,"frames-$stamp.json")
+    val sb=StringBuilder()
+    sb.append("{\"exported\":").append(System.currentTimeMillis()).append(",\"records\":[")
+    var first=true
+    for((read,rec) in records) {
+        if(!first) sb.append(','); first=false
+        sb.append("{\"read\":\"").append(read.name).append("\",\"status\":\"").append(rec.status.replace("\"","'"))
+            .append("\",\"at\":").append(rec.at ?: -1)
+        val f=rec.frame
+        if(f==null) { sb.append(",\"frame\":null}"); continue }
+        sb.append(",\"frame\":{\"flags\":\"0x").append("%02X".format(f.flags))
+            .append("\",\"commandByte\":\"0x").append("%02X".format(f.commandByte))
+            .append("\",\"payloadHex\":\"").append(V12Protocol.hex(f.payload).replace(" ","")).append("\"}}")
+    }
+    sb.append("]}")
+    file.writeText(sb.toString())
+    return file
+}
+
 @Composable private fun PacketCard(read: V12Protocol.Read,record: PacketRecord?,now: Long,fields: List<V12Protocol.Field>,rawMode: Boolean,enabled: Boolean,refresh: ()->Unit) {
     var expanded by rememberSaveable(read) { mutableStateOf(read in listOf(V12Protocol.Read.TELEMETRY,V12Protocol.Read.SETTINGS)) }
     var raw by rememberSaveable(read) { mutableStateOf(false) }
