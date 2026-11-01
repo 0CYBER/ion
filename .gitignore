@@ -10,3 +10,5 @@ local.properties
 *.keystore
 keystore.properties
 .zcode/
+__pycache__/
+*.py[cod]

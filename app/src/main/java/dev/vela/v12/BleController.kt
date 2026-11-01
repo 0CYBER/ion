@@ -6,6 +6,8 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.pm.ApplicationInfo
+import android.util.Log
 import android.os.Build
 import android.os.SystemClock
 import kotlinx.coroutines.*
@@ -62,15 +64,29 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     private var scanTimeout: Job? = null
     private var scanning = false
     private var decoder = V12Protocol.Decoder()
-    private data class Event(val kind: String, val status: Int)
+    private data class Event(val kind: String, val status: Int, val value: Int = 0)
     private val events = Channel<Event>(Channel.BUFFERED)
     private val responses = Channel<V12Protocol.Frame>(Channel.BUFFERED)
+    private val securityResponses = Channel<V12Protocol.Frame>(Channel.BUFFERED)
+    @Volatile private var awaitingSecurity = false
+    @Volatile private var negotiatedMtu = 23
     private sealed interface Work {
         data object ReadAll : Work
         data class ReadOne(val read: V12Protocol.Read) : Work
         data class Write(val command: V12Protocol.Write) : Work
     }
     private val work = Channel<Work>(1)
+    // Debug-only diagnostics: messages are fixed labels/statuses, never security payloads or identifiers.
+    private fun lockTrace(message: String, reset: Boolean = false) {
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        Log.i("IonLockTest", message)
+        runCatching {
+            val dir = context.getExternalFilesDir(null) ?: return@runCatching
+            val file = java.io.File(dir, "lock-test-diagnostic.txt")
+            if (reset || file.length() > 4096) file.writeText("")
+            file.appendText("${SystemClock.elapsedRealtime()} $message\n")
+        }
+    }
     private fun mayWrite(tier: V12Protocol.Tier, pending: Boolean, ignorePending: Boolean = false): Boolean {
         val s = mutable.value; val t = s.telemetry
         return (tier != V12Protocol.Tier.STATIONARY || s.stationaryPackets >= 3) && V12Protocol.canWrite(tier, s.verifiedHt, s.phase == Phase.CONNECTED,
@@ -153,6 +169,11 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         }
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) { if (g === gatt) events.trySend(Event("services", status)) }
         override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) { if (g === gatt) events.trySend(Event("descriptor", status)) }
+        override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
+            if (g !== gatt) return
+            if (status == BluetoothGatt.GATT_SUCCESS) negotiatedMtu = mtu
+            events.trySend(Event("mtu", status, mtu))
+        }
         override fun onCharacteristicWrite(g: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
             if (g !== gatt) return
             if (status != BluetoothGatt.GATT_SUCCESS) scope.launch { if (g === gatt) error("Ошибка BLE-запроса ($status).") }
@@ -168,6 +189,16 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         scope.launch {
             if (g !== gatt || uuid.toString() != V12Protocol.NOTIFY) return@launch
             for (f in decoder.feed(value)) {
+                // Security replies use a different address layout, not the legacy response bit.
+                if (awaitingSecurity && LockSecurity.isRelevantReply(f)) {
+                    securityResponses.trySend(f)
+                    continue
+                }
+                // The addressed lock reply is not represented as Frame.response by the legacy parser.
+                if (f.flags == 0x16 && f.commandByte == 0x21 &&
+                    f.payload.contentEquals(byteArrayOf(0x02, 0xe0.toByte(), 0x31, 0x00))) {
+                    lockTrace("lock_reply observed; status semantics unknown")
+                }
                 if (!f.response) continue
                 if (mutable.value.verifiedHt || V12Protocol.Read.MODEL.matches(f)) {
                     V12Protocol.Read.entries.firstOrNull { it.matches(f) }?.let { record(it,f,"Получено") }
@@ -204,6 +235,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             try {
                 while (events.tryReceive().isSuccess) { /* clear previous session */ }
                 while (responses.tryReceive().isSuccess) { }
+                while (securityResponses.tryReceive().isSuccess) { }
+                awaitingSecurity = false
+                negotiatedMtu = 23
                 decoder = V12Protocol.Decoder()
                 val link = adapter?.getRemoteDevice(device.address)?.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
                     ?: throw IllegalStateException("BLE недоступен")
@@ -272,18 +306,40 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                         if(job.command.kind.tier == V12Protocol.Tier.SAFE) "Не отправлено: связь устарела или запись запрещена."
                                         else "Не отправлено: колесо движется, связь устарела или запись запрещена.") }
                                     else {
+                                        val isLock = job.command.kind == V12Protocol.Control.LOCK
+                                        if (isLock) lockTrace("begin target=${job.command.a}", reset=true)
+                                        val securityReady = !isLock || prepareLockSecurity(link, write)
+                                        if (!securityReady) {
+                                            mutable.update { it.copy(writeMessage="Блокировка не отправлена: защитный обмен не подтверждён. Используй официальное приложение.") }
+                                        } else if (isLock && !mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) {
+                                            lockTrace("guard failed after security; no lock write")
+                                            mutable.update { it.copy(writeMessage="Блокировка не отправлена: данные устарели или колесо не остановлено.") }
+                                        } else {
                                         mutable.update { it.copy(writeMessage="Отправляю: ${job.command.label}") }
-                                        send(link,write,job.command.bytes())
+                                        val bytes = job.command.bytes()
+                                        if (job.command.kind == V12Protocol.Control.LOCK) {
+                                            lockTrace("request target=${job.command.a} bytes=${bytes.joinToString("") { "%02X".format(it.toInt() and 0xff) }}")
+                                        }
+                                        send(link,write,bytes)
+                                        if (job.command.kind == V12Protocol.Control.LOCK) lockTrace("send returned; wheel state not yet confirmed")
                                         val back = job.command.readBack
                                         if(back == null) mutable.update { it.copy(writeMessage="Отправлено: ${job.command.label}. У этой команды нет читаемого подтверждения — проверь результат на колесе.") }
                                         else {
                                             mutable.update { it.copy(writeMessage="Отправлено · проверяю ответ колеса…") }
                                             delay(200)
                                             // Read-back is read-only, so one retry on a lost answer is safe.
-                                            var answer = optionalRead(link,write,back) ?: optionalRead(link,write,back)
+                                            val answer = optionalRead(link,write,back) ?: optionalRead(link,write,back)
                                             val confirmed = answer?.let { job.command.confirmed(it) }
-                                            mutable.update { it.copy(writeMessage=if(confirmed == true) "Подтверждено колесом: ${job.command.label}" else
-                                                "Изменение НЕ подтверждено. Проверь значения; автоматического повтора нет.") }
+                                            if (job.command.kind == V12Protocol.Control.LOCK) lockTrace(
+                                                "readback target=${job.command.a} result=${if (answer == null) "timeout" else if (confirmed == null) "invalid" else if (confirmed) "match" else "mismatch"}")
+                                            val result = when {
+                                                confirmed == true -> "Подтверждено колесом: ${job.command.label}"
+                                                answer == null -> "Изменение НЕ подтверждено: нет ответа на чтение состояния. Автоповтора нет."
+                                                confirmed == false -> "Изменение НЕ подтверждено: колесо сообщает другое состояние. Автоповтора нет."
+                                                else -> "Изменение НЕ подтверждено: ответ состояния не распознан. Автоповтора нет."
+                                            }
+                                            mutable.update { it.copy(writeMessage=result) }
+                                        }
                                         }
                                     }
                                 }
@@ -321,6 +377,51 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             var found: V12Protocol.Frame? = null
             while (found == null) { val f = responses.receive(); if (read.matches(f)) found = f }
             found
+        }
+    }
+    /** Fail closed; security exchange does not itself issue the lock command. */
+    private suspend fun prepareLockSecurity(g: BluetoothGatt, c: BluetoothGattCharacteristic): Boolean {
+        if (negotiatedMtu < 44) {
+            while (events.tryReceive().isSuccess) { }
+            if (!g.requestMtu(64)) { lockTrace("mtu request rejected"); return false }
+            val mtuEvent = withTimeoutOrNull(2000) {
+                var result: Event? = null
+                while (result == null) { val e = events.receive(); if (e.kind == "mtu") result = e }
+                result
+            }
+            if (mtuEvent == null || mtuEvent.status != BluetoothGatt.GATT_SUCCESS) {
+                lockTrace("mtu failed or timed out"); return false
+            }
+        }
+        // Worst-case escaped second message is <= 41 bytes; never silently truncate it.
+        if (negotiatedMtu < 44) { lockTrace("mtu too small: $negotiatedMtu"); return false }
+        lockTrace("mtu=$negotiatedMtu; security request")
+        while (securityResponses.tryReceive().isSuccess) { }
+        awaitingSecurity = true
+        try {
+            send(g, c, LockSecurity.keyRequest())
+            val first = withTimeoutOrNull(1800) { securityResponses.receive() }
+            val key = first?.let { LockSecurity.keyFrom(it) }
+            if (key == null) { lockTrace("security key response absent or invalid"); return false }
+            lockTrace("security key response valid")
+            val verification = LockSecurity.verifyRequest(key)
+            try {
+                if (verification.size > negotiatedMtu - 3) { lockTrace("security message exceeds mtu"); return false }
+                send(g, c, verification)
+                val second = withTimeoutOrNull(1800) {
+                    var f = securityResponses.receive()
+                    while (f.payload.getOrNull(1) != 0x82.toByte()) f = securityResponses.receive()
+                    f
+                }
+                if (second == null || !LockSecurity.isVerifyReply(second)) {
+                    lockTrace("security verify response absent or invalid"); return false
+                }
+                lockTrace("security verify observed")
+                return true
+            } finally { key.fill(0); verification.fill(0) }
+        } finally {
+            awaitingSecurity = false
+            while (securityResponses.tryReceive().isSuccess) { }
         }
     }
     private suspend fun send(g: BluetoothGatt, c: BluetoothGattCharacteristic, bytes: ByteArray) {

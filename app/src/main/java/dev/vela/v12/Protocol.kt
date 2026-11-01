@@ -4,7 +4,7 @@ import java.util.ArrayDeque
 
 /** Offline-derived protocol profile; physical HT/firmware compatibility remains unverified.
  * Reference: WheelLog f44e39e..., GPL-3.0 (see THIRD_PARTY.md). No vendor code/assets.
- * Allowlisted accessory and settings controls only; no firmware, calibration, power-off or unlock builders.
+ * Allowlisted accessory and settings controls only; no firmware, calibration or power-off builders.
  * All multi-byte values are little-endian on the wire (WheelLog getBytes is BE, then reversed).
  */
 object V12Protocol {
@@ -240,7 +240,10 @@ object V12Protocol {
                 Control.TRANSPORT -> byteArrayOf(0x32, a.toByte())
                 Control.STANDBY -> byteArrayOf(0x28) + le16(a*60)
             }
-            return frame(0x14, 0x60, payload)
+            // V12 HT lock frames observed in INMOTION 8.1.34 on this wheel. The
+            // address can be session-dependent; this test path requires hardware verification.
+            return if (kind == Control.LOCK) frame(0x16, 0x02, byteArrayOf(0x21, 0x60) + payload)
+                   else frame(0x14, 0x60, payload)
         }
         /** Only an authoritative read-back confirms success, never a GATT callback or guessed ACK. */
         fun confirmed(f: Frame): Boolean? {

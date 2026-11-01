@@ -1,0 +1,12 @@
+﻿class 0x492c42 name_ref 87785 cid 1760
+class 0x4c79e8 name_ref 56605 cid 2109
+class 0x4c79c7 name_ref 4712 cid 2110
+function 0x3ae3d0 owner_ref 235494 ci 19477 tag 1077411840
+function 0x3ae3df owner_ref 235500 ci 19478 tag 1077411840
+function 0x3afeae owner_ref 235551 ci 19921 tag 1077411840
+dispatch entries 115054 end 0x69a8d3
+lock V1 slot 108529 ci 18407 offset 0xc7e4c4 value 0x31
+lock V2 slot 108530 ci 18407 offset 0xc7e4c4 value 0x31
+headlight V1 slot 2237 ci 44333 offset 0x138896c value 0x40
+headlight V2 slot 2238 ci 44208 offset 0x1380c40 value 0x50
+Static validation only: no runtime, packet, or wheel behavior asserted.

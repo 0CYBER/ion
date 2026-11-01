@@ -1,0 +1,63 @@
+Artifact SHA-256: 92a24d380f129750f4893e92e823b878db531dee5483936b1d66c07d015263f6
+Dispatch: 110002 entries; exact snapshot-end validation passed
+Class V12MessageFactory cid=1760 file=0x250a4b name_ref=87829
+Class _V12Cmd (base) cid=2108 file=0x250a6d name_ref=7610
+Class _V12CmdV2 cid=2110 file=0x283b1b name_ref=4731
+Class _V12CmdV1 cid=2109 file=0x283b3c name_ref=56629
+
+Origin candidate: 1023
+lock (ci15273 dispatch at 0xde9088): cid=2109, table_index=105299, ci=19327
+  0xeb1b84 mov r0, #0x31
+  0xeb1b88 mov r1, #0
+  0xeb1b8c bx lr
+lock (ci15273 dispatch at 0xde9088): cid=2110, table_index=105300, ci=19327
+  0xeb1b84 mov r0, #0x31
+  0xeb1b88 mov r1, #0
+  0xeb1b8c bx lr
+headlight (ci20571 dispatch at 0xf3ce24): cid=2109, table_index=105208, ci=19010
+  0xe8aa5c mov r0, #0x40
+  0xe8aa60 mov r1, #0
+  0xe8aa64 bx lr
+headlight (ci20571 dispatch at 0xf3ce24): cid=2110, table_index=105209, ci=31321
+  0x123c2f4 mov r0, #0x50
+  0x123c2f8 mov r1, #0
+  0x123c2fc bx lr
+
+Origin candidate: -1023
+lock (ci15273 dispatch at 0xde9088): cid=2109, table_index=103253, ci=0
+lock (ci15273 dispatch at 0xde9088): cid=2110, table_index=103254, ci=4538
+  0xa823f8 push {fp, lr}
+  0xa823fc add fp, sp, #0
+  0xa82400 ldr ip, [sl, #0x1c]
+  0xa82404 cmp sp, ip
+  0xa82408 blls #0x1650d6c
+  0xa8240c ldr r0, [fp, #8]
+  0xa82410 ldr r1, [r0, #-1]
+  0xa82414 ubfx r1, r1, #0xc, #0x14
+headlight (ci20571 dispatch at 0xf3ce24): cid=2109, table_index=103162, ci=4542
+  0xa82530 push {fp, lr}
+  0xa82534 add fp, sp, #0
+  0xa82538 ldr ip, [sl, #0x1c]
+  0xa8253c cmp sp, ip
+  0xa82540 blls #0x1650d6c
+  0xa82544 ldr r0, [fp, #8]
+  0xa82548 ldr r1, [r0, #-1]
+  0xa8254c ubfx r1, r1, #0xc, #0x14
+headlight (ci20571 dispatch at 0xf3ce24): cid=2110, table_index=103163, ci=0
+
+Origin candidate: 0
+lock (ci15273 dispatch at 0xde9088): cid=2109, table_index=104276, ci=0
+lock (ci15273 dispatch at 0xde9088): cid=2110, table_index=104277, ci=0
+headlight (ci20571 dispatch at 0xf3ce24): cid=2109, table_index=104185, ci=43911
+  0x15c4c34 ldr r1, [sp]
+  0x15c4c38 ldr r0, [r1, #0x27]
+  0x15c4c3c bx lr
+headlight (ci20571 dispatch at 0xf3ce24): cid=2110, table_index=104186, ci=4134
+  0xa6db84 ldr r0, [sp]
+  0xa6db88 add ip, r0, #3
+  0xa6db8c vldr d0, [ip, #0x68]
+  0xa6db90 bx lr
+
+Validated +1023 origin: lock=0x31 for V12CmdV1/V2.
+Abstract _V12Cmd and factory CIDs are not valid receiver substitutions.
+This proves command values; model selection and bool polarity require their own traces.

@@ -1,0 +1,652 @@
+﻿Artifact SHA-256: 92a24d380f129750f4893e92e823b878db531dee5483936b1d66c07d015263f6
+Static ARM disassembly; no execution; file offsets only.
+
+CI 8289 unresolved [0xb9ff54, 0xba021c)
+0x00b9ff54 00482de9 push     {fp, lr}
+0x00b9ff58 00b08de2 add      fp, sp, #0
+0x00b9ff5c 24d04de2 sub      sp, sp, #0x24
+0x00b9ff60 70009ae5 ldr      r0, [sl, #0x70]
+0x00b9ff64 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x00b9ff68 0c005de1 cmp      sp, ip
+0x00b9ff6c 7ec32a9b blls     #0x1650d6c
+0x00b9ff70 44109ae5 ldr      r1, [sl, #0x44]
+0x00b9ff74 01ca81e2 add      ip, r1, #0x1000
+0x00b9ff78 1c189ce5 ldr      r1, [ip, #0x81c]
+0x00b9ff7c 022022e0 eor      r2, r2, r2
+0x00b9ff80 080011e3 tst      r1, #8
+0x00b9ff84 0120a013 movne    r2, #1
+0x00b9ff88 012042e2 sub      r2, r2, #1
+0x00b9ff8c 03c0e0e3 mvn      ip, #3
+0x00b9ff90 0c2002e0 and      r2, r2, ip
+0x00b9ff94 082082e2 add      r2, r2, #8
+0x00b9ff98 10109be5 ldr      r1, [fp, #0x10]
+0x00b9ff9c 04200be5 str      r2, [fp, #-4]
+0x00b9ffa0 000051e1 cmp      r1, r0
+0x00b9ffa4 1f00001a bne      #0xba0028
+0x00b9ffa8 18109be5 ldr      r1, [fp, #0x18]
+0x00b9ffac 073091e5 ldr      r3, [r1, #7]
+0x00b9ffb0 074093e5 ldr      r4, [r3, #7]
+0x00b9ffb4 04402de5 str      r4, [sp, #-4]!
+0x00b9ffb8 2b0a00eb bl       #0xba286c
+0x00b9ffbc 04d08de2 add      sp, sp, #4
+0x00b9ffc0 8020a0e1 lsl      r2, r0, #1
+0x00b9ffc4 0000a0e3 mov      r0, #0
+0x00b9ffc8 000052e1 cmp      r2, r0
+0x00b9ffcc 0900001a bne      #0xb9fff8
+0x00b9ffd0 18009be5 ldr      r0, [fp, #0x18]
+0x00b9ffd4 071090e5 ldr      r1, [r0, #7]
+0x00b9ffd8 070091e5 ldr      r0, [r1, #7]
+0x00b9ffdc 04002de5 str      r0, [sp, #-4]!
+0x00b9ffe0 c70900eb bl       #0xba2704
+0x00b9ffe4 04d08de2 add      sp, sp, #4
+0x00b9ffe8 01c0a0e1 mov      ip, r1
+0x00b9ffec 0010a0e1 mov      r1, r0
+0x00b9fff0 0c00a0e1 mov      r0, ip
+0x00b9fff4 080000ea b        #0xba001c
+0x00b9fff8 18009be5 ldr      r0, [fp, #0x18]
+0x00b9fffc 071090e5 ldr      r1, [r0, #7]
+0x00ba0000 070091e5 ldr      r0, [r1, #7]
+0x00ba0004 04002de5 str      r0, [sp, #-4]!
+0x00ba0008 170a00eb bl       #0xba286c
+0x00ba000c 04d08de2 add      sp, sp, #4
+0x00ba0010 01c0a0e1 mov      ip, r1
+0x00ba0014 0010a0e1 mov      r1, r0
+0x00ba0018 0c00a0e1 mov      r0, ip
+0x00ba001c 0140a0e1 mov      r4, r1
+0x00ba0020 0030a0e1 mov      r3, r0
+0x00ba0024 060000ea b        #0xba0044
+0x00ba0028 c10fa0e1 asr      r0, r1, #0x1f
+0x00ba002c c120b0e1 asrs     r2, r1, #1
+0x00ba0030 0100003a blo      #0xba003c
+0x00ba0034 072091e5 ldr      r2, [r1, #7]
+0x00ba0038 0b0091e5 ldr      r0, [r1, #0xb]
+0x00ba003c 0240a0e1 mov      r4, r2
+0x00ba0040 0030a0e1 mov      r3, r0
+0x00ba0044 0c209be5 ldr      r2, [fp, #0xc]
+0x00ba0048 08109be5 ldr      r1, [fp, #8]
+0x00ba004c 04001be5 ldr      r0, [fp, #-4]
+0x00ba0050 08400be5 str      r4, [fp, #-8]
+0x00ba0054 0c300be5 str      r3, [fp, #-0xc]
+0x00ba0058 c080a0e1 asr      r8, r0, #1
+0x00ba005c c86fa0e1 asr      r6, r8, #0x1f
+0x00ba0060 04602de5 str      r6, [sp, #-4]!
+0x00ba0064 04802de5 str      r8, [sp, #-4]!
+0x00ba0068 6a0900eb bl       #0xba2618
+0x00ba006c 08d08de2 add      sp, sp, #8
+0x00ba0070 0020a0e1 mov      r2, r0
+0x00ba0074 08101be5 ldr      r1, [fp, #-8]
+0x00ba0078 0c001be5 ldr      r0, [fp, #-0xc]
+0x00ba007c 04200be5 str      r2, [fp, #-4]
+0x00ba0080 04002de5 str      r0, [sp, #-4]!
+0x00ba0084 04102de5 str      r1, [sp, #-4]!
+0x00ba0088 620900eb bl       #0xba2618
+0x00ba008c 08d08de2 add      sp, sp, #8
+0x00ba0090 10000be5 str      r0, [fp, #-0x10]
+0x00ba0094 5c0900eb bl       #0xba260c
+0x00ba0098 0010a0e1 mov      r1, r0
+0x00ba009c 04001be5 ldr      r0, [fp, #-4]
+0x00ba00a0 14100be5 str      r1, [fp, #-0x14]
+0x00ba00a4 030081e5 str      r0, [r1, #3]
+0x00ba00a8 10001be5 ldr      r0, [fp, #-0x10]
+0x00ba00ac 070081e5 str      r0, [r1, #7]
+0x00ba00b0 0c009be5 ldr      r0, [fp, #0xc]
+0x00ba00b4 0b0081e5 str      r0, [r1, #0xb]
+0x00ba00b8 08009be5 ldr      r0, [fp, #8]
+0x00ba00bc 0f0081e5 str      r0, [r1, #0xf]
+0x00ba00c0 00e0a0e3 mov      lr, #0
+0x00ba00c4 0090a0e3 mov      sb, #0
+0x00ba00c8 00422de9 push     {sb, lr}
+0x00ba00cc 0600a0e3 mov      r0, #6
+0x00ba00d0 0020a0e3 mov      r2, #0
+0x00ba00d4 05002de9 push     {r0, r2}
+0x00ba00d8 f40800eb bl       #0xba24b0
+0x00ba00dc 10d08de2 add      sp, sp, #0x10
+0x00ba00e0 0020a0e1 mov      r2, r0
+0x00ba00e4 14001be5 ldr      r0, [fp, #-0x14]
+0x00ba00e8 18200be5 str      r2, [fp, #-0x18]
+0x00ba00ec 1c100be5 str      r1, [fp, #-0x1c]
+0x00ba00f0 073090e5 ldr      r3, [r0, #7]
+0x00ba00f4 70409ae5 ldr      r4, [sl, #0x70]
+0x00ba00f8 066026e0 eor      r6, r6, r6
+0x00ba00fc 040053e1 cmp      r3, r4
+0x00ba0100 0160a013 movne    r6, #1
+0x00ba0104 8660a0e1 lsl      r6, r6, #1
+0x00ba0108 033090e5 ldr      r3, [r0, #3]
+0x00ba010c 088028e0 eor      r8, r8, r8
+0x00ba0110 040053e1 cmp      r3, r4
+0x00ba0114 0180a013 movne    r8, #1
+0x00ba0118 8880a0e1 lsl      r8, r8, #1
+0x00ba011c c830a0e1 asr      r3, r8, #1
+0x00ba0120 c680a0e1 asr      r8, r6, #1
+0x00ba0124 036088e0 add      r6, r8, r3
+0x00ba0128 0b3090e5 ldr      r3, [r0, #0xb]
+0x00ba012c 078093e5 ldr      r8, [r3, #7]
+0x00ba0130 c830a0e1 asr      r3, r8, #1
+0x00ba0134 038086e0 add      r8, r6, r3
+0x00ba0138 0f3090e5 ldr      r3, [r0, #0xf]
+0x00ba013c 040053e1 cmp      r3, r4
+0x00ba0140 0100001a bne      #0xba014c
+0x00ba0144 0030a0e3 mov      r3, #0
+0x00ba0148 010000ea b        #0xba0154
+0x00ba014c 074093e5 ldr      r4, [r3, #7]
+0x00ba0150 0430a0e1 mov      r3, r4
+0x00ba0154 c360a0e1 asr      r6, r3, #1
+0x00ba0158 c64fa0e1 asr      r4, r6, #0x1f
+0x00ba015c 0890a0e1 mov      sb, r8
+0x00ba0160 c83fa0e1 asr      r3, r8, #0x1f
+0x00ba0164 060099e0 adds     r0, sb, r6
+0x00ba0168 0480b3e0 adcs     r8, r3, r4
+0x00ba016c 08000be5 str      r0, [fp, #-8]
+0x00ba0170 0c800be5 str      r8, [fp, #-0xc]
+0x00ba0174 44009ae5 ldr      r0, [sl, #0x44]
+0x00ba0178 01ca80e2 add      ip, r0, #0x1000
+0x00ba017c e8089ce5 ldr      r0, [ip, #0x8e8]
+0x00ba0180 13c095e5 ldr      ip, [r5, #0x13]
+0x00ba0184 0c0050e1 cmp      r0, ip
+0x00ba0188 0200001a bne      #0xba0198
+0x00ba018c 092a85e2 add      r2, r5, #0x9000
+0x00ba0190 d72392e5 ldr      r2, [r2, #0x3d7]
+0x00ba0194 15bc2aeb bl       #0x164f1f0
+0x00ba0198 0020a0e1 mov      r2, r0
+0x00ba019c 18101be5 ldr      r1, [fp, #-0x18]
+0x00ba01a0 1c001be5 ldr      r0, [fp, #-0x1c]
+0x00ba01a4 04200be5 str      r2, [fp, #-4]
+0x00ba01a8 04002de5 str      r0, [sp, #-4]!
+0x00ba01ac 04102de5 str      r1, [sp, #-4]!
+0x00ba01b0 180900eb bl       #0xba2618
+0x00ba01b4 08d08de2 add      sp, sp, #8
+0x00ba01b8 0020a0e1 mov      r2, r0
+0x00ba01bc 08101be5 ldr      r1, [fp, #-8]
+0x00ba01c0 0c001be5 ldr      r0, [fp, #-0xc]
+0x00ba01c4 10200be5 str      r2, [fp, #-0x10]
+0x00ba01c8 04002de5 str      r0, [sp, #-4]!
+0x00ba01cc 04102de5 str      r1, [sp, #-4]!
+0x00ba01d0 100900eb bl       #0xba2618
+0x00ba01d4 08d08de2 add      sp, sp, #8
+0x00ba01d8 20000be5 str      r0, [fp, #-0x20]
+0x00ba01dc b00800eb bl       #0xba24a4
+0x00ba01e0 24000be5 str      r0, [fp, #-0x24]
+0x00ba01e4 04002de5 str      r0, [sp, #-4]!
+0x00ba01e8 04e01be5 ldr      lr, [fp, #-4]
+0x00ba01ec 10901be5 ldr      sb, [fp, #-0x10]
+0x00ba01f0 70809ae5 ldr      r8, [sl, #0x70]
+0x00ba01f4 70609ae5 ldr      r6, [sl, #0x70]
+0x00ba01f8 20401be5 ldr      r4, [fp, #-0x20]
+0x00ba01fc 14301be5 ldr      r3, [fp, #-0x14]
+0x00ba0200 70209ae5 ldr      r2, [sl, #0x70]
+0x00ba0204 5c432de9 push     {r2, r3, r4, r6, r8, sb, lr}
+0x00ba0208 030000eb bl       #0xba021c
+0x00ba020c 20d08de2 add      sp, sp, #0x20
+0x00ba0210 24001be5 ldr      r0, [fp, #-0x24]
+0x00ba0214 00d04be2 sub      sp, fp, #0
+0x00ba0218 0088bde8 pop      {fp, pc}
+
+CI 8387 unresolved [0xba72d0, 0xba738c)
+0x00ba72d0 00482de9 push     {fp, lr}
+0x00ba72d4 00b08de2 add      fp, sp, #0
+0x00ba72d8 0cd04de2 sub      sp, sp, #0xc
+0x00ba72dc 0400a0e1 mov      r0, r4
+0x00ba72e0 0f1090e5 ldr      r1, [r0, #0xf]
+0x00ba72e4 040041e2 sub      r0, r1, #4
+0x00ba72e8 80108be0 add      r1, fp, r0, lsl #1
+0x00ba72ec 101091e5 ldr      r1, [r1, #0x10]
+0x00ba72f0 0c100be5 str      r1, [fp, #-0xc]
+0x00ba72f4 80208be0 add      r2, fp, r0, lsl #1
+0x00ba72f8 083092e5 ldr      r3, [r2, #8]
+0x00ba72fc 0c2092e5 ldr      r2, [r2, #0xc]
+0x00ba7300 020050e3 cmp      r0, #2
+0x00ba7304 090000ba blt      #0xba7330
+0x00ba7308 80408be0 add      r4, fp, r0, lsl #1
+0x00ba730c 044094e5 ldr      r4, [r4, #4]
+0x00ba7310 040050e3 cmp      r0, #4
+0x00ba7314 030000ba blt      #0xba7328
+0x00ba7318 80608be0 add      r6, fp, r0, lsl #1
+0x00ba731c 006096e5 ldr      r6, [r6]
+0x00ba7320 0600a0e1 mov      r0, r6
+0x00ba7324 040000ea b        #0xba733c
+0x00ba7328 0400a0e1 mov      r0, r4
+0x00ba732c 000000ea b        #0xba7334
+0x00ba7330 70009ae5 ldr      r0, [sl, #0x70]
+0x00ba7334 0040a0e1 mov      r4, r0
+0x00ba7338 70009ae5 ldr      r0, [sl, #0x70]
+0x00ba733c 04400be5 str      r4, [fp, #-4]
+0x00ba7340 08000be5 str      r0, [fp, #-8]
+0x00ba7344 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x00ba7348 0c005de1 cmp      sp, ip
+0x00ba734c 86a62a9b blls     #0x1650d6c
+0x00ba7350 04202de5 str      r2, [sp, #-4]!
+0x00ba7354 78209ae5 ldr      r2, [sl, #0x78]
+0x00ba7358 0c002de9 push     {r2, r3}
+0x00ba735c 9bedffeb bl       #0xba29d0
+0x00ba7360 0cd08de2 add      sp, sp, #0xc
+0x00ba7364 0ce01be5 ldr      lr, [fp, #-0xc]
+0x00ba7368 70909ae5 ldr      sb, [sl, #0x70]
+0x00ba736c 08801be5 ldr      r8, [fp, #-8]
+0x00ba7370 01432de9 push     {r0, r8, sb, lr}
+0x00ba7374 04e01be5 ldr      lr, [fp, #-4]
+0x00ba7378 04e02de5 str      lr, [sp, #-4]!
+0x00ba737c f4e2ffeb bl       #0xb9ff54
+0x00ba7380 14d08de2 add      sp, sp, #0x14
+0x00ba7384 00d04be2 sub      sp, fp, #0
+0x00ba7388 0088bde8 pop      {fp, pc}
+
+CI 39367 unresolved [0x14b08d4, 0x14b0c4c)
+0x014b08d4 00482de9 push     {fp, lr}
+0x014b08d8 00b08de2 add      fp, sp, #0
+0x014b08dc 10d04de2 sub      sp, sp, #0x10
+0x014b08e0 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x014b08e4 0c005de1 cmp      sp, ip
+0x014b08e8 1f81069b blls     #0x1650d6c
+0x014b08ec 0c009be5 ldr      r0, [fp, #0xc]
+0x014b08f0 071090e5 ldr      r1, [r0, #7]
+0x014b08f4 04102de5 str      r1, [sp, #-4]!
+0x014b08f8 edffffeb bl       #0x14b08b4
+0x014b08fc 04d08de2 add      sp, sp, #4
+0x014b0900 08e09be5 ldr      lr, [fp, #8]
+0x014b0904 04e02de5 str      lr, [sp, #-4]!
+0x014b0908 e40100eb bl       #0x14b10a0
+0x014b090c 04d08de2 add      sp, sp, #4
+0x014b0910 0020a0e1 mov      r2, r0
+0x014b0914 0c009be5 ldr      r0, [fp, #0xc]
+0x014b0918 04200be5 str      r2, [fp, #-4]
+0x014b091c 08100be5 str      r1, [fp, #-8]
+0x014b0920 073090e5 ldr      r3, [r0, #7]
+0x014b0924 04302de5 str      r3, [sp, #-4]!
+0x014b0928 e1ffffeb bl       #0x14b08b4
+0x014b092c 04d08de2 add      sp, sp, #4
+0x014b0930 0c009be5 ldr      r0, [fp, #0xc]
+0x014b0934 071090e5 ldr      r1, [r0, #7]
+0x014b0938 08209be5 ldr      r2, [fp, #8]
+0x014b093c 033092e5 ldr      r3, [r2, #3]
+0x014b0940 04102de5 str      r1, [sp, #-4]!
+0x014b0944 04302de5 str      r3, [sp, #-4]!
+0x014b0948 6b4095e5 ldr      r4, [r5, #0x6b]
+0x014b094c 82ffffeb bl       #0x14b075c
+0x014b0950 08d08de2 add      sp, sp, #8
+0x014b0954 0c009be5 ldr      r0, [fp, #0xc]
+0x014b0958 071090e5 ldr      r1, [r0, #7]
+0x014b095c 08209be5 ldr      r2, [fp, #8]
+0x014b0960 073092e5 ldr      r3, [r2, #7]
+0x014b0964 076093e5 ldr      r6, [r3, #7]
+0x014b0968 0b4093e5 ldr      r4, [r3, #0xb]
+0x014b096c 04102de5 str      r1, [sp, #-4]!
+0x014b0970 04402de5 str      r4, [sp, #-4]!
+0x014b0974 04602de5 str      r6, [sp, #-4]!
+0x014b0978 48ffffeb bl       #0x14b06a0
+0x014b097c 0cd08de2 add      sp, sp, #0xc
+0x014b0980 08009be5 ldr      r0, [fp, #8]
+0x014b0984 071090e5 ldr      r1, [r0, #7]
+0x014b0988 073091e5 ldr      r3, [r1, #7]
+0x014b098c 0b2091e5 ldr      r2, [r1, #0xb]
+0x014b0990 0310a0e1 mov      r1, r3
+0x014b0994 0820a0e3 mov      r2, #8
+0x014b0998 023001e0 and      r3, r1, r2
+0x014b099c 0340a0e1 mov      r4, r3
+0x014b09a0 011021e0 eor      r1, r1, r1
+0x014b09a4 080054e3 cmp      r4, #8
+0x014b09a8 00005103 cmpeq    r1, #0
+0x014b09ac 0c00001a bne      #0x14b09e4
+0x014b09b0 0c109be5 ldr      r1, [fp, #0xc]
+0x014b09b4 073091e5 ldr      r3, [r1, #7]
+0x014b09b8 0b4090e5 ldr      r4, [r0, #0xb]
+0x014b09bc 70c09ae5 ldr      ip, [sl, #0x70]
+0x014b09c0 0c0054e1 cmp      r4, ip
+0x014b09c4 d681060b bleq     #0x1651124
+0x014b09c8 078094e5 ldr      r8, [r4, #7]
+0x014b09cc 0b6094e5 ldr      r6, [r4, #0xb]
+0x014b09d0 04302de5 str      r3, [sp, #-4]!
+0x014b09d4 04602de5 str      r6, [sp, #-4]!
+0x014b09d8 04802de5 str      r8, [sp, #-4]!
+0x014b09dc 2fffffeb bl       #0x14b06a0
+0x014b09e0 0cd08de2 add      sp, sp, #0xc
+0x014b09e4 08009be5 ldr      r0, [fp, #8]
+0x014b09e8 4010a0e3 mov      r1, #0x40
+0x014b09ec 072090e5 ldr      r2, [r0, #7]
+0x014b09f0 074092e5 ldr      r4, [r2, #7]
+0x014b09f4 0b3092e5 ldr      r3, [r2, #0xb]
+0x014b09f8 0420a0e1 mov      r2, r4
+0x014b09fc 013002e0 and      r3, r2, r1
+0x014b0a00 0320a0e1 mov      r2, r3
+0x014b0a04 011021e0 eor      r1, r1, r1
+0x014b0a08 400052e3 cmp      r2, #0x40
+0x014b0a0c 00005103 cmpeq    r1, #0
+0x014b0a10 0a00001a bne      #0x14b0a40
+0x014b0a14 0c109be5 ldr      r1, [fp, #0xc]
+0x014b0a18 072091e5 ldr      r2, [r1, #7]
+0x014b0a1c 0f3090e5 ldr      r3, [r0, #0xf]
+0x014b0a20 70c09ae5 ldr      ip, [sl, #0x70]
+0x014b0a24 0c0053e1 cmp      r3, ip
+0x014b0a28 bd81060b bleq     #0x1651124
+0x014b0a2c 04202de5 str      r2, [sp, #-4]!
+0x014b0a30 04302de5 str      r3, [sp, #-4]!
+0x014b0a34 6b4095e5 ldr      r4, [r5, #0x6b]
+0x014b0a38 47ffffeb bl       #0x14b075c
+0x014b0a3c 08d08de2 add      sp, sp, #8
+0x014b0a40 0c109be5 ldr      r1, [fp, #0xc]
+0x014b0a44 08009be5 ldr      r0, [fp, #8]
+0x014b0a48 072091e5 ldr      r2, [r1, #7]
+0x014b0a4c 133090e5 ldr      r3, [r0, #0x13]
+0x014b0a50 076093e5 ldr      r6, [r3, #7]
+0x014b0a54 0b4093e5 ldr      r4, [r3, #0xb]
+0x014b0a58 04202de5 str      r2, [sp, #-4]!
+0x014b0a5c 04402de5 str      r4, [sp, #-4]!
+0x014b0a60 04602de5 str      r6, [sp, #-4]!
+0x014b0a64 0dffffeb bl       #0x14b06a0
+0x014b0a68 0cd08de2 add      sp, sp, #0xc
+0x014b0a6c 0c009be5 ldr      r0, [fp, #0xc]
+0x014b0a70 071090e5 ldr      r1, [r0, #7]
+0x014b0a74 08209be5 ldr      r2, [fp, #8]
+0x014b0a78 0c100be5 str      r1, [fp, #-0xc]
+0x014b0a7c 173092e5 ldr      r3, [r2, #0x17]
+0x014b0a80 014013e5 ldr      r4, [r3, #-1]
+0x014b0a84 5446f3e7 ubfx     r4, r4, #0xc, #0x14
+0x014b0a88 8440a0e1 lsl      r4, r4, #1
+0x014b0a8c 7ecd00e3 movw     ip, #0xd7e
+0x014b0a90 0c0054e1 cmp      r4, ip
+0x014b0a94 0300001a bne      #0x14b0aa8
+0x014b0a98 0040a0e3 mov      r4, #0
+0x014b0a9c 447f06eb bl       #0x16507b4
+0x014b0aa0 0010a0e1 mov      r1, r0
+0x014b0aa4 070000ea b        #0x14b0ac8
+0x014b0aa8 010013e5 ldr      r0, [r3, #-1]
+0x014b0aac 5006f3e7 ubfx     r0, r0, #0xc, #0x14
+0x014b0ab0 04302de5 str      r3, [sp, #-4]!
+0x014b0ab4 00e187e0 add      lr, r7, r0, lsl #2
+0x014b0ab8 a8eb1ee5 ldr      lr, [lr, #-0xba8]
+0x014b0abc 3eff2fe1 blx      lr
+0x014b0ac0 04d08de2 add      sp, sp, #4
+0x014b0ac4 0010a0e1 mov      r1, r0
+0x014b0ac8 08009be5 ldr      r0, [fp, #8]
+0x014b0acc 0ce01be5 ldr      lr, [fp, #-0xc]
+0x014b0ad0 02402de9 push     {r1, lr}
+0x014b0ad4 6b4095e5 ldr      r4, [r5, #0x6b]
+0x014b0ad8 1fffffeb bl       #0x14b075c
+0x014b0adc 08d08de2 add      sp, sp, #8
+0x014b0ae0 08009be5 ldr      r0, [fp, #8]
+0x014b0ae4 071090e5 ldr      r1, [r0, #7]
+0x014b0ae8 073091e5 ldr      r3, [r1, #7]
+0x014b0aec 0b2091e5 ldr      r2, [r1, #0xb]
+0x014b0af0 0310a0e1 mov      r1, r3
+0x014b0af4 1040a0e3 mov      r4, #0x10
+0x014b0af8 046001e0 and      r6, r1, r4
+0x014b0afc 0640a0e1 mov      r4, r6
+0x014b0b00 011021e0 eor      r1, r1, r1
+0x014b0b04 100054e3 cmp      r4, #0x10
+0x014b0b08 00005103 cmpeq    r1, #0
+0x014b0b0c 0f00000a beq      #0x14b0b50
+0x014b0b10 2010a0e3 mov      r1, #0x20
+0x014b0b14 0340a0e1 mov      r4, r3
+0x014b0b18 016004e0 and      r6, r4, r1
+0x014b0b1c 0640a0e1 mov      r4, r6
+0x014b0b20 011021e0 eor      r1, r1, r1
+0x014b0b24 200054e3 cmp      r4, #0x20
+0x014b0b28 00005103 cmpeq    r1, #0
+0x014b0b2c 0700000a beq      #0x14b0b50
+0x014b0b30 3010a0e3 mov      r1, #0x30
+0x014b0b34 0340a0e1 mov      r4, r3
+0x014b0b38 012004e0 and      r2, r4, r1
+0x014b0b3c 0230a0e1 mov      r3, r2
+0x014b0b40 011021e0 eor      r1, r1, r1
+0x014b0b44 300053e3 cmp      r3, #0x30
+0x014b0b48 00005103 cmpeq    r1, #0
+0x014b0b4c 0a00001a bne      #0x14b0b7c
+0x014b0b50 0c109be5 ldr      r1, [fp, #0xc]
+0x014b0b54 072091e5 ldr      r2, [r1, #7]
+0x014b0b58 1b3090e5 ldr      r3, [r0, #0x1b]
+0x014b0b5c 70c09ae5 ldr      ip, [sl, #0x70]
+0x014b0b60 0c0053e1 cmp      r3, ip
+0x014b0b64 6e81060b bleq     #0x1651124
+0x014b0b68 04202de5 str      r2, [sp, #-4]!
+0x014b0b6c 04302de5 str      r3, [sp, #-4]!
+0x014b0b70 6b4095e5 ldr      r4, [r5, #0x6b]
+0x014b0b74 f8feffeb bl       #0x14b075c
+0x014b0b78 08d08de2 add      sp, sp, #8
+0x014b0b7c 0c309be5 ldr      r3, [fp, #0xc]
+0x014b0b80 08209be5 ldr      r2, [fp, #8]
+0x014b0b84 04601be5 ldr      r6, [fp, #-4]
+0x014b0b88 08401be5 ldr      r4, [fp, #-8]
+0x014b0b8c 8600a0e1 lsl      r0, r6, #1
+0x014b0b90 c00056e1 cmp      r6, r0, asr #1
+0x014b0b94 c00f5401 cmpeq    r4, r0, asr #31
+0x014b0b98 0200000a beq      #0x14b0ba8
+0x014b0b9c b08006eb bl       #0x1650e64
+0x014b0ba0 076080e5 str      r6, [r0, #7]
+0x014b0ba4 0b4080e5 str      r4, [r0, #0xb]
+0x014b0ba8 071093e5 ldr      r1, [r3, #7]
+0x014b0bac 0040a0e1 mov      r4, r0
+0x014b0bb0 0c100be5 str      r1, [fp, #-0xc]
+0x014b0bb4 fe7e06eb bl       #0x16507b4
+0x014b0bb8 10000be5 str      r0, [fp, #-0x10]
+0x014b0bbc 0ce01be5 ldr      lr, [fp, #-0xc]
+0x014b0bc0 01402de9 push     {r0, lr}
+0x014b0bc4 6b4095e5 ldr      r4, [r5, #0x6b]
+0x014b0bc8 adfdffeb bl       #0x14b0284
+0x014b0bcc 08d08de2 add      sp, sp, #8
+0x014b0bd0 0c009be5 ldr      r0, [fp, #0xc]
+0x014b0bd4 071090e5 ldr      r1, [r0, #7]
+0x014b0bd8 04102de5 str      r1, [sp, #-4]!
+0x014b0bdc 34ffffeb bl       #0x14b08b4
+0x014b0be0 04d08de2 add      sp, sp, #4
+0x014b0be4 08009be5 ldr      r0, [fp, #8]
+0x014b0be8 071090e5 ldr      r1, [r0, #7]
+0x014b0bec 072091e5 ldr      r2, [r1, #7]
+0x014b0bf0 0b0091e5 ldr      r0, [r1, #0xb]
+0x014b0bf4 0210a0e1 mov      r1, r2
+0x014b0bf8 0800a0e3 mov      r0, #8
+0x014b0bfc 002001e0 and      r2, r1, r0
+0x014b0c00 0210a0e1 mov      r1, r2
+0x014b0c04 000020e0 eor      r0, r0, r0
+0x014b0c08 080051e3 cmp      r1, #8
+0x014b0c0c 00005003 cmpeq    r0, #0
+0x014b0c10 0600001a bne      #0x14b0c30
+0x014b0c14 7e56ddeb bl       #0xc06614
+0x014b0c18 04002de5 str      r0, [sp, #-4]!
+0x014b0c1c 10e01be5 ldr      lr, [fp, #-0x10]
+0x014b0c20 04e02de5 str      lr, [sp, #-4]!
+0x014b0c24 6b4095e5 ldr      r4, [r5, #0x6b]
+0x014b0c28 ec55ddeb bl       #0xc063e0
+0x014b0c2c 08d08de2 add      sp, sp, #8
+0x014b0c30 0ce09be5 ldr      lr, [fp, #0xc]
+0x014b0c34 10901be5 ldr      sb, [fp, #-0x10]
+0x014b0c38 00422de9 push     {sb, lr}
+0x014b0c3c 020000eb bl       #0x14b0c4c
+0x014b0c40 08d08de2 add      sp, sp, #8
+0x014b0c44 00d04be2 sub      sp, fp, #0
+0x014b0c48 0088bde8 pop      {fp, pc}
+
+CI 22861 unresolved [0xfeccc4, 0xfecdd8)
+0x00feccc4 00482de9 push     {fp, lr}
+0x00feccc8 00b08de2 add      fp, sp, #0
+0x00fecccc 0cd04de2 sub      sp, sp, #0xc
+0x00feccd0 78009ae5 ldr      r0, [sl, #0x78]
+0x00feccd4 08109be5 ldr      r1, [fp, #8]
+0x00feccd8 132091e5 ldr      r2, [r1, #0x13]
+0x00feccdc 04200be5 str      r2, [fp, #-4]
+0x00fecce0 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x00fecce4 0c005de1 cmp      sp, ip
+0x00fecce8 1f90199b blls     #0x1650d6c
+0x00feccec 44109ae5 ldr      r1, [sl, #0x44]
+0x00feccf0 01ca81e2 add      ip, r1, #0x1000
+0x00feccf4 1c088ce5 str      r0, [ip, #0x81c]
+0x00feccf8 44009ae5 ldr      r0, [sl, #0x44]
+0x00feccfc 01ca80e2 add      ip, r0, #0x1000
+0x00fecd00 ec049ce5 ldr      r0, [ip, #0x4ec]
+0x00fecd04 13c095e5 ldr      ip, [r5, #0x13]
+0x00fecd08 0c0050e1 cmp      r0, ip
+0x00fecd0c 0200001a bne      #0xfecd1c
+0x00fecd10 032a85e2 add      r2, r5, #0x3000
+0x00fecd14 ff2992e5 ldr      r2, [r2, #0x9ff]
+0x00fecd18 348919eb bl       #0x164f1f0
+0x00fecd1c 03ea85e2 add      lr, r5, #0x3000
+0x00fecd20 5beb9ee5 ldr      lr, [lr, #0xb5b]
+0x00fecd24 04e02de5 str      lr, [sp, #-4]!
+0x00fecd28 1b4095e5 ldr      r4, [r5, #0x1b]
+0x00fecd2c 9e84eceb bl       #0xb0dfac
+0x00fecd30 04d08de2 add      sp, sp, #4
+0x00fecd34 0010a0e1 mov      r1, r0
+0x00fecd38 04201be5 ldr      r2, [fp, #-4]
+0x00fecd3c 130092e5 ldr      r0, [r2, #0x13]
+0x00fecd40 230081e5 str      r0, [r1, #0x23]
+0x00fecd44 01c051e5 ldrb     ip, [r1, #-1]
+0x00fecd48 01e050e5 ldrb     lr, [r0, #-1]
+0x00fecd4c 2cc10ee0 and      ip, lr, ip, lsr #2
+0x00fecd50 20e09ae5 ldr      lr, [sl, #0x20]
+0x00fecd54 0e001ce1 tst      ip, lr
+0x00fecd58 418a191b blne     #0x164f664
+0x00fecd5c 03ea85e2 add      lr, r5, #0x3000
+0x00fecd60 57eb9ee5 ldr      lr, [lr, #0xb57]
+0x00fecd64 04e02de5 str      lr, [sp, #-4]!
+0x00fecd68 1b4095e5 ldr      r4, [r5, #0x1b]
+0x00fecd6c 8e84eceb bl       #0xb0dfac
+0x00fecd70 04d08de2 add      sp, sp, #4
+0x00fecd74 0030a0e1 mov      r3, r0
+0x00fecd78 04001be5 ldr      r0, [fp, #-4]
+0x00fecd7c 0c300be5 str      r3, [fp, #-0xc]
+0x00fecd80 174090e5 ldr      r4, [r0, #0x17]
+0x00fecd84 0020a0e1 mov      r2, r0
+0x00fecd88 08400be5 str      r4, [fp, #-8]
+0x00fecd8c 271a85e2 add      r1, r5, #0x27000
+0x00fecd90 a31e91e5 ldr      r1, [r1, #0xea3]
+0x00fecd94 0c8c19eb bl       #0x164fdcc
+0x00fecd98 04201be5 ldr      r2, [fp, #-4]
+0x00fecd9c 271a85e2 add      r1, r5, #0x27000
+0x00fecda0 a71e91e5 ldr      r1, [r1, #0xea7]
+0x00fecda4 04000be5 str      r0, [fp, #-4]
+0x00fecda8 078c19eb bl       #0x164fdcc
+0x00fecdac 0ce01be5 ldr      lr, [fp, #-0xc]
+0x00fecdb0 08901be5 ldr      sb, [fp, #-8]
+0x00fecdb4 04801be5 ldr      r8, [fp, #-4]
+0x00fecdb8 01432de9 push     {r0, r8, sb, lr}
+0x00fecdbc 094a85e2 add      r4, r5, #0x9000
+0x00fecdc0 1f4694e5 ldr      r4, [r4, #0x61f]
+0x00fecdc4 7caaeeeb bl       #0xb977bc
+0x00fecdc8 10d08de2 add      sp, sp, #0x10
+0x00fecdcc 70009ae5 ldr      r0, [sl, #0x70]
+0x00fecdd0 00d04be2 sub      sp, fp, #0
+0x00fecdd4 0088bde8 pop      {fp, pc}
+
+CI 36463 unresolved [0x138ad80, 0x138ade0)
+0x0138ad80 00482de9 push     {fp, lr}
+0x0138ad84 00b08de2 add      fp, sp, #0
+0x0138ad88 04d04de2 sub      sp, sp, #4
+0x0138ad8c 74009ae5 ldr      r0, [sl, #0x74]
+0x0138ad90 08109be5 ldr      r1, [fp, #8]
+0x0138ad94 132091e5 ldr      r2, [r1, #0x13]
+0x0138ad98 04200be5 str      r2, [fp, #-4]
+0x0138ad9c 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x0138ada0 0c005de1 cmp      sp, ip
+0x0138ada4 f0170b9b blls     #0x1650d6c
+0x0138ada8 44109ae5 ldr      r1, [sl, #0x44]
+0x0138adac 01ca81e2 add      ip, r1, #0x1000
+0x0138adb0 1c088ce5 str      r0, [ip, #0x81c]
+0x0138adb4 014985e2 add      r4, r5, #0x4000
+0x0138adb8 234494e5 ldr      r4, [r4, #0x423]
+0x0138adbc 0da8ddeb bl       #0xaf4df8
+0x0138adc0 04001be5 ldr      r0, [fp, #-4]
+0x0138adc4 0b1090e5 ldr      r1, [r0, #0xb]
+0x0138adc8 04102de5 str      r1, [sp, #-4]!
+0x0138adcc 217df1eb bl       #0xfea258
+0x0138add0 04d08de2 add      sp, sp, #4
+0x0138add4 70009ae5 ldr      r0, [sl, #0x70]
+0x0138add8 00d04be2 sub      sp, fp, #0
+0x0138addc 0088bde8 pop      {fp, pc}
+
+CI 36465 unresolved [0x138ae18, 0x138afa0)
+0x0138ae18 00482de9 push     {fp, lr}
+0x0138ae1c 00b08de2 add      fp, sp, #0
+0x0138ae20 10d04de2 sub      sp, sp, #0x10
+0x0138ae24 70009ae5 ldr      r0, [sl, #0x70]
+0x0138ae28 04000be5 str      r0, [fp, #-4]
+0x0138ae2c 0000a0e3 mov      r0, #0
+0x0138ae30 80108be0 add      r1, fp, r0, lsl #1
+0x0138ae34 0c1091e5 ldr      r1, [r1, #0xc]
+0x0138ae38 80208be0 add      r2, fp, r0, lsl #1
+0x0138ae3c 082092e5 ldr      r2, [r2, #8]
+0x0138ae40 0c200be5 str      r2, [fp, #-0xc]
+0x0138ae44 133091e5 ldr      r3, [r1, #0x13]
+0x0138ae48 08300be5 str      r3, [fp, #-8]
+0x0138ae4c 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x0138ae50 0c005de1 cmp      sp, ip
+0x0138ae54 c4170b9b blls     #0x1650d6c
+0x0138ae58 430195e5 ldr      r0, [r5, #0x143]
+0x0138ae5c ea64d7eb bl       #0x96420c
+0x0138ae60 44009ae5 ldr      r0, [sl, #0x44]
+0x0138ae64 01ca80e2 add      ip, r0, #0x1000
+0x0138ae68 ec049ce5 ldr      r0, [ip, #0x4ec]
+0x0138ae6c 13c095e5 ldr      ip, [r5, #0x13]
+0x0138ae70 0c0050e1 cmp      r0, ip
+0x0138ae74 0200001a bne      #0x138ae84
+0x0138ae78 032a85e2 add      r2, r5, #0x3000
+0x0138ae7c ff2992e5 ldr      r2, [r2, #0x9ff]
+0x0138ae80 da100beb bl       #0x164f1f0
+0x0138ae84 03ea85e2 add      lr, r5, #0x3000
+0x0138ae88 73eb9ee5 ldr      lr, [lr, #0xb73]
+0x0138ae8c 04e02de5 str      lr, [sp, #-4]!
+0x0138ae90 1b4095e5 ldr      r4, [r5, #0x1b]
+0x0138ae94 440cdeeb bl       #0xb0dfac
+0x0138ae98 04d08de2 add      sp, sp, #4
+0x0138ae9c 04002de5 str      r0, [sp, #-4]!
+0x0138aea0 78e09ae5 ldr      lr, [sl, #0x78]
+0x0138aea4 04e02de5 str      lr, [sp, #-4]!
+0x0138aea8 ea4ee0eb bl       #0xb9ea58
+0x0138aeac 08d08de2 add      sp, sp, #8
+0x0138aeb0 9b53d7eb bl       #0x95fd24
+0x0138aeb4 0020a0e1 mov      r2, r0
+0x0138aeb8 960fa0e3 mov      r0, #0x258
+0x0138aebc 0010a0e3 mov      r1, #0
+0x0138aec0 030082e5 str      r0, [r2, #3]
+0x0138aec4 071082e5 str      r1, [r2, #7]
+0x0138aec8 70e09ae5 ldr      lr, [sl, #0x70]
+0x0138aecc 04402de9 push     {r2, lr}
+0x0138aed0 6b4095e5 ldr      r4, [r5, #0x6b]
+0x0138aed4 009ddbeb bl       #0xa722dc
+0x0138aed8 08d08de2 add      sp, sp, #8
+0x0138aedc 0010a0e1 mov      r1, r0
+0x0138aee0 10100be5 str      r1, [fp, #-0x10]
+0x0138aee4 2a64d7eb bl       #0x963f94
+0x0138aee8 03ea85e2 add      lr, r5, #0x3000
+0x0138aeec 57eb9ee5 ldr      lr, [lr, #0xb57]
+0x0138aef0 04e02de5 str      lr, [sp, #-4]!
+0x0138aef4 1b4095e5 ldr      r4, [r5, #0x1b]
+0x0138aef8 2b0cdeeb bl       #0xb0dfac
+0x0138aefc 04d08de2 add      sp, sp, #4
+0x0138af00 10000be5 str      r0, [fp, #-0x10]
+0x0138af04 03ea85e2 add      lr, r5, #0x3000
+0x0138af08 57eb9ee5 ldr      lr, [lr, #0xb57]
+0x0138af0c 04e02de5 str      lr, [sp, #-4]!
+0x0138af10 1b4095e5 ldr      r4, [r5, #0x1b]
+0x0138af14 240cdeeb bl       #0xb0dfac
+0x0138af18 04d08de2 add      sp, sp, #4
+0x0138af1c 371090e5 ldr      r1, [r0, #0x37]
+0x0138af20 030091e5 ldr      r0, [r1, #3]
+0x0138af24 10e01be5 ldr      lr, [fp, #-0x10]
+0x0138af28 74909ae5 ldr      sb, [sl, #0x74]
+0x0138af2c 01422de9 push     {r0, sb, lr}
+0x0138af30 274a85e2 add      r4, r5, #0x27000
+0x0138af34 b74d94e5 ldr      r4, [r4, #0xdb7]
+0x0138af38 e8afdfeb bl       #0xb76ee0
+0x0138af3c 0cd08de2 add      sp, sp, #0xc
+0x0138af40 014985e2 add      r4, r5, #0x4000
+0x0138af44 234494e5 ldr      r4, [r4, #0x423]
+0x0138af48 aaa7ddeb bl       #0xaf4df8
+0x0138af4c 74009ae5 ldr      r0, [sl, #0x74]
+0x0138af50 44109ae5 ldr      r1, [sl, #0x44]
+0x0138af54 01ca81e2 add      ip, r1, #0x1000
+0x0138af58 1c088ce5 str      r0, [ip, #0x81c]
+0x0138af5c 08001be5 ldr      r0, [fp, #-8]
+0x0138af60 0b1090e5 ldr      r1, [r0, #0xb]
+0x0138af64 2f2091e5 ldr      r2, [r1, #0x2f]
+0x0138af68 2f1092e5 ldr      r1, [r2, #0x2f]
+0x0138af6c 270a85e2 add      r0, r5, #0x27000
+0x0138af70 bb0d90e5 ldr      r0, [r0, #0xdbb]
+0x0138af74 03002de9 push     {r0, r1}
+0x0138af78 9e50ddeb bl       #0xadf1f8
+0x0138af7c 08d08de2 add      sp, sp, #8
+0x0138af80 08001be5 ldr      r0, [fp, #-8]
+0x0138af84 0b1090e5 ldr      r1, [r0, #0xb]
+0x0138af88 0c001be5 ldr      r0, [fp, #-0xc]
+0x0138af8c 03002de9 push     {r0, r1}
+0x0138af90 020000eb bl       #0x138afa0
+0x0138af94 08d08de2 add      sp, sp, #8
+0x0138af98 70009ae5 ldr      r0, [sl, #0x70]
+0x0138af9c 5f54d7ea b        #0x960120

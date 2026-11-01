@@ -1,0 +1,17 @@
+﻿--------- beginning of main
+11-02 00:41:27.911 I/IonLockTest(30039): begin target=1
+11-02 00:41:27.912 I/IonLockTest(30039): mtu=247; security request
+11-02 00:41:27.975 I/IonLockTest(30039): security key response valid
+11-02 00:41:28.040 I/IonLockTest(30039): security verify observed
+11-02 00:41:28.043 I/IonLockTest(30039): request target=1 bytes=AAAA1605022160310160
+11-02 00:41:28.106 I/IonLockTest(30039): send returned; wheel state not yet confirmed
+11-02 00:41:28.121 I/IonLockTest(30039): lock_reply observed; status semantics unknown
+11-02 00:41:28.412 I/IonLockTest(30039): readback target=1 result=match
+11-02 00:41:38.822 I/IonLockTest(30039): begin target=0
+11-02 00:41:38.824 I/IonLockTest(30039): mtu=247; security request
+11-02 00:41:38.887 I/IonLockTest(30039): security key response valid
+11-02 00:41:38.954 I/IonLockTest(30039): security verify observed
+11-02 00:41:38.956 I/IonLockTest(30039): request target=0 bytes=AAAA1605022160310061
+11-02 00:41:38.983 I/IonLockTest(30039): lock_reply observed; status semantics unknown
+11-02 00:41:39.020 I/IonLockTest(30039): send returned; wheel state not yet confirmed
+11-02 00:41:39.290 I/IonLockTest(30039): readback target=0 result=match

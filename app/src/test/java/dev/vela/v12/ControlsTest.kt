@@ -23,9 +23,19 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-5) to byteArrayOf(0x22,0xce.toByte(),0xff.toByte()),
             V12Protocol.Write(V12Protocol.Control.ALARMS,20,35) to byteArrayOf(0x3e,0xd0.toByte(),0x07,0xac.toByte(),0x0d.toByte()),
             V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,1) to byteArrayOf(0x2e,0),
-            V12Protocol.Write(V12Protocol.Control.LOCK,1) to byteArrayOf(0x31,1),
             V12Protocol.Write(V12Protocol.Control.TRANSPORT,0) to byteArrayOf(0x32,0))
         samples.forEach { (w,p) -> val f=unpack(w);assertEquals(0x14,f.flags);assertEquals(0x60,f.command);assertFalse(f.response);assertArrayEquals(p,f.payload) }
+    }
+    @Test fun lockFramesMatchOfficialObservedV12HtSession() {
+        fun bytes(hex: String) = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
+        val on = V12Protocol.Write(V12Protocol.Control.LOCK, 1)
+        val off = V12Protocol.Write(V12Protocol.Control.LOCK, 0)
+        assertArrayEquals(bytes("AA AA 16 05 02 21 60 31 01 60"), on.bytes())
+        assertArrayEquals(bytes("AA AA 16 05 02 21 60 31 00 61"), off.bytes())
+        // The observed response alone is not authoritative proof of the wheel state.
+        val reply = V12Protocol.Decoder().feed(bytes("AA AA 16 05 21 02 E0 31 00 E1")).single()
+        assertNull(on.confirmed(reply)); assertNull(off.confirmed(reply))
+        assertThrows(IllegalArgumentException::class.java) { V12Protocol.Write(V12Protocol.Control.LOCK, 2) }
     }
     @Test fun invalidValuesNeverBuildACommand() {
         listOf({V12Protocol.Write(V12Protocol.Control.VOLUME,101)}, {V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,-1,0)},

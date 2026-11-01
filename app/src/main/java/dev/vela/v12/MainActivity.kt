@@ -399,7 +399,7 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
             SwitchRow(Icons.Rounded.TouchApp,"Кнопка ручки",s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.LocalShipping,"Транспортный режим",s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.Lock,"Блокировка колеса",s?.locked,
-                hint="Переключается только из офф. приложения (похоже, колесо принимает её не от любого телефона). Ion читает состояние",enabled=false,change={})
+                hint="Тестовая функция: проверяй только на неподвижном колесе; при проблеме используй официальное приложение.",enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
             SliderCard {
                 if(s!=null) {
                     val current=s.standbySeconds/60f
@@ -411,7 +411,7 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
             }
         } }
         item { OutlinedButton(onClick={actions.read(V12Protocol.Read.SETTINGS)},enabled=ui.connected && !ui.wheel.workPending,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) {Icon(Icons.Rounded.Refresh,null);Spacer(Modifier.width(8.dp));Text("Перечитать настройки",fontSize=14.sp)} }
-        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». Звуковые сигналы отправляются без подтверждения колесом. Замок читается, но переключается только владельцем в офф. приложении.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». Звуковые сигналы отправляются без подтверждения колесом. Замок проверяется экспериментально; при проблеме используй официальное приложение.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 @Composable private fun SliderCard(content: @Composable ColumnScope.()->Unit) {

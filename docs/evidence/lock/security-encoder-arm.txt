@@ -1,0 +1,38 @@
+﻿Artifact SHA-256: 92a24d380f129750f4893e92e823b878db531dee5483936b1d66c07d015263f6
+Static ARM disassembly; no execution; file offsets only.
+
+CI 9833 unresolved [0xc16b60, 0xc16ba0)
+0x00c16b60 00482de9 push     {fp, lr}
+0x00c16b64 00b08de2 add      fp, sp, #0
+0x00c16b68 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x00c16b6c 0c005de1 cmp      sp, ip
+0x00c16b70 7de8289b blls     #0x1650d6c
+0x00c16b74 0ce09be5 ldr      lr, [fp, #0xc]
+0x00c16b78 04e02de5 str      lr, [sp, #-4]!
+0x00c16b7c 070000eb bl       #0xc16ba0
+0x00c16b80 04d08de2 add      sp, sp, #4
+0x00c16b84 04002de5 str      r0, [sp, #-4]!
+0x00c16b88 08e09be5 ldr      lr, [fp, #8]
+0x00c16b8c 04e02de5 str      lr, [sp, #-4]!
+0x00c16b90 b9bdffeb bl       #0xc0627c
+0x00c16b94 08d08de2 add      sp, sp, #8
+0x00c16b98 00d04be2 sub      sp, fp, #0
+0x00c16b9c 0088bde8 pop      {fp, pc}
+
+CI 8627 unresolved [0xbc46f4, 0xbc4734)
+0x00bc46f4 00482de9 push     {fp, lr}
+0x00bc46f8 00b08de2 add      fp, sp, #0
+0x00bc46fc 0200a0e3 mov      r0, #2
+0x00bc4700 0010a0e3 mov      r1, #0
+0x00bc4704 1cc09ae5 ldr      ip, [sl, #0x1c]
+0x00bc4708 0c005de1 cmp      sp, ip
+0x00bc470c 96312a9b blls     #0x1650d6c
+0x00bc4710 70e09ae5 ldr      lr, [sl, #0x70]
+0x00bc4714 70909ae5 ldr      sb, [sl, #0x70]
+0x00bc4718 0080a0e3 mov      r8, #0
+0x00bc471c 03432de9 push     {r0, r1, r8, sb, lr}
+0x00bc4720 b34395e5 ldr      r4, [r5, #0x3b3]
+0x00bc4724 a88dffeb bl       #0xba7dcc
+0x00bc4728 14d08de2 add      sp, sp, #0x14
+0x00bc472c 00d04be2 sub      sp, fp, #0
+0x00bc4730 0088bde8 pop      {fp, pc}
