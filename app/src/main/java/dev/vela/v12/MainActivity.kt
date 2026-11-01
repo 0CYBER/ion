@@ -400,7 +400,7 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             SwitchRow(Icons.Rounded.TouchApp,"Кнопка ручки",s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.LocalShipping,"Транспортный режим",s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
-            BlindSwitchRow(Icons.Rounded.Lock,"Блокировка колеса","Колесо не сообщает состояние этой настройки",stopped) { request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0)) }
+            SwitchRow(Icons.Rounded.Lock,"Блокировка колеса",s?.locked,enabled=settingsStopped) { request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0)) }
             SliderCard {
                 if(s!=null) {
                     val current=s.standbySeconds/60f

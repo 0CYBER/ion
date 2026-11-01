@@ -101,7 +101,8 @@ object V12Protocol {
         val alarm1: Double, val alarm2: Double, val pedalTilt: Double, val classicMode: Boolean,
         val fancier: Boolean, val volume: Int, val lowBrightness: Int, val highBrightness: Int,
         val splitAccel: Int, val splitBrake: Int, val muted: Boolean, val handleEnabled: Boolean,
-        val autoLight: Boolean, val transport: Boolean, val soundWave: Boolean, val splitMode: Boolean)
+        val autoLight: Boolean, val transport: Boolean, val soundWave: Boolean, val splitMode: Boolean,
+        val locked: Boolean = false)
     fun settings(f: Frame): Settings? {
         if (f.flags != 0x14 || f.command != 0x20 || !f.response || f.payload.size < 42 || f.payload[0].u() != 0x20) return null
         val p = f.payload
@@ -109,7 +110,9 @@ object V12Protocol {
             p.s16(11)/100.0, p.s16(13)/100.0, p.s16(15)/10.0, p[19].u() and 1 != 0,
             p[19].u() and 16 != 0, p[22].u(), p[26].u(), p[27].u(), p[31].u(), p[32].u(),
             p[39].u() and 1 == 0, p[39].u() and 4 != 0, p[39].u() and 8 != 0,
-            p[39].u() and 64 != 0, p[40].u() and 4 != 0, p[41].u() and 1 != 0)
+            p[39].u() and 64 != 0, p[40].u() and 4 != 0, p[41].u() and 1 != 0,
+            // bit5 of byte39: observed flipping exactly when the vendor app toggles the wheel lock.
+            p[39].u() and 0x20 != 0)
     }
     /** WheelLog parseTotalStats (0x14/0x11): u32LE ×6; distance in 10 m units, energies /100, times in seconds. */
     data class Statistics(val totalKm: Double, val dischargedKwh: Double, val recoveredKwh: Double,
@@ -191,7 +194,7 @@ object V12Protocol {
         /** Authoritative read-back target; null means the value is not observable in known reads. */
         val readBack: Read? get() = when(kind) {
             Control.LIGHTS -> Read.TELEMETRY
-            Control.DRL, Control.PLAY_SOUND, Control.LOCK -> null
+            Control.DRL, Control.PLAY_SOUND -> null
             else -> Read.SETTINGS
         }
         val label get() = when(kind) {
@@ -261,6 +264,7 @@ object V12Protocol {
                 Control.ALARMS -> kotlin.math.abs(s.alarm1 - a) < 0.005 && kotlin.math.abs(s.alarm2 - b) < 0.005
                 Control.HANDLE_BUTTON -> s.handleEnabled == (a==1)
                 Control.TRANSPORT -> s.transport == (a==1)
+                Control.LOCK -> s.locked == (a==1)
                 else -> null
             }
         }
@@ -317,6 +321,7 @@ object V12Protocol {
             add("mute","Без звука",yes(s.muted)); add("handle","Кнопка ручки включена",yes(s.handleEnabled))
             add("autoLight","Автосвет",yes(s.autoLight)); add("transport","Транспортный режим",yes(s.transport))
             add("soundWave","Звук движения",yes(s.soundWave)); add("splitMode","Split mode",yes(s.splitMode))
+            add("locked","Блокировка (замок)",yes(s.locked),"Бит 5 байта 39; найден через before/after-дифф с офф. приложением")
         }
         model(f)?.let { add("model","Модель",it.label); add("series","Серия","${it.series}"); add("variant","Вариант","${it.variant}") }
         statistics(f)?.let { st ->

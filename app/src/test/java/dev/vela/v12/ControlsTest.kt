@@ -57,12 +57,12 @@ class ControlsTest {
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,fw=true))
     }
     @Test fun unobservableControlsHaveNoReadback() {
-        listOf(V12Protocol.Control.DRL,V12Protocol.Control.PLAY_SOUND,V12Protocol.Control.LOCK).forEach { kind ->
+        listOf(V12Protocol.Control.DRL,V12Protocol.Control.PLAY_SOUND).forEach { kind ->
             val w=V12Protocol.Write(kind,1);assertNull(w.readBack);assertNull(w.confirmed(V12Protocol.Frame(0x14,0xa0,ByteArray(42))))
         }
     }
     @Test fun settingsReadbackConfirmsNewCommands() {
-        fun settings(): ByteArray { val p=ByteArray(42);p[0]=0x20;p[19]=0x11;p[22]=55;p[39]=0x45 // bit0 unmuted, bit2 handle, bit6 transport
+        fun settings(): ByteArray { val p=ByteArray(42);p[0]=0x20;p[19]=0x11;p[22]=55;p[39]=0x65 // bit0 unmuted, bit2 handle, bit5 locked, bit6 transport
             fun s16(i: Int,v: Int){p[i]=v.toByte();p[i+1]=(v ushr 8).toByte()}
             s16(11,2000);s16(13,3500);s16(15,-50);p[20]=55;p[21]=55;p[31]=30;p[32]=70;p[41]=1;return p }
         val f=V12Protocol.Frame(0x14,0xa0,settings())
@@ -73,9 +73,11 @@ class ControlsTest {
         assertTrue(V12Protocol.Write(V12Protocol.Control.FANCIER,1).confirmed(f) == true)
         assertTrue(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,1).confirmed(f) == true)
         assertTrue(V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,30,70).confirmed(f) == true)
-        assertTrue(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,1).confirmed(f) == true) // bit2 of byte39=0x48
+        assertTrue(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,1).confirmed(f) == true) // bit2 of byte39=0x65
+        assertTrue(V12Protocol.Write(V12Protocol.Control.LOCK,1).confirmed(f) == true) // bit5: observed via vendor-app before/after diff
+        assertTrue(V12Protocol.Write(V12Protocol.Control.LOCK,0).confirmed(f) == false)
         assertTrue(V12Protocol.Write(V12Protocol.Control.TRANSPORT,1).confirmed(f) == true) // bit6
-        assertTrue(V12Protocol.Write(V12Protocol.Control.MUTE,0).confirmed(f) == true) // bit0 of 0x48 clear = unmuted
+        assertTrue(V12Protocol.Write(V12Protocol.Control.MUTE,0).confirmed(f) == true) // bit0 of 0x65 clear = unmuted
         assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,54).confirmed(f) == false) // mismatching value is not confirmed
     }
     @Test fun onlyReadbackCanConfirmNotEchoOrAck() {
