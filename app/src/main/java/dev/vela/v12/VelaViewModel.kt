@@ -19,10 +19,10 @@ data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? 
     /** Staleness only surfaces after a sustained gap, so brief packet lag never flashes a banner. */
     val staleConfirmed get() = connected && staleSince != null && now-staleSince >= Timing.STALE_BANNER_AFTER_MS
     val safeWrite get() = V12Protocol.canWriteSafe(wheel.verifiedHt, connected,
-        wheel.telemetry?.firmwareUpdate ?: false, wheel.workPending)
+        wheel.telemetry?.firmwareUpdate ?: false, wheel.writeInFlight)
     val stoppedWrite get() = wheel.stationaryPackets >= 3 && V12Protocol.canWrite(V12Protocol.Tier.STATIONARY,
         wheel.verifiedHt, connected, wheel.lastPacketAt?.let { now-it }, wheel.telemetry?.speed,
-        wheel.telemetry?.charging ?: false, wheel.telemetry?.firmwareUpdate ?: false, wheel.workPending)
+        wheel.telemetry?.charging ?: false, wheel.telemetry?.firmwareUpdate ?: false, wheel.writeInFlight)
     fun canTier(tier: V12Protocol.Tier) = if(tier == V12Protocol.Tier.SAFE) safeWrite else stoppedWrite
     fun canWrite(command: V12Protocol.Write) = canTier(command.kind.tier)
     val settingsFresh get() = connected && wheel.settingsAt?.let { now-it in 0..15_000 } == true

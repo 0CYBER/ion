@@ -321,7 +321,6 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
         item { Heading("Твой пульт","Свет и звук — в любой момент; режимы и педали — на стоянке") }
         item { Banner(when {
-            ui.wheel.workPending -> "Запрос выполняется. Дождись результата."
             !ui.connected -> "Подключи V12 HT, чтобы читать и менять настройки."
             !safe -> "Колесо сообщает об обновлении прошивки — запись заблокирована."
             !stopped -> "Свет и звук — всегда при связи. Режимы, педали и служебное — только на остановленном колесе."
@@ -365,8 +364,8 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
         } }
         item { SectionHeader("Режимы езды · на стоянке") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            SwitchRow(Icons.Rounded.DirectionsBike,"Классический режим",s?.classicMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
-            SwitchRow(Icons.Rounded.RocketLaunch,"Fancier mode",s?.fancier,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
+            SwitchRow(Icons.Rounded.Terrain,"Бездорожье (classic)",s?.classicMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
+            SwitchRow(Icons.Rounded.Spa,"Комфорт (fancier)",s?.fancier,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.CallSplit,"Split mode",s?.splitMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,if(it)1 else 0))}
             SliderCard {
                 if(s!=null) {
@@ -400,7 +399,8 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             SwitchRow(Icons.Rounded.TouchApp,"Кнопка ручки",s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.LocalShipping,"Транспортный режим",s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
-            SwitchRow(Icons.Rounded.Lock,"Блокировка колеса",s?.locked,enabled=settingsStopped) { request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0)) }
+            SwitchRow(Icons.Rounded.Lock,"Блокировка колеса",s?.locked,
+                hint="Переключается только из офф. приложения (похоже, колесо принимает её не от любого телефона). Ion читает состояние",enabled=false,change={})
             SliderCard {
                 if(s!=null) {
                     val current=s.standbySeconds/60f
@@ -412,7 +412,7 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
             }
         } }
         item { OutlinedButton(onClick={actions.read(V12Protocol.Read.SETTINGS)},enabled=ui.connected && !ui.wheel.workPending,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) {Icon(Icons.Rounded.Refresh,null);Spacer(Modifier.width(8.dp));Text("Перечитать настройки",fontSize=14.sp)} }
-        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». Блокировка, DRL, вентилятор и звуковые сигналы отправляются без подтверждения колесом — проверяй результат на месте.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». DRL и звуковые сигналы отправляются без подтверждения колесом. Замок читается, но переключается только владельцем в офф. приложении.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 @Composable private fun SliderCard(content: @Composable ColumnScope.()->Unit) {

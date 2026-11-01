@@ -174,5 +174,9 @@ class ControlsTest {
         // Charging on the charger keeps STATIONARY controls available: stillness is what matters.
         val charging=s.copy(stationaryPackets=3,telemetry=t.copy(charging=true))
         assertTrue(VelaUi(charging,now=1100).stoppedWrite)
+        // Queued/in-flight reads must not grey out the controls; only a real write does.
+        assertTrue(VelaUi(s.copy(stationaryPackets=3,workPending=true),now=1100).safeWrite)
+        assertFalse(VelaUi(s.copy(stationaryPackets=3,writeInFlight=true),now=1100).safeWrite)
+        assertFalse(VelaUi(s.copy(stationaryPackets=3,writeInFlight=true),now=1100).stoppedWrite)
     }
 }

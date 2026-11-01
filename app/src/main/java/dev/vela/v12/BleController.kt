@@ -39,6 +39,8 @@ data class WheelState(
     val settingsAt: Long? = null,
     val records: Map<V12Protocol.Read, PacketRecord> = emptyMap(),
     val workPending: Boolean = false,
+    /** True only while an actual write is being processed; background reads must not lock the controls. */
+    val writeInFlight: Boolean = false,
     val writeMessage: String? = null,
     val stationaryPackets: Int = 0,
     /** Consecutive telemetry packets carrying the firmware-update bit; the guard acts from 2 in a row. */
@@ -67,16 +69,17 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         data class Write(val command: V12Protocol.Write) : Work
     }
     private val work = Channel<Work>(1)
-    private fun mayWrite(tier: V12Protocol.Tier, ignorePending: Boolean = false): Boolean {
+    private fun mayWrite(tier: V12Protocol.Tier, pending: Boolean, ignorePending: Boolean = false): Boolean {
         val s = mutable.value; val t = s.telemetry
         return (tier != V12Protocol.Tier.STATIONARY || s.stationaryPackets >= 3) && V12Protocol.canWrite(tier, s.verifiedHt, s.phase == Phase.CONNECTED,
             s.lastPacketAt?.let { SystemClock.elapsedRealtime()-it }, t?.speed, t?.charging ?: false,
-            t?.firmwareUpdate ?: false, s.workPending && !ignorePending)
+            t?.firmwareUpdate ?: false, pending && !ignorePending)
     }
     fun readAll() = enqueue(Work.ReadAll)
     fun read(read: V12Protocol.Read) = enqueue(Work.ReadOne(read))
     fun apply(command: V12Protocol.Write) {
-        if(!mayWrite(command.kind.tier)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
+        // Only an in-flight write blocks a new one; queued reads must not reject the tap.
+        if(!mayWrite(command.kind.tier, mutable.value.writeInFlight)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
             "Запись заблокирована: нужны свежие данные с колеса." else
             "Запись заблокирована: нужны свежие данные и остановленное колесо.") }; return }
         enqueue(Work.Write(command))
@@ -256,7 +259,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                 }
                                 is Work.ReadOne -> optionalRead(link,write,job.read)
                                 is Work.Write -> {
-                                    if(!mayWrite(job.command.kind.tier, ignorePending=true)) mutable.update { it.copy(writeMessage=
+                                    mutable.update { it.copy(writeInFlight=true) }
+                                    if(!mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) mutable.update { it.copy(writeMessage=
                                         if(job.command.kind.tier == V12Protocol.Tier.SAFE) "Не отправлено: связь устарела или запись запрещена."
                                         else "Не отправлено: колесо движется, связь устарела или запись запрещена.") }
                                     else {
@@ -276,7 +280,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                     }
                                 }
                             }
-                        } finally { mutable.update { it.copy(workPending=false) } }
+                        } finally { mutable.update { it.copy(workPending=false, writeInFlight=false) } }
                     }
                     if(SystemClock.elapsedRealtime() >= settingsDue) {
                         // One retry keeps the 15s settings-freshness window stable on a flaky radio.
