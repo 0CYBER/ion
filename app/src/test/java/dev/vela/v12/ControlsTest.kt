@@ -5,7 +5,7 @@ import org.junit.Test
 class ControlsTest {
     private fun unpack(w: V12Protocol.Write) = V12Protocol.Decoder().feed(w.bytes()).single()
     @Test fun allowlistMatchesReferencePayloads() {
-        assertEquals(19,V12Protocol.Control.entries.size)
+        assertEquals(18,V12Protocol.Control.entries.size)
         val samples=listOf(
             V12Protocol.Write(V12Protocol.Control.LIGHTS,1,0) to byteArrayOf(0x50,1,0),
             V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,25,75) to byteArrayOf(0x2b,25,75),
@@ -14,7 +14,6 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.MUTE,1) to byteArrayOf(0x2c,0),
             V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,0) to byteArrayOf(0x39,0),
             V12Protocol.Write(V12Protocol.Control.STANDBY,10) to byteArrayOf(0x28,0x58,0x02),
-            V12Protocol.Write(V12Protocol.Control.DRL,1) to byteArrayOf(0x2d,1),
             V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,2) to byteArrayOf(0x51,2,0x01),
             V12Protocol.Write(V12Protocol.Control.CLASSIC,1) to byteArrayOf(0x23,1),
             V12Protocol.Write(V12Protocol.Control.FANCIER,0) to byteArrayOf(0x24,0),
@@ -51,13 +50,15 @@ class ControlsTest {
         assertFalse(allowed(V12Protocol.Tier.SAFE,fw=true));assertFalse(allowed(V12Protocol.Tier.SAFE,pending=true))
         // STATIONARY adds stillness; charging is allowed because a charging wheel is not moving.
         assertTrue(allowed(V12Protocol.Tier.STATIONARY));assertTrue(allowed(V12Protocol.Tier.STATIONARY,charging=true))
-        assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=.1));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=-.1))
+        // 0.5 km/h threshold tolerates balancing micro-corrections while standing.
+        assertTrue(allowed(V12Protocol.Tier.STATIONARY,speed=.1));assertTrue(allowed(V12Protocol.Tier.STATIONARY,speed=-.3))
+        assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=.5));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=-1.0))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=null));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=Double.NaN))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=1501));assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=null))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,fw=true))
     }
     @Test fun unobservableControlsHaveNoReadback() {
-        listOf(V12Protocol.Control.DRL,V12Protocol.Control.PLAY_SOUND).forEach { kind ->
+        listOf(V12Protocol.Control.PLAY_SOUND).forEach { kind ->
             val w=V12Protocol.Write(kind,1);assertNull(w.readBack);assertNull(w.confirmed(V12Protocol.Frame(0x14,0xa0,ByteArray(42))))
         }
     }

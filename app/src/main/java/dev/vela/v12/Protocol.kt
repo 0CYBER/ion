@@ -172,7 +172,7 @@ object V12Protocol {
         listOf("","err_hwCompatibilityState","err_fanLowSpeedState","err_notKnown2"))
     enum class Tier { SAFE, STATIONARY }
     enum class Control(val tier: Tier) {
-        LIGHTS(Tier.SAFE), BRIGHTNESS(Tier.SAFE), AUTO_LIGHT(Tier.SAFE), DRL(Tier.SAFE),
+        LIGHTS(Tier.SAFE), BRIGHTNESS(Tier.SAFE), AUTO_LIGHT(Tier.SAFE),
         VOLUME(Tier.SAFE), MUTE(Tier.SAFE), SOUND_WAVE(Tier.SAFE), PLAY_SOUND(Tier.SAFE),
         CLASSIC(Tier.STATIONARY), FANCIER(Tier.STATIONARY), SPLIT_MODE(Tier.STATIONARY), SPLIT_ACCEL_BRAKE(Tier.STATIONARY),
         PEDAL_SENS(Tier.STATIONARY), PEDAL_TILT(Tier.STATIONARY), ALARMS(Tier.STATIONARY),
@@ -194,20 +194,19 @@ object V12Protocol {
         /** Authoritative read-back target; null means the value is not observable in known reads. */
         val readBack: Read? get() = when(kind) {
             Control.LIGHTS -> Read.TELEMETRY
-            Control.DRL, Control.PLAY_SOUND -> null
+            Control.PLAY_SOUND -> null
             else -> Read.SETTINGS
         }
         val label get() = when(kind) {
             Control.LIGHTS -> "Свет: ближний ${if(a==1) "вкл" else "выкл"}, дальний ${if(b==1) "вкл" else "выкл"}"
             Control.BRIGHTNESS -> "Яркость: ближний $a%, дальний $b%"
             Control.AUTO_LIGHT -> "Автосвет: ${if(a==1) "вкл" else "выкл"}"
-            Control.DRL -> "Дневной свет (DRL): ${if(a==1) "вкл" else "выкл"}"
             Control.VOLUME -> "Громкость: $a%"
             Control.MUTE -> "Без звука: ${if(a==1) "да" else "нет"}"
             Control.SOUND_WAVE -> "Звук движения: ${if(a==1) "вкл" else "выкл"}"
             Control.PLAY_SOUND -> "Проиграть звук $a"
-            Control.CLASSIC -> "Бездорожье (classic): ${if(a==1) "вкл" else "выкл"}"
-            Control.FANCIER -> "Комфорт (fancier): ${if(a==1) "вкл" else "выкл"}"
+            Control.CLASSIC -> "Бездорожье: ${if(a==1) "вкл" else "выкл"} (выкл = Комфорт)"
+            Control.FANCIER -> "Продвинутый: ${if(a==1) "вкл" else "выкл"} (выкл = Нормальный)"
             Control.SPLIT_MODE -> "Split mode: ${if(a==1) "вкл" else "выкл"}"
             Control.SPLIT_ACCEL_BRAKE -> "Split: ускорение $a, торможение $b"
             Control.PEDAL_SENS -> "Чувствительность педалей: $a"
@@ -223,7 +222,6 @@ object V12Protocol {
                 Control.LIGHTS -> byteArrayOf(0x50, a.toByte(), b.toByte())
                 Control.BRIGHTNESS -> byteArrayOf(0x2b, a.toByte(), b.toByte())
                 Control.AUTO_LIGHT -> byteArrayOf(0x2f, a.toByte())
-                Control.DRL -> byteArrayOf(0x2d, a.toByte())
                 Control.VOLUME -> byteArrayOf(0x26, a.toByte())
                 Control.MUTE -> byteArrayOf(0x2c, (1-a).toByte())
                 Control.SOUND_WAVE -> byteArrayOf(0x39, a.toByte())
@@ -274,10 +272,11 @@ object V12Protocol {
      * not required, matching the vendor app. A live GATT link is enough — read-back still verifies. */
     fun canWriteSafe(verified: Boolean, connected: Boolean, firmwareUpdate: Boolean, pending: Boolean): Boolean =
         verified && connected && !pending && !firmwareUpdate
-    /** STATIONARY tier adds stillness on top of the SAFE gate. Charging is allowed: a charging wheel is not moving. */
+    /** STATIONARY tier adds stillness on top of the SAFE gate. Charging is allowed: a charging wheel is not moving.
+     * The 0.5 km/h threshold tolerates balancing micro-corrections while standing. */
     fun canWrite(tier: Tier, verified: Boolean, connected: Boolean, ageMs: Long?, speed: Double?, charging: Boolean,
                  firmwareUpdate: Boolean, pending: Boolean): Boolean = canWriteSafe(verified, connected, firmwareUpdate, pending) &&
-        (tier == Tier.SAFE || (ageMs != null && ageMs in 0..1500 && speed != null && speed.isFinite() && kotlin.math.abs(speed) < 0.1))
+        (tier == Tier.SAFE || (ageMs != null && ageMs in 0..1500 && speed != null && speed.isFinite() && kotlin.math.abs(speed) < 0.5))
 
     data class Field(val key: String, val label: String, val value: String, val note: String = "")
     fun fields(f: Frame): List<Field> {

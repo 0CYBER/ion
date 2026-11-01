@@ -43,6 +43,8 @@ data class WheelState(
     val writeInFlight: Boolean = false,
     val writeMessage: String? = null,
     val stationaryPackets: Int = 0,
+    /** Consecutive telemetry packets above the stillness speed threshold; resets the counter only from 2 in a row. */
+    val movingStreak: Int = 0,
     /** Consecutive telemetry packets carrying the firmware-update bit; the guard acts from 2 in a row. */
     val firmwareUpdateStreak: Int = 0
 )
@@ -175,11 +177,17 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                         // Debounce the firmware-update bit: one noisy packet must not lock the controls.
                         val streak = if(parsed.firmwareUpdate) mutable.value.firmwareUpdateStreak+1 else 0
                         val t = parsed.copy(firmwareUpdate = streak >= 2)
-                        mutable.update { s -> s.copy(telemetry = t,
+                        mutable.update { s ->
+                            // Stillness: a balancing wheel micro-moves, so the threshold is 0.5 km/h and a
+                            // single speed spike must not reset the counter (2 consecutive movers do).
+                            val moving = kotlin.math.abs(t.speed) >= 0.5
+                            val movingStreak = if(moving) s.movingStreak+1 else 0
+                            val stationary = if(movingStreak >= 2) 0 else (s.stationaryPackets+1).coerceAtMost(100)
+                            s.copy(telemetry = t,
                         phase = Phase.CONNECTED, message = "Данные с колеса", lastPacketAt = SystemClock.elapsedRealtime(), packets = s.packets + 1,
                         firmwareUpdateStreak = streak,
-                        // Stillness counter: charging does not reset it — a charging wheel is not moving.
-                        stationaryPackets = if(kotlin.math.abs(t.speed)<0.1 && !t.firmwareUpdate) (s.stationaryPackets+1).coerceAtMost(100) else 0) } }
+                        movingStreak = movingStreak,
+                        stationaryPackets = if(!t.firmwareUpdate) stationary else 0) } }
                     V12Protocol.settings(f)?.let { v -> mutable.update { it.copy(settings = v, settingsAt = SystemClock.elapsedRealtime()) } }
                 }
                 responses.trySend(f)

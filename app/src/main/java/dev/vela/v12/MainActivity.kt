@@ -332,7 +332,6 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
             SwitchRow(Icons.Rounded.Lightbulb,"Ближний свет",t?.lowBeam,enabled=safe) { request(V12Protocol.Write(V12Protocol.Control.LIGHTS,if(it)1 else 0,if(t?.highBeam==true)1 else 0)) }
             SwitchRow(Icons.Rounded.Highlight,"Дальний свет",t?.highBeam,enabled=safe) { request(V12Protocol.Write(V12Protocol.Control.LIGHTS,if(t?.lowBeam==true)1 else 0,if(it)1 else 0)) }
             SwitchRow(Icons.Rounded.AutoAwesome,"Автосвет",s?.autoLight,enabled=settingsSafe) { request(V12Protocol.Write(V12Protocol.Control.AUTO_LIGHT,if(it)1 else 0)) }
-            BlindSwitchRow(Icons.Rounded.WbSunny,"Дневной свет (DRL)","Колесо не сообщает состояние этой настройки",safe) { request(V12Protocol.Write(V12Protocol.Control.DRL,if(it)1 else 0)) }
             SliderCard {
                 if(s!=null && s.lowBrightness in 0..100 && s.highBrightness in 0..100) {
                     var low by remember(s.lowBrightness,s.highBrightness) { mutableFloatStateOf(s.lowBrightness.toFloat()) }
@@ -364,8 +363,8 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
         } }
         item { SectionHeader("Режимы езды · на стоянке") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            SwitchRow(Icons.Rounded.Terrain,"Бездорожье (classic)",s?.classicMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
-            SwitchRow(Icons.Rounded.Spa,"Комфорт (fancier)",s?.fancier,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
+            SwitchRow(Icons.Rounded.Terrain,"Бездорожье",s?.classicMode,hint="Выключено = Комфорт",enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
+            SwitchRow(Icons.Rounded.Spa,"Продвинутый",s?.fancier,hint="Выключено = Нормальный",enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.CallSplit,"Split mode",s?.splitMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,if(it)1 else 0))}
             SliderCard {
                 if(s!=null) {
@@ -412,7 +411,7 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
             }
         } }
         item { OutlinedButton(onClick={actions.read(V12Protocol.Read.SETTINGS)},enabled=ui.connected && !ui.wheel.workPending,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) {Icon(Icons.Rounded.Refresh,null);Spacer(Modifier.width(8.dp));Text("Перечитать настройки",fontSize=14.sp)} }
-        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». DRL и звуковые сигналы отправляются без подтверждения колесом. Замок читается, но переключается только владельцем в офф. приложении.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». Звуковые сигналы отправляются без подтверждения колесом. Замок читается, но переключается только владельцем в офф. приложении.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 @Composable private fun SliderCard(content: @Composable ColumnScope.()->Unit) {
