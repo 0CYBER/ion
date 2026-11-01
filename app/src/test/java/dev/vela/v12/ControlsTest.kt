@@ -54,7 +54,9 @@ class ControlsTest {
         assertTrue(allowed(V12Protocol.Tier.STATIONARY,speed=.1));assertTrue(allowed(V12Protocol.Tier.STATIONARY,speed=-.3))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=.5));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=-1.0))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=null));assertFalse(allowed(V12Protocol.Tier.STATIONARY,speed=Double.NaN))
-        assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=1501));assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=null))
+        // The age window spans one lost poll cycle: a 1-2 s telemetry gap must not grey the controls.
+        assertTrue(allowed(V12Protocol.Tier.STATIONARY,age=2500));assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=2501))
+        assertFalse(allowed(V12Protocol.Tier.STATIONARY,age=null))
         assertFalse(allowed(V12Protocol.Tier.STATIONARY,fw=true))
     }
     @Test fun unobservableControlsHaveNoReadback() {
@@ -179,5 +181,8 @@ class ControlsTest {
         assertTrue(VelaUi(s.copy(stationaryPackets=3,workPending=true),now=1100).safeWrite)
         assertFalse(VelaUi(s.copy(stationaryPackets=3,writeInFlight=true),now=1100).safeWrite)
         assertFalse(VelaUi(s.copy(stationaryPackets=3,writeInFlight=true),now=1100).stoppedWrite)
+        // The 0.3.7 flicker: a stale-age blip must not grey stationary controls (window 2500 ms).
+        assertFalse(VelaUi(s.copy(stationaryPackets=3),now=3600).stoppedWrite)
+        assertTrue(VelaUi(s.copy(stationaryPackets=3),now=3400).stoppedWrite)
     }
 }

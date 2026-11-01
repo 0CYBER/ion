@@ -9,6 +9,8 @@ import java.util.ArrayDeque
  */
 object V12Protocol {
     const val SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+    /** How stale telemetry may be for STATIONARY writes: must cover one lost poll cycle (1.7 s worst case). */
+    const val STATIONARY_AGE_WINDOW_MS = 2500L
     const val WRITE = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
     const val NOTIFY = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
     const val CCCD = "00002902-0000-1000-8000-00805f9b34fb"
@@ -273,10 +275,11 @@ object V12Protocol {
     fun canWriteSafe(verified: Boolean, connected: Boolean, firmwareUpdate: Boolean, pending: Boolean): Boolean =
         verified && connected && !pending && !firmwareUpdate
     /** STATIONARY tier adds stillness on top of the SAFE gate. Charging is allowed: a charging wheel is not moving.
-     * The 0.5 km/h threshold tolerates balancing micro-corrections while standing. */
+     * The 0.5 km/h threshold tolerates balancing micro-corrections while standing, and the age window
+     * spans one lost poll cycle (1.2 s ask + 0.5 s delay) so a telemetry gap never greys the controls. */
     fun canWrite(tier: Tier, verified: Boolean, connected: Boolean, ageMs: Long?, speed: Double?, charging: Boolean,
                  firmwareUpdate: Boolean, pending: Boolean): Boolean = canWriteSafe(verified, connected, firmwareUpdate, pending) &&
-        (tier == Tier.SAFE || (ageMs != null && ageMs in 0..1500 && speed != null && speed.isFinite() && kotlin.math.abs(speed) < 0.5))
+        (tier == Tier.SAFE || (ageMs != null && ageMs in 0..STATIONARY_AGE_WINDOW_MS && speed != null && speed.isFinite() && kotlin.math.abs(speed) < 0.5))
 
     data class Field(val key: String, val label: String, val value: String, val note: String = "")
     fun fields(f: Frame): List<Field> {
