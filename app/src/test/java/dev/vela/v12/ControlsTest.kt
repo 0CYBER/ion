@@ -173,7 +173,7 @@ class ControlsTest {
         // SAFE tier ignores stillness; STATIONARY requires 3 stationary samples and fresh age.
         assertTrue(ui2.safeWrite);assertFalse(ui2.stoppedWrite)
         assertTrue(ui3.safeWrite);assertTrue(ui3.stoppedWrite)
-        assertFalse(VelaUi(s.copy(stationaryPackets=3),now=3000).stoppedWrite)
+        assertFalse(VelaUi(s.copy(stationaryPackets=3),now=4000).stoppedWrite) // age 3000, past the 2500 ms window
         // Charging on the charger keeps STATIONARY controls available: stillness is what matters.
         val charging=s.copy(stationaryPackets=3,telemetry=t.copy(charging=true))
         assertTrue(VelaUi(charging,now=1100).stoppedWrite)
@@ -182,7 +182,7 @@ class ControlsTest {
         assertFalse(VelaUi(s.copy(stationaryPackets=3,writeInFlight=true),now=1100).safeWrite)
         assertFalse(VelaUi(s.copy(stationaryPackets=3,writeInFlight=true),now=1100).stoppedWrite)
         // The 0.3.7 flicker: a stale-age blip must not grey stationary controls (window 2500 ms).
-        assertFalse(VelaUi(s.copy(stationaryPackets=3),now=3600).stoppedWrite)
-        assertTrue(VelaUi(s.copy(stationaryPackets=3),now=3400).stoppedWrite)
+        assertTrue(VelaUi(s.copy(stationaryPackets=3),now=3400).stoppedWrite) // age 2400, inside the window
+        assertFalse(VelaUi(s.copy(stationaryPackets=3),now=3600).stoppedWrite) // age 2600, past it
     }
 }
