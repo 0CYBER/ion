@@ -1,6 +1,6 @@
-package dev.vela.v12
+package com.freecyber.ion
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContent; import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -28,7 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothDisabled
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.CheckCircle; import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,10 +72,10 @@ import androidx.compose.ui.unit.sp
         }
 }
 
-@Composable internal fun Heading(title: String, subtitle: String) {
+@Composable internal fun Heading(title: String, subtitle: String? = null) {
     Column(Modifier.padding(bottom=8.dp)) {
         Text(title,fontSize=30.sp,fontWeight=FontWeight.Medium,modifier=Modifier.semantics { heading() })
-        Text(subtitle,fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp))
+        if(subtitle!=null) Text(subtitle,fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp))
     }
 }
 
@@ -204,5 +204,28 @@ import androidx.compose.ui.unit.sp
     FilledTonalButton(onClick=actions.readAll,enabled=ui.connected && !ui.wheel.workPending,modifier=modifier.heightIn(min=48.dp)) {
         if(ui.wheel.workPending) CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp) else Icon(Icons.Rounded.Refresh,null,Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp)); Text(if(ui.wheel.workPending) "Читаю…" else "Прочитать всё",fontSize=14.sp)
+    }
+}
+
+/** Collapsed row with the current value; tapping opens the sliders inside (brightness, split, pedals…). */
+@Composable internal fun ExpandRow(icon: ImageVector,title: String,summary: String,content: @Composable ColumnScope.()->Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    val rotation by animateFloatAsState(if(open) 180f else 0f,spring(stiffness=500f),label="chevron")
+    val bg by animateColorAsState(if(open) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surface,
+        spring(stiffness=400f),label="expandBg")
+    Surface(color=bg,shape=RoundedCornerShape(IonShapes.row),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().animateContentSize(spring(stiffness=500f))) {
+            Row(Modifier.fillMaxWidth().heightIn(min=58.dp).clickable { open=!open }.padding(start=14.dp,end=14.dp,top=10.dp,bottom=10.dp),
+                verticalAlignment=Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).clip(RoundedCornerShape(IonShapes.m)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment=Alignment.Center) { Icon(icon,null,Modifier.size(21.dp),tint=MaterialTheme.colorScheme.primary) }
+                Spacer(Modifier.width(12.dp))
+                Text(title,fontSize=16.sp,modifier=Modifier.weight(1f))
+                Text(summary,fontSize=14.sp,color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.Medium,fontFamily=FontFamily.Monospace)
+                Spacer(Modifier.width(6.dp))
+                Icon(Icons.Rounded.ExpandMore,if(open) "Свернуть" else "Развернуть",Modifier.size(24.dp).graphicsLayer { rotationZ=rotation })
+            }
+            if(open) Column(Modifier.fillMaxWidth().padding(start=14.dp,end=14.dp,bottom=14.dp),verticalArrangement=Arrangement.spacedBy(6.dp),content=content)
+        }
     }
 }

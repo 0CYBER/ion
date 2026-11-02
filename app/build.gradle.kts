@@ -3,15 +3,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 android {
-    namespace = "dev.vela.v12"
+    namespace = "com.freecyber.ion"
     compileSdk = 37
     defaultConfig {
-        applicationId = "dev.vela.v12"
+        applicationId = "com.freecyber.ion"
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 12
-        versionName = "0.3.8"
+        versionCode = 13
+        versionName = "0.4.0"
     }
     buildFeatures { compose = true }
     compileOptions {

@@ -1,4 +1,4 @@
-package dev.vela.v12
+package com.freecyber.ion
 
 import android.app.Application
 import android.os.SystemClock

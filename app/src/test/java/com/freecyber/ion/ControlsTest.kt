@@ -1,4 +1,4 @@
-package dev.vela.v12
+package com.freecyber.ion
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -20,7 +20,7 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,1) to byteArrayOf(0x42,1),
             V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,30,70) to byteArrayOf(0x40,30,70),
             V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,55) to byteArrayOf(0x25,55,55),
-            V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-5) to byteArrayOf(0x22,0xce.toByte(),0xff.toByte()),
+            V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-50) to byteArrayOf(0x22,0x0c,0xfe.toByte()), // -5.0° = -500 hundredths
             V12Protocol.Write(V12Protocol.Control.ALARMS,20,35) to byteArrayOf(0x3e,0xd0.toByte(),0x07,0xac.toByte(),0x0d.toByte()),
             V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,1) to byteArrayOf(0x2e,0),
             V12Protocol.Write(V12Protocol.Control.TRANSPORT,0) to byteArrayOf(0x32,0))
@@ -41,7 +41,7 @@ class ControlsTest {
         listOf({V12Protocol.Write(V12Protocol.Control.VOLUME,101)}, {V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,-1,0)},
             {V12Protocol.Write(V12Protocol.Control.LIGHTS,1,2)},{V12Protocol.Write(V12Protocol.Control.MUTE,2)},
             {V12Protocol.Write(V12Protocol.Control.STANDBY,0)},{V12Protocol.Write(V12Protocol.Control.STANDBY,31)},
-            {V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,11)},{V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-11)},
+            {V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,101)},{V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-101)},
             {V12Protocol.Write(V12Protocol.Control.ALARMS,71)},{V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,16)},
             {V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,101)}).forEach { factory ->
             assertThrows(IllegalArgumentException::class.java) { factory() }
@@ -77,11 +77,11 @@ class ControlsTest {
     @Test fun settingsReadbackConfirmsNewCommands() {
         fun settings(): ByteArray { val p=ByteArray(42);p[0]=0x20;p[19]=0x11;p[22]=55;p[39]=0x65 // bit0 unmuted, bit2 handle, bit5 locked, bit6 transport
             fun s16(i: Int,v: Int){p[i]=v.toByte();p[i+1]=(v ushr 8).toByte()}
-            s16(11,2000);s16(13,3500);s16(15,-50);p[20]=55;p[21]=55;p[31]=30;p[32]=70;p[41]=1;return p }
+            s16(11,2000);s16(13,3500);s16(15,-500);p[20]=55;p[21]=55;p[31]=30;p[32]=70;p[41]=1;return p }
         val f=V12Protocol.Frame(0x14,0xa0,settings())
         assertTrue(V12Protocol.Write(V12Protocol.Control.ALARMS,20,35).confirmed(f) == true)
         assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,55).confirmed(f) == true)
-        assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-5).confirmed(f) == true)
+        assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-50).confirmed(f) == true)
         assertTrue(V12Protocol.Write(V12Protocol.Control.CLASSIC,1).confirmed(f) == true)
         assertTrue(V12Protocol.Write(V12Protocol.Control.FANCIER,1).confirmed(f) == true)
         assertTrue(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,1).confirmed(f) == true)
@@ -93,6 +93,7 @@ class ControlsTest {
         assertTrue(V12Protocol.Write(V12Protocol.Control.MUTE,0).confirmed(f) == true) // bit0 of 0x65 clear = unmuted
         assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,54).confirmed(f) == false) // mismatching value is not confirmed
     }
+    @Test fun pedalTiltIsHundredthsOfADegree() { /* owner: 1° in the official app showed as 10° in Ion */ val p=ByteArray(42);p[0]=0x20;p[15]=100;val f=V12Protocol.Frame(0x14,0xa0,p);assertEquals(1.0,V12Protocol.settings(f)!!.pedalTilt,0.0001);assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,10).confirmed(f) == true);assertTrue(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,15).confirmed(f) == false) }
     @Test fun onlyReadbackCanConfirmNotEchoOrAck() {
         val w=V12Protocol.Write(V12Protocol.Control.VOLUME,42)
         assertNull(w.confirmed(unpack(w)))
@@ -167,9 +168,9 @@ class ControlsTest {
         u16(22,12345);u16(26,6789);p[59]=1 // err_iPhaseSensorState
         val f=V12Protocol.Frame(0x14,0x84,p)
         val t=V12Protocol.telemetry(f)!!
-        assertEquals(123.45,t.mileageKm,0.0001);assertEquals(67.89,t.rangeKm,0.0001)
+        assertEquals(123.45,t.tripKm,0.0001);assertEquals(67.89,t.rangeKm,0.0001)
         val rows=V12Protocol.fields(f)
-        assertTrue(rows.any { it.key=="mileage" && it.value.contains("123,45") })
+        assertTrue(rows.any { it.key=="trip" && it.value.contains("123,45") })
         assertTrue(rows.any { it.key=="errors" && it.value.contains("err_iPhaseSensorState") })
     }
     @Test fun savedIdentityAddressValidation() {

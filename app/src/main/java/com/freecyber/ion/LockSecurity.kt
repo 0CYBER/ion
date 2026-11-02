@@ -1,4 +1,4 @@
-package dev.vela.v12
+package com.freecyber.ion
 
 /** Experimental V12 HT security exchange, observed on one wheel only.
  * Never persist, print, or reuse the returned encrypted data between transactions.

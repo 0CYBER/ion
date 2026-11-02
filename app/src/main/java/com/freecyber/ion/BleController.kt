@@ -1,4 +1,4 @@
-package dev.vela.v12
+package com.freecyber.ion
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -98,13 +98,13 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     fun apply(command: V12Protocol.Write) {
         // Only an in-flight write blocks a new one; queued reads must not reject the tap.
         if(!mayWrite(command.kind.tier, mutable.value.writeInFlight)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
-            "Запись заблокирована: нужны свежие данные с колеса." else
-            "Запись заблокирована: нужны свежие данные и остановленное колесо.") }; return }
+            "Запись недоступна: нет связи с колесом" else
+            "Запись недоступна: колесо движется") }; return }
         enqueue(Work.Write(command))
     }
     private fun enqueue(item: Work) {
         if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedHt || mutable.value.workPending) return
-        if(work.trySend(item).isSuccess) mutable.update { it.copy(workPending=true, writeMessage=if(item is Work.Write) "Ожидает отправки…" else it.writeMessage) }
+        if(work.trySend(item).isSuccess) mutable.update { it.copy(workPending=true, writeMessage=if(item is Work.Write) null else it.writeMessage) }
     }
     private fun clearWork() { while(work.tryReceive().isSuccess) {} }
     private fun record(read: V12Protocol.Read, frame: V12Protocol.Frame? = null, status: String) {
@@ -303,19 +303,19 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                 is Work.Write -> {
                                     mutable.update { it.copy(writeInFlight=true) }
                                     if(!mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) mutable.update { it.copy(writeMessage=
-                                        if(job.command.kind.tier == V12Protocol.Tier.SAFE) "Не отправлено: связь устарела или запись запрещена."
-                                        else "Не отправлено: колесо движется, связь устарела или запись запрещена.") }
+                                        if(job.command.kind.tier == V12Protocol.Tier.SAFE) "Не отправлено: нет связи с колесом"
+                                        else "Не отправлено: колесо движется") }
                                     else {
                                         val isLock = job.command.kind == V12Protocol.Control.LOCK
                                         if (isLock) lockTrace("begin target=${job.command.a}", reset=true)
                                         val securityReady = !isLock || prepareLockSecurity(link, write)
                                         if (!securityReady) {
-                                            mutable.update { it.copy(writeMessage="Блокировка не отправлена: защитный обмен не подтверждён. Используй официальное приложение.") }
+                                            mutable.update { it.copy(writeMessage="Блокировка не выполнена: колесо не приняло защитный обмен") }
                                         } else if (isLock && !mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) {
                                             lockTrace("guard failed after security; no lock write")
-                                            mutable.update { it.copy(writeMessage="Блокировка не отправлена: данные устарели или колесо не остановлено.") }
+                                            mutable.update { it.copy(writeMessage="Блокировка не выполнена: колесо движется") }
                                         } else {
-                                        mutable.update { it.copy(writeMessage="Отправляю: ${job.command.label}") }
+                                        mutable.update { it.copy(writeMessage=null) }
                                         val bytes = job.command.bytes()
                                         if (job.command.kind == V12Protocol.Control.LOCK) {
                                             lockTrace("request target=${job.command.a} bytes=${bytes.joinToString("") { "%02X".format(it.toInt() and 0xff) }}")
@@ -323,9 +323,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                         send(link,write,bytes)
                                         if (job.command.kind == V12Protocol.Control.LOCK) lockTrace("send returned; wheel state not yet confirmed")
                                         val back = job.command.readBack
-                                        if(back == null) mutable.update { it.copy(writeMessage="Отправлено: ${job.command.label}. У этой команды нет читаемого подтверждения — проверь результат на колесе.") }
+                                        if(back == null) mutable.update { it.copy(writeMessage=null) }
                                         else {
-                                            mutable.update { it.copy(writeMessage="Отправлено · проверяю ответ колеса…") }
+                                            mutable.update { it.copy(writeMessage=null) }
                                             delay(200)
                                             // Read-back is read-only, so one retry on a lost answer is safe.
                                             val answer = optionalRead(link,write,back) ?: optionalRead(link,write,back)
@@ -333,10 +333,10 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                             if (job.command.kind == V12Protocol.Control.LOCK) lockTrace(
                                                 "readback target=${job.command.a} result=${if (answer == null) "timeout" else if (confirmed == null) "invalid" else if (confirmed) "match" else "mismatch"}")
                                             val result = when {
-                                                confirmed == true -> "Подтверждено колесом: ${job.command.label}"
-                                                answer == null -> "Изменение НЕ подтверждено: нет ответа на чтение состояния. Автоповтора нет."
-                                                confirmed == false -> "Изменение НЕ подтверждено: колесо сообщает другое состояние. Автоповтора нет."
-                                                else -> "Изменение НЕ подтверждено: ответ состояния не распознан. Автоповтора нет."
+                                                confirmed == true -> null
+                                                answer == null -> "Не применилось: колесо не ответило"
+                                                confirmed == false -> "Не применилось: на колесе другое значение"
+                                                else -> "Не применилось: ответ колеса не распознан"
                                             }
                                             mutable.update { it.copy(writeMessage=result) }
                                         }
@@ -456,7 +456,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.ERROR, message = text, verifiedHt = false, workPending = false, stationaryPackets = 0, writeMessage=if(it.workPending && it.writeMessage!=null) "Связь прервана. Результат записи неизвестен; автоматического повтора нет." else it.writeMessage) }
+        mutable.update { it.copy(phase = Phase.ERROR, message = text, verifiedHt = false, workPending = false, stationaryPackets = 0, writeMessage=if(it.workPending && it.writeMessage!=null) "Связь прервалась во время записи" else it.writeMessage) }
     }
     fun onBackground() { if (mutable.value.phase !in listOf(Phase.OFFLINE, Phase.ERROR)) disconnect() }
 }

@@ -1,5 +1,5 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
-package dev.vela.v12
+package com.freecyber.ion
 
 import android.content.Intent
 import android.net.Uri
@@ -83,8 +83,6 @@ internal data class Actions(
 
 @Composable internal fun VelaApp(ui: VelaUi, dark: Boolean, actions: Actions, initialTab: Int = 0) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
-    var selected by remember { mutableStateOf<WheelDevice?>(null) }
-    var command by remember { mutableStateOf<V12Protocol.Write?>(null) }
     var forget by remember { mutableStateOf(false) }
     fun primary() { if(ui.saved!=null) actions.connect(ui.saved) else { tab=3; actions.scan() } }
     Scaffold(containerColor=MaterialTheme.colorScheme.background,contentWindowInsets=WindowInsets(0,0,0,0),topBar={
@@ -105,21 +103,11 @@ internal data class Actions(
             when(route) {
                 0 -> RideScreen(ui,if(ui.connected) ({tab=3}) else (::primary))
                 1 -> DataScreen(ui,actions)
-                2 -> ControlScreen(ui,actions) { command=it }
-                else -> WheelScreen(ui,actions,{selected=it},{forget=true})
+                2 -> ControlScreen(ui,actions) { if(ui.canWrite(it)) actions.write(it) }
+                else -> WheelScreen(ui,actions,actions.connect,{forget=true})
             }
         }
     }
-    selected?.let { d -> AlertDialog(onDismissRequest={selected=null},icon={Icon(Icons.Rounded.Bluetooth,null)},title={Text("Подключить это колесо?")},
-        text={Text("${d.name}\nПосле проверки V12 HT приложение запомнит колесо. Выбирай только своё устройство.")},
-        confirmButton={TextButton(onClick={selected=null;actions.connect(d)}) { Text("Подключить") }},dismissButton={TextButton(onClick={selected=null}) { Text("Отмена") }}) }
-    command?.let { c -> AlertDialog(onDismissRequest={command=null},icon={Icon(Icons.Rounded.Tune,null)},title={Text("Применить изменение?")},
-        text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)) { Text(c.label,fontWeight=FontWeight.SemiBold)
-            if(c.kind in listOf(V12Protocol.Control.VOLUME,V12Protocol.Control.MUTE)) Text("Изменение звука может затронуть предупреждения колеса. Не отключай их перед поездкой.",color=MaterialTheme.colorScheme.error)
-            if(c.kind == V12Protocol.Control.LOCK) Text("Заблокированное колесо может не поехать до разблокировки.",color=MaterialTheme.colorScheme.error)
-            if(c.kind.tier == V12Protocol.Tier.STATIONARY) Text("Убедись, что колесо неподвижно.")
-            Text("После отправки Ion перечитает значение${if(c.readBack==null) " — для этой команды подтверждение колесом недоступно" else ""}. Неподтверждённая команда не будет повторена автоматически.") }},
-        confirmButton={TextButton(onClick={command=null;actions.write(c)},enabled=ui.canWrite(c)) { Text("Применить") }},dismissButton={TextButton(onClick={command=null}) { Text("Отмена") }}) }
     if(forget) AlertDialog(onDismissRequest={forget=false},title={Text("Забыть колесо?")},text={Text("Соединение будет закрыто. Для следующего подключения нужно будет выбрать устройство заново.")},
         confirmButton={TextButton(onClick={forget=false;actions.forget()}) {Text("Забыть")}},dismissButton={TextButton(onClick={forget=false}) {Text("Отмена")}})
 }
@@ -193,14 +181,14 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
         item { MetricPair(first={ m -> Metric("Батарея",t?.battery?.takeIf { it in 0.0..100.0 }?.roundToInt()?.toString() ?: "—","%",Icons.Rounded.BatteryFull,m,true) },
             second={m -> Metric("Напряжение",t?.voltage?.fmt(1) ?: "—","В",Icons.Rounded.ElectricBolt,m)}) }
         item { val odo=ui.wheel.records[V12Protocol.Read.STATISTICS]?.frame?.let(V12Protocol::statistics)?.takeIf { it.totalKm>0 }?.totalKm
-            MetricPair(first={m -> Metric("Одометр",(odo ?: t?.takeIf { it.mileageKm>0 }?.mileageKm)?.fmt(1) ?: "—","км",Icons.Rounded.Route,m)},
-            second={m -> Metric("Остаток пути",t?.takeIf { it.rangeKm>0 }?.rangeKm?.fmt(1) ?: "—","км",Icons.Rounded.Navigation,m)}) }
-        item { MetricPair(first={m -> Metric("MOS",t?.mosTemp?.toString() ?: "—","°C",Icons.Rounded.Thermostat,m)},
+            MetricPair(first={m -> Metric("Поездка",t?.tripKm?.fmt(1) ?: "—","км",Icons.Rounded.Route,m)},
+            second={m -> Metric("Одометр",odo?.fmt(1) ?: "—","км",Icons.Rounded.Timeline,m)}) }
+        item { MetricPair(first={m -> Metric("Остаток пути",t?.takeIf { it.rangeKm>0 }?.rangeKm?.fmt(1) ?: "—","км",Icons.Rounded.Navigation,m)},
             second={m -> Metric("Ток",t?.current?.fmt(1) ?: "—","А",Icons.Rounded.Waves,m)}) }
         item { Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.l)) {
             Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically) { Icon(Icons.Rounded.Speed,null,tint=MaterialTheme.colorScheme.primary); Spacer(Modifier.width(12.dp)); Column {
                 Text("Мотор  ${t?.motorTemp?.let { "$it °C" } ?: "—"}",fontSize=16.sp)
-                Text("Остальные поля — во вкладке «Данные»",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("MOS  ${t?.mosTemp?.let { "$it °C" } ?: "—"}",fontSize=16.sp)
             } }
         } }
     }
@@ -211,7 +199,7 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
     var mode by rememberSaveable { mutableIntStateOf(0) }
     val reads=V12Protocol.Read.entries
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        item { Heading("Под капотом","Все поддержанные чтения · расшифровка и raw") }
+        item { Heading("Под капотом") }
         item { BoxWithConstraints(Modifier.fillMaxWidth()) {
             if(maxWidth<320.dp || LocalDensity.current.fontScale>1.2f) {
                 Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {Status(ui); ReadAllButton(ui,actions,Modifier.fillMaxWidth())}
@@ -219,7 +207,7 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
                 Status(ui); ReadAllButton(ui,actions,Modifier.weight(1f))
             }
         } }
-        if(!ui.fresh) item { Banner(if(ui.wheel.records.isEmpty()) "Подключи колесо. Здесь появятся реальные ответы, без подставных значений." else if(ui.connected) "Показаны последние ответы. BLE подключён, ожидаю свежую телеметрию." else "Показаны последние ответы. Сейчас колесо отключено.",Icons.Rounded.SensorsOff) }
+        if(!ui.connected) item { Banner("Колесо не подключено",Icons.Rounded.SensorsOff) }
         item { OutlinedTextField(value=query,onValueChange={query=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Найти поле или пакет")},leadingIcon={Icon(Icons.Rounded.Search,null)},shape=RoundedCornerShape(IonShapes.l)) }
         item { ExportButton(ui,Modifier.fillMaxWidth()) }
         item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -233,7 +221,6 @@ private val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=24.
                 PacketCard(read,record,ui.now,fields,mode==3,ui.connected && !ui.wheel.workPending) {actions.read(read)}
             }
         }
-        item { Text("Каталог: ${reads.size} запросов. Батарея, версии и некоторые служебные ответы могут отличаться по прошивке или не отвечать. Неизвестные байты остаются raw — без догадок об их смысле.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 @Composable private fun ExportButton(ui: VelaUi,modifier: Modifier) {
@@ -290,7 +277,6 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
                     if(!rawMode) fields.forEach { field -> FieldRow(field) }
                     if(record?.frame==null) Text("Ответ ещё не получен",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     else {
-                        if(fields.isEmpty() && !rawMode) Text("Смысл полей ещё не подтверждён. Полный ответ доступен ниже.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         if(!rawMode) TextButton(onClick={raw=!raw}) { Icon(Icons.Rounded.Code,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(if(raw || rawMode) "Свернуть raw" else "Показать все байты") }
                         if(raw || rawMode) Surface(color=MaterialTheme.colorScheme.surfaceContainerHigh,shape=RoundedCornerShape(IonShapes.s)) {
                             SelectionContainer { Text(V12Protocol.raw(record.frame),fontFamily=FontFamily.Monospace,fontSize=14.sp,modifier=Modifier.fillMaxWidth().padding(12.dp).horizontalScroll(rememberScrollState())) }
@@ -319,39 +305,36 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
     val settingsSafe=safe && ui.settingsFresh && s!=null
     val settingsStopped=stopped && ui.settingsFresh && s!=null
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        item { Heading("Твой пульт","Свет и звук — в любой момент; режимы и педали — на стоянке") }
-        item { Banner(when {
-            !ui.connected -> "Подключи V12 HT, чтобы читать и менять настройки."
-            !safe -> "Колесо сообщает об обновлении прошивки — запись заблокирована."
-            !stopped -> "Свет и звук — всегда при связи. Режимы, педали и служебное — только на остановленном колесе."
-            else -> "Свет и звук — в любой момент, остальные — на стоянке. Каждое изменение с перечитыванием."
-        }, if(safe) Icons.Rounded.VerifiedUser else Icons.Rounded.Lock, warning=!safe) }
-        ui.wheel.writeMessage?.let { message -> item { Banner(message,Icons.Rounded.FactCheck,error=message.contains("НЕ подтверждено") || message.contains("заблокирована")) } }
+        item { Heading("Твой пульт") }
+        if(!ui.connected) item { Banner("Колесо не подключено",Icons.Rounded.BluetoothDisabled) }
+        else if(t?.firmwareUpdate==true) item { Banner("Идёт обновление прошивки — запись недоступна",Icons.Rounded.Lock,warning=true) }
+        // Only failures are reported; a confirmed change is visible from the control itself.
+        ui.wheel.writeMessage?.let { message -> item { Banner(message,Icons.Rounded.ErrorOutline,error=true) } }
         item { SectionHeader("Свет") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             SwitchRow(Icons.Rounded.Lightbulb,"Ближний свет",t?.lowBeam,enabled=safe) { request(V12Protocol.Write(V12Protocol.Control.LIGHTS,if(it)1 else 0,if(t?.highBeam==true)1 else 0)) }
             SwitchRow(Icons.Rounded.Highlight,"Дальний свет",t?.highBeam,enabled=safe) { request(V12Protocol.Write(V12Protocol.Control.LIGHTS,if(t?.lowBeam==true)1 else 0,if(it)1 else 0)) }
             SwitchRow(Icons.Rounded.AutoAwesome,"Автосвет",s?.autoLight,enabled=settingsSafe) { request(V12Protocol.Write(V12Protocol.Control.AUTO_LIGHT,if(it)1 else 0)) }
-            SliderCard {
+            ExpandRow(Icons.Rounded.BrightnessMedium,"Яркость фар",s?.let { "${it.lowBrightness}% · ${it.highBrightness}%" } ?: "—") {
                 if(s!=null && s.lowBrightness in 0..100 && s.highBrightness in 0..100) {
                     var low by remember(s.lowBrightness,s.highBrightness) { mutableFloatStateOf(s.lowBrightness.toFloat()) }
                     var high by remember(s.lowBrightness,s.highBrightness) { mutableFloatStateOf(s.highBrightness.toFloat()) }
-                    SettingSlider("Яркость ближнего",low,"${low.roundToInt()}%",0f..100f,settingsSafe) {low=it}
-                    SettingSlider("Яркость дальнего",high,"${high.roundToInt()}%",0f..100f,settingsSafe) {high=it}
-                    ApplyButton("Применить яркость",safe && (low.roundToInt()!=s.lowBrightness || high.roundToInt()!=s.highBrightness)) {request(V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,low.roundToInt(),high.roundToInt()))}
-                } else MissingSetting("Яркость появится после чтения настроек")
+                    SettingSlider("Ближний",low,"${low.roundToInt()}%",0f..100f,settingsSafe) {low=it}
+                    SettingSlider("Дальний",high,"${high.roundToInt()}%",0f..100f,settingsSafe) {high=it}
+                    ApplyButton("Применить",settingsSafe && (low.roundToInt()!=s.lowBrightness || high.roundToInt()!=s.highBrightness)) {request(V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,low.roundToInt(),high.roundToInt()))}
+                } else MissingSetting("Нет данных")
             }
         } }
         item { SectionHeader("Звук") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             SwitchRow(Icons.Rounded.VolumeOff,"Без звука",s?.muted,enabled=settingsSafe) {request(V12Protocol.Write(V12Protocol.Control.MUTE,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.MusicNote,"Звук движения",s?.soundWave,enabled=settingsSafe) {request(V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,if(it)1 else 0))}
-            SliderCard {
+            ExpandRow(Icons.Rounded.VolumeUp,"Громкость",s?.let { "${it.volume}%" } ?: "—") {
                 if(s!=null && s.volume in 0..100) {
                     var volume by remember(s.volume) { mutableFloatStateOf(s.volume.toFloat()) }
                     SettingSlider("Громкость",volume,"${volume.roundToInt()}%",0f..100f,settingsSafe) {volume=it}
-                    ApplyButton("Применить громкость",safe && volume.roundToInt()!=s.volume) {request(V12Protocol.Write(V12Protocol.Control.VOLUME,volume.roundToInt()))}
-                } else MissingSetting("Громкость появится после чтения настроек")
+                    ApplyButton("Применить",settingsSafe && volume.roundToInt()!=s.volume) {request(V12Protocol.Write(V12Protocol.Control.VOLUME,volume.roundToInt()))}
+                } else MissingSetting("Нет данных")
             }
             Surface(color=MaterialTheme.colorScheme.surface,shape=RoundedCornerShape(IonShapes.row),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
                 Row(Modifier.fillMaxWidth().padding(14.dp),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -361,68 +344,68 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
                 }
             }
         } }
-        item { SectionHeader("Режимы езды · на стоянке") }
+        item { SectionHeader("Режимы езды") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             SwitchRow(Icons.Rounded.Terrain,"Бездорожье",s?.classicMode,hint="Выключено = Комфорт",enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.Spa,"Продвинутый",s?.fancier,hint="Выключено = Нормальный",enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.CallSplit,"Split mode",s?.splitMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,if(it)1 else 0))}
-            SliderCard {
+            ExpandRow(Icons.Rounded.SyncAlt,"Split · ускорение и торможение",s?.let { "${it.splitAccel} · ${it.splitBrake}" } ?: "—") {
                 if(s!=null) {
                     var accel by remember(s.splitAccel) { mutableFloatStateOf(s.splitAccel.coerceIn(0,100).toFloat()) }
                     var brake by remember(s.splitBrake) { mutableFloatStateOf(s.splitBrake.coerceIn(0,100).toFloat()) }
-                    SettingSlider("Split · ускорение",accel,"${accel.roundToInt()}%",0f..100f,settingsStopped) {accel=it}
-                    SettingSlider("Split · торможение",brake,"${brake.roundToInt()}%",0f..100f,settingsStopped) {brake=it}
-                    ApplyButton("Применить split",settingsStopped && (accel.roundToInt()!=s.splitAccel || brake.roundToInt()!=s.splitBrake)) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,accel.roundToInt(),brake.roundToInt()))}
-                } else MissingSetting("Split появится после чтения настроек")
+                    SettingSlider("Ускорение",accel,"${accel.roundToInt()}%",0f..100f,settingsStopped) {accel=it}
+                    SettingSlider("Торможение",brake,"${brake.roundToInt()}%",0f..100f,settingsStopped) {brake=it}
+                    ApplyButton("Применить",settingsStopped && (accel.roundToInt()!=s.splitAccel || brake.roundToInt()!=s.splitBrake)) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,accel.roundToInt(),brake.roundToInt()))}
+                } else MissingSetting("Нет данных")
             }
         } }
-        item { SectionHeader("Педали и пороги · на стоянке") }
+        item { SectionHeader("Педали и пороги") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            SliderCard {
+            ExpandRow(Icons.Rounded.Tune,"Чувствительность педалей",s?.let { "${it.comfortable}%" } ?: "—") {
                 if(s!=null) {
                     var sens by remember(s.comfortable) { mutableFloatStateOf(s.comfortable.coerceIn(0,100).toFloat()) }
-                    SettingSlider("Чувствительность педалей",sens,"${sens.roundToInt()}%",0f..100f,settingsStopped) {sens=it}
-                    ApplyButton("Применить чувствительность",settingsStopped && sens.roundToInt()!=s.comfortable) {request(V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,sens.roundToInt()))}
-                    var tilt by remember(s.pedalTilt) { mutableFloatStateOf(s.pedalTilt.toFloat()) }
-                    SettingSlider("Наклон педалей",tilt,"${(tilt*10).roundToInt()/10.0}°",-10f..10f,settingsStopped) {tilt=it}
-                    ApplyButton("Применить наклон",settingsStopped && kotlin.math.abs(tilt-s.pedalTilt)>=0.05f) {request(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,(tilt*10).roundToInt()/10))}
+                    SettingSlider("Чувствительность",sens,"${sens.roundToInt()}%",0f..100f,settingsStopped) {sens=it}
+                    ApplyButton("Применить",settingsStopped && sens.roundToInt()!=s.comfortable) {request(V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,sens.roundToInt()))}
+                } else MissingSetting("Нет данных")
+            }
+            ExpandRow(Icons.Rounded.Straighten,"Наклон педалей",s?.let { "${it.pedalTilt.fmt(1)}°" } ?: "—") {
+                if(s!=null) {
+                    var tilt by remember(s.pedalTilt) { mutableFloatStateOf(s.pedalTilt.coerceIn(-10.0,10.0).toFloat()) }
+                    SettingSlider("Наклон",tilt,"${tilt.toDouble().fmt(1)}°",-10f..10f,settingsStopped) {tilt=it}
+                    // Write carries tenths of a degree, so 0.1° steps survive (no integer truncation).
+                    ApplyButton("Применить",settingsStopped && kotlin.math.abs(tilt-s.pedalTilt)>=0.05f) {request(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,(tilt*10).roundToInt()))}
+                } else MissingSetting("Нет данных")
+            }
+            ExpandRow(Icons.Rounded.NotificationsActive,"Пороги сигнала",s?.let { "${it.alarm1.roundToInt()} · ${it.alarm2.roundToInt()} км/ч" } ?: "—") {
+                if(s!=null) {
                     var alarm1 by remember(s.alarm1) { mutableFloatStateOf(s.alarm1.coerceIn(0.0,70.0).toFloat()) }
                     var alarm2 by remember(s.alarm2) { mutableFloatStateOf(s.alarm2.coerceIn(0.0,70.0).toFloat()) }
-                    SettingSlider("Порог сигнала 1",alarm1,"${alarm1.roundToInt()} км/ч",0f..70f,settingsStopped) {alarm1=it}
-                    SettingSlider("Порог сигнала 2",alarm2,"${alarm2.roundToInt()} км/ч",0f..70f,settingsStopped) {alarm2=it}
-                    ApplyButton("Применить пороги",settingsStopped && (alarm1.roundToInt()!=s.alarm1.roundToInt() || alarm2.roundToInt()!=s.alarm2.roundToInt())) {request(V12Protocol.Write(V12Protocol.Control.ALARMS,alarm1.roundToInt(),alarm2.roundToInt()))}
-                } else MissingSetting("Педали и пороги появятся после чтения настроек")
+                    SettingSlider("Порог 1",alarm1,"${alarm1.roundToInt()} км/ч",0f..70f,settingsStopped) {alarm1=it}
+                    SettingSlider("Порог 2",alarm2,"${alarm2.roundToInt()} км/ч",0f..70f,settingsStopped) {alarm2=it}
+                    ApplyButton("Применить",settingsStopped && (alarm1.roundToInt()!=s.alarm1.roundToInt() || alarm2.roundToInt()!=s.alarm2.roundToInt())) {request(V12Protocol.Write(V12Protocol.Control.ALARMS,alarm1.roundToInt(),alarm2.roundToInt()))}
+                } else MissingSetting("Нет данных")
             }
         } }
-        item { SectionHeader("Служебное · на стоянке") }
+        item { SectionHeader("Служебное") }
         item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             SwitchRow(Icons.Rounded.TouchApp,"Кнопка ручки",s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
             SwitchRow(Icons.Rounded.LocalShipping,"Транспортный режим",s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
-            SwitchRow(Icons.Rounded.Lock,"Блокировка колеса",s?.locked,
-                hint="Тестовая функция: проверяй только на неподвижном колесе; при проблеме используй официальное приложение.",enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
-            SliderCard {
+            SwitchRow(Icons.Rounded.Lock,"Блокировка колеса",s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
+            ExpandRow(Icons.Rounded.Timer,"Таймер ожидания",s?.let { "${(it.standbySeconds/60f).roundToInt()} мин" } ?: "—") {
                 if(s!=null) {
-                    val current=s.standbySeconds/60f
-                    var minutes by remember(s.standbySeconds) { mutableFloatStateOf(current.coerceIn(1f,30f)) }
-                    Text("Сейчас: ${s.standbySeconds} с",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    SettingSlider("Таймер ожидания",minutes,"${minutes.roundToInt()} мин",1f..30f,settingsStopped) {minutes=it}
-                    ApplyButton("Применить таймер",settingsStopped && minutes.roundToInt()*60!=s.standbySeconds) {request(V12Protocol.Write(V12Protocol.Control.STANDBY,minutes.roundToInt()))}
-                } else MissingSetting("Таймер появится после чтения настроек")
+                    var minutes by remember(s.standbySeconds) { mutableFloatStateOf((s.standbySeconds/60f).coerceIn(1f,30f)) }
+                    SettingSlider("Таймер",minutes,"${minutes.roundToInt()} мин",1f..30f,settingsStopped) {minutes=it}
+                    ApplyButton("Применить",settingsStopped && minutes.roundToInt()*60!=s.standbySeconds) {request(V12Protocol.Write(V12Protocol.Control.STANDBY,minutes.roundToInt()))}
+                } else MissingSetting("Нет данных")
             }
         } }
         item { OutlinedButton(onClick={actions.read(V12Protocol.Read.SETTINGS)},enabled=ui.connected && !ui.wheel.workPending,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) {Icon(Icons.Rounded.Refresh,null);Spacer(Modifier.width(8.dp));Text("Перечитать настройки",fontSize=14.sp)} }
-        item { Text("Лимиты скорости, калибровка и прошивка здесь не меняются. Показания — во вкладке «Данные». Звуковые сигналы отправляются без подтверждения колесом. Замок проверяется экспериментально; при проблеме используй официальное приложение.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
-    }
-}
-@Composable private fun SliderCard(content: @Composable ColumnScope.()->Unit) {
-    Surface(color=MaterialTheme.colorScheme.surface,shape=RoundedCornerShape(IonShapes.row),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp),content=content)
     }
 }
 
 @Composable private fun WheelScreen(ui: VelaUi,actions: Actions,select: (WheelDevice)->Unit,forget: ()->Unit) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        item { Heading("Всегда своё","Один раз выбрать. Дальше — одно нажатие.") }
+        item { Heading("Всегда своё") }
         item { Status(ui) }
         if(ui.wheel.phase==Phase.ERROR) item {Banner(ui.wheel.message,error=true)}
         ui.saved?.let { d -> item { Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(IonShapes.xl)) {
@@ -453,8 +436,6 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
                 Icon(Icons.Rounded.Bluetooth,null,tint=MaterialTheme.colorScheme.primary);Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)) {Text(d.name,fontSize=16.sp,fontWeight=FontWeight.Medium);Text("…${d.address.takeLast(8)} · ${d.rssi} dBm",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Icon(Icons.Rounded.ChevronRight,null)
             }
         } }
-        item { Banner("Колесо сохраняется только после проверки V12 HT и получения телеметрии. Адрес хранится локально; сам по себе запуск приложения не подключается к BLE.",Icons.Rounded.BookmarkBorder) }
-        item { Text("Перед подключением закрой официальное приложение. При уходе из Ion связь останавливается; фонового режима пока нет.",fontSize=14.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
         item {TextButton(onClick=actions.permissions) {Text("Разрешения Bluetooth",fontSize=14.sp)}}
     }
 }

@@ -1,4 +1,4 @@
-package dev.vela.v12
+package com.freecyber.ion
 
 import android.graphics.Bitmap
 import androidx.test.platform.app.InstrumentationRegistry
@@ -62,11 +62,10 @@ class UiVerificationTest {
         rule.onAllNodesWithText("Телеметрия").onFirst().performClick();rule.waitForIdle();shot("telemetry-fields")
         rule.onNodeWithText("Raw / пакеты").performScrollTo().performClick();rule.waitForIdle();shot("raw-packets")
     }
-    @Test fun writeRequiresConfirmationAndNeverSendsOnComposition() {
+    @Test fun switchWritesImmediatelyAndNeverSendsOnComposition() {
         val sent=mutableListOf<V12Protocol.Write>();render(sample(),2,actions=Actions(write={sent+=it}));shot("connected-controls")
         assertTrue(sent.isEmpty());rule.onAllNodes(isToggleable()).onFirst().performClick();rule.waitForIdle()
-        rule.onNodeWithText("Применить изменение?").assertExists();assertTrue(sent.isEmpty());shot("write-confirmation")
-        rule.onNodeWithText("Применить",substring=false).performClick();rule.waitForIdle();assertEquals(1,sent.size)
+        assertEquals(1,sent.size) // a switch tap writes immediately, no confirmation dialog
         assertEquals(V12Protocol.Control.LIGHTS,sent.single().kind);assertEquals(0,sent.single().a)
         rule.onNode(hasScrollToIndexAction()).performScrollToIndex(3);shot("sound-controls")
         rule.onNode(hasScrollToIndexAction()).performScrollToIndex(4);shot("standby-controls")
@@ -79,7 +78,7 @@ class UiVerificationTest {
         // SAFE tier stays usable while riding, like the vendor app.
         assertTrue(states.any { !it.config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled) })
         // STATIONARY tier (ride modes) locks while moving.
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Классический режим"));rule.waitForIdle()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Бездорожье"));rule.waitForIdle()
         val later=rule.onAllNodes(isToggleable()).fetchSemanticsNodes()
         assertTrue(later.any { it.config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled) })
         shot("moving-stationary-locked")
