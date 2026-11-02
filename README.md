@@ -1,9 +1,9 @@
-# Ion 0.4.0 — INMOTION V12 HT companion
+# Ion 0.6.0-debug — INMOTION V12 HT companion
 
 Native Kotlin / Jetpack Compose / Material 3 Expressive personal app for one INMOTION V12 HT. Not an official INMOTION app.
 
 - Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
-- Tabs: Ride, Data, Controls, Connection. No demo mode, no background service, no internet permission.
+- Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode, no background service, no internet permission.
 
 ## What it does
 - BLE (Nordic UART) link to a verified V12 HT (series 7 / variant 2); the wheel is remembered after the first valid telemetry.
@@ -30,6 +30,7 @@ JDK 21, Android SDK 37, AGP 9.3.1, Gradle 9.7.1. Min API 26, target API 35.
 APK: `app/build/outputs/apk/debug/app-debug.apk` (debug-signed personal build).
 
 ## Docs
+- `docs/design-system.md` — Material 3 Expressive design code: visual direction, tokens, components, motion, states and implementation rules. Redesign based on commit `3b82cd3` (0.4.0).
 - `handoff.md` — project overview and decisions.
 - `docs/rolling-handoff.md` — running work log (lock RE and later app changes).
 - `docs/protocol-re-lock.md`, `docs/re-lock-handoff.md`, `docs/protocol-re-notes.md` — reverse-engineering notes.

@@ -5,6 +5,7 @@ local.properties
 *.iml
 
 .kotlin/
+.serena/
 
 *.jks
 *.keystore

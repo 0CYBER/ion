@@ -13,9 +13,12 @@ Recorded fixtures selected here are HS/Pro, NOT user V12 HT recordings. The HT d
 ## INMOTION APK static observations
 INMOTION 8.1.34 XAPK provided by the user; UUID/string constants corroborated in `libapp.so`. No vendor binaries, original APK, decompiled vendor source or vendor graphics are bundled into this project/APK. Original research evidence stays outside this project.
 
-## Visual reference
-Orion Store: https://github.com/RookieEnough/Orion-Store
-Visual inspiration only (expressive Material typography, tonal colors and rounded containers). No source, screenshots, trademarks or assets copied into the app. Vela UI is newly authored.
+## Fonts
+
+- Onest Variable: sourced from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/onest), licensed under SIL Open Font License 1.1. License: `third-party/Onest-OFL.txt`.
+- JetBrains Mono Variable: sourced from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/jetbrainsmono), licensed under SIL Open Font License 1.1. License: `third-party/JetBrainsMono-OFL.txt`.
+
+The font files are bundled locally. No font downloads occur in the application.
 
 ## Android / Compose
 AndroidX, Material 3, Kotlin and kotlinx.coroutines retain their upstream licenses. The build resolves dependencies from Google's Maven repository and Maven Central.
