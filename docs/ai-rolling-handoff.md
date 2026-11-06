@@ -227,3 +227,18 @@
 - Официальные API: [MD3 wavy progress](https://developer.android.com/reference/kotlin/androidx/compose/material3/LinearWavyProgressIndicator.composable), [preferredFrameRate](https://developer.android.com/reference/kotlin/androidx/compose/ui/preferredFrameRate.modifier). Новых библиотек не добавлялось.
 
 Проверка 0.9.1: `:core:test :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease -PskipScreenshots` — успешно. Release APK около 2,2 МБ, package/version проверены через aapt2; debuggable-флаг отсутствует, apksigner подтвердил совпадение сертификата с debug APK. Снимков в этом продолжении не создавали и не просматривали.
+
+
+## Сессия 3 — 2026-11-06: исправление падения оптимизированного APK
+
+**0.9.1-ai / v19 признана неработающей: не распространять этот APK.** Предыдущая проверка сборки, lint и подписи была недостаточна: сам minified APK до передачи не запускался. JVM-тесты использовали debug-классы и не могли поймать ошибку R8.
+
+Воспроизведено на отдельном headless emulator-5580 без скриншотов: установка v19 успешна, `am start -W` даже сообщает Status: ok, но затем процесс умирает. Logcat: Unable to get provider androidx.startup.InitializationProvider → WorkManagerInitializer → Failed to create an instance of androidx.work.impl.WorkDatabase. `build/release-startup-crash.log` сохраняет исходный stack trace.
+
+Причина: Glance 1.1.1 транзитивно использует WorkManager 2.7.1 и Room 2.2.5. Их старые consumer rules сохраняют классы, но не защищают default constructors при AGP 9/R8. В старом mapping WorkDatabase_Impl не имел конструктора, вызываемого reflection. В app/proguard-rules.pro добавлены узкие keepclassmembers для public no-arg WorkDatabase_Impl и наследников InputMerger (второй аналогичный reflection-путь WorkManager); оптимизация и shrinkResources сохранены, пакетных keep-all нет.
+
+Новая версия **0.9.2-ai / versionCode 20**. `:app:lintRelease :app:assembleRelease` — успешно. Добавлен tools/Test-ApkStartup.ps1: устанавливает именно готовый APK только на явно заданный emulator-serial, force-stop/холодный запуск два раза, через 5 с проверяет pid, resumed MainActivity и отсутствие app crash в logcat; am start success сам по себе не считается прохождением. Проверка не использует тестовую Application, синтетический Compose root или снимки.
+
+Red/green: скрипт действительно отклонил v19 с исходным падением; v20 прошёл оба запуска (разные процессы), MainActivity resumed и crash log пуст. Дополнительно XML-иерархия UI подтвердила 48 app-узлов и заголовок Ion — экран реально отрисован, снимков не было. Именованный Ion-0.9.2-ai-v20-optimized.apk побайтно совпадает с проверенным APK (SHA-256).
+
+Перед передачей каждого следующего release APK обязательно запускать smoke check готового артефакта, а не ограничиваться compile/unit/lint. Рекомендуемый артефакт: app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk. Физический телефон не подключался, данные/настройки приложения при установке не очищались.

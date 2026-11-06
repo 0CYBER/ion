@@ -36,3 +36,14 @@ APK: `app/build/outputs/apk/debug/app-debug.apk` (debug-signed personal build).
 - `docs/protocol-re-lock.md`, `docs/re-lock-handoff.md`, `docs/protocol-re-notes.md` — reverse-engineering notes.
 
 Protocol derived from WheelLog (GPL-3.0); see `THIRD_PARTY.md` and `third-party/WheelLog-LICENSE.txt` before redistribution.
+
+
+## Release APK startup check
+
+Before handing out an optimized APK, test the packaged release on a fully booted isolated emulator. Debug/JVM tests and a successful build do not exercise R8 startup failures.
+
+```powershell
+.\tools\Test-ApkStartup.ps1 -Apk app/build/outputs/apk/release/app-release.apk -Serial emulator-5580
+```
+
+This installs without clearing app data, performs two cold launches, and checks the process, resumed activity and crash log after each launch. It captures no screenshots. Version 0.9.1-ai/v19 failed this check; use the fixed 0.9.2-ai/v20 or later.

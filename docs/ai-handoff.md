@@ -1,6 +1,6 @@
 # AI handoff — ветка `ai-experimental` (структурированно)
 
-Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.9.1-ai` (versionCode 19). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
+Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.9.2-ai` (versionCode 20). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
 
 ## Модули
 
@@ -61,3 +61,8 @@
 
 
 Уточнение 0.9.1: капсула дока сохранена, прямоугольная полоса удалена переносом дока из Scaffold.bottomBar в overlay и scroll clearance. Скорость компактнее; Onest в полях диагностики; отдельный нативный charging wave. Для оценки плавности отдавать release APK (`assembleRelease`, R8/shrinkResources, локальная debug-подпись, не debuggable), а не debug. Высокая частота запрашивается через FrameRateCategory.High; реальных измерений 165 fps пока нет. См. актуальный блок ../handoff.md.
+
+
+## Критическое исправление release 0.9.2
+
+v19 optimized не запускается из-за удалённого R8 no-arg конструктора WorkDatabase_Impl. Исправлено точечными keepclassmembers (также InputMerger). v20 release реально установлен и дважды холодно запущен на emulator-5580, UI отрисован; без скриншотов. Перед передачей будущих APK обязателен tools/Test-ApkStartup.ps1, проверяющий pid/resumed Activity/logcat самого артефакта. Сборка, подпись, JVM-тесты и lint сами по себе недостаточны. APK: app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk. История и доказательство red/green — в конце ai-rolling-handoff.md.

@@ -1,5 +1,14 @@
 # Ion — handoff
 
+## Приоритетный hotfix — 0.9.2-ai / versionCode 20 (2026-11-06)
+
+**Предыдущий optimized APK 0.9.1 / v19 падает при запуске, не использовать и не отдавать.** Причина подтверждена logcat на emulator-5580: R8 удалил вызываемый через reflection конструктор WorkDatabase_Impl из транзитивных Room 2.2.5 / WorkManager 2.7.1. Ошибка была до открытия Activity, поэтому прежние debug/JVM-тесты, lint и проверка подписи её не ловили.
+
+Точечные keepclassmembers для WorkDatabase_Impl и InputMerger constructors в app/proguard-rules.pro; R8 сохранён. Новый APK: `app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk`. Release build/lint прошли. **Сам этот APK проверен двумя холодными запусками:** процесс жив после 5 с, MainActivity resumed, app crash отсутствует; XML UI подтверждает реально отрисованный Ion. Файл для передачи совпадает с протестированным по SHA-256.
+
+Обязательная проверка каждого следующего готового release APK (без скриншотов): `./tools/Test-ApkStartup.ps1 -Apk app/build/outputs/apk/release/app-release.apk -Serial emulator-5580`. Сначала дождаться загрузки отдельного эмулятора. Скрипт намеренно разрешает только emulator-serial. На сломанном v19 он падал, на исправленном v20 прошёл. JVM-тесты не заменяют этот smoke test. Полная запись — последняя секция docs/ai-rolling-handoff.md.
+
+
 ## Уточнение 2026-11-06 — Ion 0.9.1-ai / versionCode 19
 
 Этот блок новее описания 0.9.0 ниже. Возвращена капсула дока; удалена именно прямоугольная полоса Scaffold.bottomBar: dock теперь поверх viewport, а отступ от него — внутри scroll content (`LocalDockClearance`). Последний элемент доскролливается выше дока; кнопка добавления в редакторе не перекрывается.
