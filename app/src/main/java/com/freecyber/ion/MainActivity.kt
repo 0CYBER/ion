@@ -1,8 +1,11 @@
 package com.freecyber.ion
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -20,11 +23,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             val ui by model.ui.collectAsStateWithLifecycle()
             val preference by model.dark.collectAsStateWithLifecycle()
+            val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
+            val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
+            val background by model.prefs.background.collectAsStateWithLifecycle()
+            var notificationsAllowed by remember { mutableStateOf(IonNotifications.canPost(this)) }
             val dark=systemDark(preference)
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
+            val notifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                notificationsAllowed=IonNotifications.canPost(this)
+            }
+            fun askNotifications() { if(Build.VERSION.SDK_INT >= 33 && !IonNotifications.canPost(this)) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) }
             val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
                 if(result.values.all { it } && model.ble.hasPermissions()) {
                     pendingDevice?.let(model::connect) ?: model.scan()
+                    // Ask right after Bluetooth, when the rider understands why a live card is useful.
+                    askNotifications()
                 } else model.ble.permissionDenied()
                 pendingDevice=null
             }
@@ -35,13 +48,22 @@ class MainActivity : ComponentActivity() {
             SideEffect { WindowCompat.getInsetsController(window,window.decorView).apply {
                 isAppearanceLightStatusBars=!dark; isAppearanceLightNavigationBars=!dark
             } }
+            val keepOn=background.keepScreenOn && ui.connected
+            DisposableEffect(keepOn) {
+                if(keepOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                onDispose { }
+            }
             IonTheme(dark) {
-                IonApp(ui,dark,Actions(scan={permitted(null)},connect={permitted(it)},
+                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
-                    theme={model.setDark(!dark)},permissions={startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}))
+                    theme={model.setDark(!dark)},permissions={startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
+                    setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
+                    requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
+                    resetTrip=model::resetTrip))
             }
         }
     }
-    override fun onStop() { super.onStop(); if(!isChangingConfigurations) model.ble.onBackground() }
+    override fun onStop() { super.onStop(); if(!isChangingConfigurations) model.onBackground() }
 }

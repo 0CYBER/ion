@@ -25,7 +25,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
 /** The activity owns platform wiring; this shell owns only saveable presentation destinations. */
-@Composable internal fun IonApp(ui: VelaUi,dark: Boolean,actions: Actions,initialTab: Int=0) {
+@Composable internal fun IonApp(ui: VelaUi,dark: Boolean,prefs: PrefsUi,actions: Actions,initialTab: Int=0) {
     var tab by rememberSaveable {mutableIntStateOf(initialTab)}
     var detail by rememberSaveable {mutableStateOf<String?>(null)}
     var forget by rememberSaveable {mutableStateOf(false)}
@@ -47,11 +47,13 @@ import androidx.compose.ui.unit.dp
                     when {
                         route=="appearance" -> AppearanceScreen(dark,actions.theme) {detail=null}
                         route=="diagnostics" -> DiagnosticsScreen(ui,actions) {detail=null}
+                        route=="dashboard" -> DashboardEditorScreen(prefs.dashboard,actions.setDashboard) {detail=null}
+                        route=="background" -> BackgroundScreen(prefs,actions) {detail=null}
                         route.startsWith("control:") -> ControlScreen(ui,ControlCategory.valueOf(route.substringAfter(':')),
                             {actions.read(V12Protocol.Read.SETTINGS)},::write) {detail=null}
-                        route=="tab:1" -> SettingsScreen({detail="appearance"}) {detail="control:${it.name}"}
+                        route=="tab:1" -> SettingsScreen({detail="appearance"},{detail="background"},{detail="dashboard"}) {detail="control:${it.name}"}
                         route=="tab:2" -> WheelScreen(ui,actions,actions.connect,{forget=true},{detail="diagnostics"})
-                        else -> RideScreen(ui,::connect,::write,{tab=2},{tab=1})
+                        else -> RideScreen(ui,prefs.dashboard,::connect,::write,{tab=2},{tab=1},{detail="dashboard"},{detail="control:${ControlCategory.RIDE.name}"})
                     }
                 }
             }

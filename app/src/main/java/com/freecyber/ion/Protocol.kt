@@ -89,15 +89,21 @@ object V12Protocol {
         val mosTemp: Int, val motorTemp: Int, val pitch: Double, val roll: Double,
         val charging: Boolean, val lowBeam: Boolean, val highBeam: Boolean,
         val motorActive: Boolean = false, val firmwareUpdate: Boolean = false,
-        val tripKm: Double = 0.0, val rangeKm: Double = 0.0
-    )
+        val tripKm: Double = 0.0, val rangeKm: Double = 0.0,
+        /** Motor load in percent (s16[8]/100); the closer to 100, the less safety margin is left. */
+        val pwm: Double = 0.0,
+        val batteryPower: Int = 0, val motorPower: Int = 0
+    ) {
+        /** Electrical power from the pack; negative while regenerating. */
+        val power: Double get() = voltage * current
+    }
     fun telemetry(f: Frame): Telemetry? {
         if (f.flags != 0x14 || f.command != 4 || !f.response || f.payload.size < 56) return null
         val p = f.payload
         return Telemetry(p.u16(0)/100.0, p.s16(2)/100.0, p.s16(4)/100.0, p.u16(24)/100.0,
             p[40].u()-176, p[41].u()-176, p.s16(16)/100.0, p.s16(20)/100.0,
             p[54].u() and 0x80 != 0, p[55].u() and 1 != 0, p[55].u() and 2 != 0, p[54].u() and 0x40 != 0, p[55].u() and 0x20 != 0,
-            p.u16(22)/100.0, p.u16(26)/100.0)
+            p.u16(22)/100.0, p.u16(26)/100.0, p.s16(8)/100.0, p.s16(10), p.s16(12))
     }
     data class Settings(val speedLimit: Double, val comfortable: Int, val classic: Int, val standbySeconds: Int,
         val alarm1: Double, val alarm2: Double, val pedalTilt: Double, val classicMode: Boolean,

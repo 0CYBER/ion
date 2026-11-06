@@ -53,7 +53,7 @@ class UiVerificationTest {
                 key(id) {
                     CompositionLocalProvider(LocalDensity provides Density(densityOverride ?: LocalDensity.current.density,fontScale)) {
                         Box(if(width==Dp.Unspecified) Modifier.fillMaxSize() else Modifier.width(width).fillMaxHeight()) {
-                            IonTheme(dark) {IonApp(ui,dark,actions,tab)}
+                            IonTheme(dark) {IonApp(ui,dark,PrefsUi(),actions,tab)}
                         }
                     }
                 }
@@ -178,7 +178,7 @@ class UiVerificationTest {
     }
     @Test fun connectedWheelNeverBecomesOfflineFromBriefPollGaps() {
         val base=sample();val current=mutableStateOf(base)
-        rule.runOnUiThread {rule.activity.setContent {IonTheme(true) {IonApp(current.value,true,Actions(),2)}}}
+        rule.runOnUiThread {rule.activity.setContent {IonTheme(true) {IonApp(current.value,true,PrefsUi(),Actions(),2)}}}
         for(at in 10000L..13000L step 250) {
             rule.runOnUiThread {current.value=wheelUiSnapshot(base.wheel.copy(lastPacketAt=at),base.saved) {at+1}}
             rule.waitForIdle();rule.onNodeWithText("На связи").assertIsDisplayed()
