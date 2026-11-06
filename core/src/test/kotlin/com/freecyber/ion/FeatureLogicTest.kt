@@ -167,6 +167,21 @@ class WidgetSnapshotTest {
         assertEquals(empty, WidgetSnapshot.decode("junk"))
         assertEquals(empty, WidgetSnapshot.decode(null))
     }
+
+    @Test fun offlineKeepsLastKnownFiguresAndTime() {
+        val live = WidgetSnapshot(WidgetSnapshot.State.LIVE, 77, 23.5, 41.2, 3.4, 51, true, true, 1_000)
+        val off = WidgetSnapshot(WidgetSnapshot.State.OFFLINE, hasSavedWheel = true, updatedAt = 9_000).carryOver(live)
+        assertEquals(77, off.battery); assertEquals(41.2, off.rangeKm!!, 0.0); assertEquals(51, off.temperature)
+        assertNull(off.speed); assertFalse(off.lowBeam)
+        assertEquals(1_000, off.updatedAt)
+        assertTrue(off.isStale)
+        // Chained offline pushes keep the original time; a new live push replaces everything.
+        assertEquals(1_000, WidgetSnapshot(updatedAt = 20_000).carryOver(off).updatedAt)
+        val again = WidgetSnapshot(WidgetSnapshot.State.LIVE, 60, 10.0, null, null, null, false, true, 30_000).carryOver(off)
+        assertEquals(60, again.battery); assertNull(again.rangeKm); assertFalse(again.isStale)
+        // Nothing remembered: nothing invented.
+        assertNull(WidgetSnapshot().carryOver(WidgetSnapshot()).battery)
+    }
 }
 
 class ReconnectPolicyTest {

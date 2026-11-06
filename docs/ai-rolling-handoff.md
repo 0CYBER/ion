@@ -73,3 +73,10 @@
 - `DashTile.CHART` (широкая, по умолчанию видна, добавляется в конец сохранённых раскладок автоматически). `ChartTile.kt`: Canvas — заливка-площадь скорости + линия мощности (цвет `tertiary`), легенда «Скорость до … км/ч», «Мощность до … Вт», окно «за N мин», contentDescription с итогами для TalkBack.
 - Поток: `WheelMonitor` → `IonGraph.chart` (StateFlow) → `VelaViewModel.combine` → `VelaUi.chart`.
 - Новый скриншот `ride_chart` (тёмная тема, график сразу под скоростью). 72 теста зелёные.
+
+## Сессия 1 — виджет: последние известные данные и превью
+
+- `WidgetSnapshot.carryOver(previous)` (`:core`, тест `offlineKeepsLastKnownFiguresAndTime`): без живой связи виджет больше не обнуляется до прочерков — хранит заряд/остаток/поездку/температуру и время, когда они были актуальны. Слияние делается по каждому экземпляру виджета внутри `updateAppWidgetState`. После перезапуска процесса первый пуш `WheelMonitor` превращает застывший «На связи» в «Не в сети · 14:32».
+- Виджет: устаревшие цифры приглушены (`onSurfaceVariant`), в статусе время/дата (`DateUtils.formatSameDayTime`); при высоте ≥110 dp — полоска заряда (`LinearProgressIndicator`).
+- `previewLayout` (`res/layout/widget_preview.xml`) — в списке виджетов Android 12+ виден настоящий облик вместо заглушки.
+- lint: 0 ошибок; 73 теста зелёные.

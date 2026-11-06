@@ -37,6 +37,9 @@
     <string name="widget_figures">Остаток %1$s км · Поездка %2$s км · %3$s °C</string>
     <string name="widget_reconnecting">Переподключение</string>
     <string name="widget_lost">Нет связи</string>
+    <string name="widget_preview_battery">78%</string>
+    <string name="widget_preview_figures">Остаток 41,2 км · Поездка 12,3 км · 50 °C</string>
+    <string name="widget_state_seen">%1$s · %2$s</string>
     <string name="status_reconnecting">Переподключение</string>
     <!-- Dashboard editor -->
     <string name="dash_edit">Настроить экран</string>

@@ -64,7 +64,8 @@ object IonWidgetUpdater {
                 val ids = manager.getGlanceIds(IonWidget::class.java)
                 for (id in ids) {
                     updateAppWidgetState(context, PreferencesGlanceStateDefinition, id) { prefs ->
-                        prefs.toMutablePreferences().apply { this[IonWidget.KEY] = snap.encode() }
+                        val merged = snap.carryOver(WidgetSnapshot.decode(prefs[IonWidget.KEY]))
+                        prefs.toMutablePreferences().apply { this[IonWidget.KEY] = merged.encode() }
                     }
                     IonWidget().update(context, id)
                 }
@@ -82,11 +83,16 @@ object IonWidgetUpdater {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Vertical.CenterVertically) {
             Text(context.getString(R.string.wheel_model), style = TextStyle(color = colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium),
                 modifier = GlanceModifier.defaultWeight())
-            Text(context.getString(stateLabel(snap.state)), style = TextStyle(color = if (live) colors.primary else colors.onSurfaceVariant, fontSize = 12.sp))
+            val label = context.getString(stateLabel(snap.state))
+            val seen = if (snap.isStale && snap.updatedAt > 0) android.text.format.DateUtils.formatSameDayTime(
+                snap.updatedAt, System.currentTimeMillis(), java.text.DateFormat.SHORT, java.text.DateFormat.SHORT) else null
+            Text(if (seen != null) context.getString(R.string.widget_state_seen, label, seen) else label,
+                style = TextStyle(color = if (live) colors.primary else colors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
         }
         Spacer(GlanceModifier.height(4.dp))
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Vertical.Bottom) {
-            Text(snap.battery?.let { "$it%" } ?: "—", style = TextStyle(color = colors.onSurface, fontSize = 30.sp, fontWeight = FontWeight.Bold))
+            Text(snap.battery?.let { "$it%" } ?: "—", style = TextStyle(color = if (snap.isStale) colors.onSurfaceVariant else colors.onSurface,
+                fontSize = 30.sp, fontWeight = FontWeight.Bold))
             if (live && size.width >= 200.dp) {
                 Spacer(GlanceModifier.width(12.dp))
                 Text(context.getString(R.string.widget_speed, (snap.speed ?: 0.0).fmt(1)),
@@ -94,6 +100,11 @@ object IonWidgetUpdater {
             }
         }
         if (size.height >= 110.dp) {
+            snap.battery?.let {
+                Spacer(GlanceModifier.height(4.dp))
+                LinearProgressIndicator(it / 100f, GlanceModifier.fillMaxWidth().height(4.dp),
+                    color = if (snap.isStale) colors.outline else colors.primary, backgroundColor = colors.surfaceVariant)
+            }
             Spacer(GlanceModifier.height(4.dp))
             Text(context.getString(R.string.widget_figures, snap.rangeKm?.fmt(1) ?: "—", snap.tripKm?.fmt(1) ?: "—",
                 snap.temperature?.toString() ?: "—"), style = TextStyle(color = colors.onSurfaceVariant, fontSize = 12.sp), maxLines = 2)

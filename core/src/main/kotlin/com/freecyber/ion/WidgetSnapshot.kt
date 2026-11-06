@@ -15,6 +15,18 @@ data class WidgetSnapshot(
 ) {
     enum class State { OFFLINE, CONNECTING, LIVE, RECONNECTING, ERROR }
 
+    /** Figures are remembered from an earlier live link rather than streaming now. */
+    val isStale get() = state != State.LIVE && battery != null
+
+    /** Without a live link the wheel sends nothing, so keep the last known figures (and the time they were
+     * seen) instead of blanking the widget; after a process restart this also turns a frozen "live" into offline. */
+    fun carryOver(previous: WidgetSnapshot): WidgetSnapshot {
+        if (state == State.LIVE || previous.battery == null) return this
+        return copy(battery = battery ?: previous.battery, rangeKm = rangeKm ?: previous.rangeKm,
+            tripKm = tripKm ?: previous.tripKm, temperature = temperature ?: previous.temperature,
+            updatedAt = previous.updatedAt)
+    }
+
     fun encode(): String = listOf(state.name, battery?.toString().orEmpty(), speed?.toString().orEmpty(),
         rangeKm?.toString().orEmpty(), tripKm?.toString().orEmpty(), temperature?.toString().orEmpty(),
         if (lowBeam) "1" else "0", if (hasSavedWheel) "1" else "0", updatedAt.toString()).joinToString(";")
