@@ -102,3 +102,4 @@
 - Тесты: Robolectric по умолчанию en-US, поэтому `ScreenshotTest`/`NotificationTest` явно ставят `ru`; новые снимки `ride_live_en`, `background_en`; тесты плюралов RU/EN. 82 теста зелёные, lint 0 ошибок.
 - Не переведено (осознанно): подписи полей диагностики и описания команд в `:core` `Protocol.kt` и названия ошибок в `WheelErrors.kt` — нужен слой строк для чистого Kotlin. `androidTest/UiVerificationTest` ищет русские тексты — запускать на русскоязычном эмуляторе.
 - Инфраструктура: на машине с 4 ГБ без swap `lintDebug` вместе с Robolectric-тестами в одном запуске вызывает OOM-killer (умирает Gradle-демон и рвётся MCP-сессия) — lint запускать отдельно. Скриншотов в `docs/screenshots/` теперь 14.
+- Язык приложения: `android:localeConfig` (`res/xml/locales_config.xml`: ru, en) — на Android 13+ в настройках системы можно выбрать язык Ion отдельно от системного.
