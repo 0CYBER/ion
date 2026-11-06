@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
     val savedPages=rememberSaveableStateHolder()
     val motion=MaterialTheme.motionScheme
     BackHandler(detail!=null) {detail=null}
-    fun write(command: V12Protocol.Write) {if(ui.canWrite(command)) actions.write(command)}
+    // Pass writes straight through: BleController.apply guards the tier itself and reports a refusal
+    // through writeMessage. The old silent drop left taps with no feedback at all.
+    fun write(command: V12Protocol.Write) {actions.write(command)}
     fun connect() {if(ui.saved!=null) actions.connect(ui.saved) else {tab=2;actions.scan()}}
     // A phone on its side has little height: the dock becomes a rail at the start edge.
     BoxWithConstraints(Modifier.fillMaxSize()) {

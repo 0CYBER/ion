@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable internal fun Modifier.squashClick(enabled: Boolean=true,onClick: ()->Unit): Modifier {
     val interaction=remember {MutableInteractionSource()}
@@ -120,6 +121,40 @@ import androidx.compose.ui.unit.dp
     FilledTonalButton(onClick=actions.readAll,enabled=ui.connected && !ui.wheel.workPending,modifier=modifier.heightIn(min=48.dp)) {
         if(ui.wheel.workPending) LoadingIndicator(Modifier.size(20.dp)) else Icon(Icons.Rounded.Refresh,null,Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp));Text(stringResource(if(ui.wheel.workPending) R.string.read_pending else R.string.read_all))
+    }
+}
+/** One slider inside an [ExpandSliders] editor: the wheel's current value plus how to show it. */
+internal class SliderSpec(val label: String,val value: Int,val range: IntRange,val text: @Composable (Int)->String)
+
+/**
+ * Expandable slider editor whose drafts survive settings read-backs. A slider the rider never touched
+ * follows the wheel value; a touched one keeps the user's value even when a read-back or the periodic
+ * settings poll arrives mid-edit. Apply sends the drafts and keeps them until a read-back confirms the
+ * sent values, so a slow link can no longer throw an edit away or dead-lock the button. This replaces
+ * the old `remember(s.field)` pattern whose drafts were clobbered by every settings update — the cause
+ * of the "applies only once until the row is reopened" bug.
+ */
+@Composable internal fun ExpandSliders(icon: ImageVector,title: String,summary: String,enabled: Boolean,
+    specs: List<SliderSpec>?,onApply: (List<Int>)->Unit) {
+    ExpandRow(icon,title,summary) {
+        if(specs.isNullOrEmpty()) { MissingSetting(stringResource(R.string.no_data)); return@ExpandRow }
+        var drafts by remember { mutableStateOf(List(specs.size) { null as Float? }) }
+        val sent=remember { mutableStateOf<List<Int>?>(null) }
+        val current=specs.mapIndexed {index,spec -> (drafts[index] ?: spec.value.toFloat()).roundToInt()}
+        // Read-back confirmed the sent values: stop showing them as drafts, follow the wheel again.
+        LaunchedEffect(specs.map { it.value }) {
+            if(sent.value!=null && specs.map { it.value }==sent.value) { sent.value=null; drafts=List(specs.size) { null } }
+        }
+        Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
+            specs.forEachIndexed {index,spec ->
+                val value=drafts[index] ?: spec.value.toFloat()
+                SettingSlider(spec.label,value,spec.text(current[index]),
+                    spec.range.first.toFloat()..spec.range.last.toFloat(),enabled) {drafts=drafts.toMutableList().also {it[index]=value}}
+            }
+            ApplyButton(stringResource(R.string.common_apply),enabled && drafts.any {it!=null}) {
+                onApply(current); sent.value=current
+            }
+        }
     }
 }
 @Composable internal fun ExpandRow(icon: ImageVector,title: String,summary: String,content: @Composable ColumnScope.()->Unit) {
