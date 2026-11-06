@@ -31,6 +31,10 @@ class IonGraph(val context: Context) {
     val trips = TripRecorder()
     val history = TripHistory(context)
     val voice = VoiceAnnouncer(context)
+    /** Recent telemetry for the live chart; written by the monitor, read by the UI. */
+    val samples = SampleBuffer()
+    internal val chartState = MutableStateFlow<List<Sample>>(emptyList())
+    val chart: StateFlow<List<Sample>> = chartState.asStateFlow()
     val ble = BleController(context, scope) { device ->
         store.saveVerified(device)
         savedState.value = device

@@ -21,6 +21,7 @@ enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val c
     QUICK_HIGH_BEAM(false, false),
     PLAY_SOUND(false, false),
     MODE(false, true, canBeHalf = true),
+    CHART(true, true, canBeHalf = false),
 }
 
 data class TileSlot(val tile: DashTile, val visible: Boolean, val wide: Boolean) {

@@ -51,6 +51,9 @@ class ScreenshotTest {
         val all = DashboardLayout(DashboardLayout.DEFAULT.slots.map { it.copy(visible = true) })
         RideScreen(Samples.live(), all, {}, {}, {}, {}, {}, {})
     }
+    @Test fun rideChart() = shot("ride_chart", dark = true) {
+        RideScreen(Samples.live(), DashboardLayout.DEFAULT.move(DashTile.CHART, -100).move(DashTile.SPEED, -100), {}, {}, {}, {}, {}, {})
+    }
     @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(DashboardLayout.DEFAULT, {}, {}) }
     @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
     @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}) }
@@ -75,6 +78,8 @@ object Samples {
         return VelaUi(WheelState(phase = Phase.CONNECTED, message = "Данные с колеса", verifiedHt = true,
             telemetry = V12Protocol.telemetry(telemetry), settings = V12Protocol.settings(settings), settingsAt = 9500, lastPacketAt = 9500,
             packets = 128, stationaryPackets = 0),
-            WheelDevice("AA:BB:CC:DD:EE:FF", "V12HT-1234", -55), 10_000, trip = trip)
+            WheelDevice("AA:BB:CC:DD:EE:FF", "V12HT-1234", -55), 10_000, trip = trip,
+            chart = List(420) { i -> val v = 24 + 12 * kotlin.math.sin(i / 25.0) + 4 * kotlin.math.sin(i / 7.0)
+                Sample(i * 1_000L, v.toFloat().coerceAtLeast(0f), (v * 55 + 300 * kotlin.math.cos(i / 11.0)).toFloat(), 90f - i / 30f) })
     }
 }

@@ -12,7 +12,8 @@ object SavedWheelFormat {
     fun validAddress(value: String?) = value != null && Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$").matches(value)
 }
 data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? = null, val now: Long = 0,
-    val staleSince: Long? = null, val reconnecting: Boolean = false, val trip: TripStats = TripStats()) {
+    val staleSince: Long? = null, val reconnecting: Boolean = false, val trip: TripStats = TripStats(),
+    val chart: List<Sample> = emptyList()) {
     val fresh get() = wheel.phase == Phase.CONNECTED && wheel.lastPacketAt?.let { now-it in 0..Timing.FRESH_WINDOW_MS } == true
     val busy get() = wheel.phase in listOf(Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING)
     val connected get() = wheel.verifiedHt && wheel.phase == Phase.CONNECTED
@@ -47,7 +48,7 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
         val age=wheel.lastPacketAt?.let { now-it }
         staleSince = if(wheel.phase == Phase.CONNECTED && wheel.verifiedHt && (age == null || age > Timing.FRESH_WINDOW_MS)) staleSince ?: now else null
         wheelUiSnapshot(wheel,device,staleSince) { now }.copy(reconnecting=retry,trip=trip)
-    }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5_000),VelaUi(saved=graph.saved.value))
+    }.combine(graph.chart) { ui,chart -> ui.copy(chart=chart) }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5_000),VelaUi(saved=graph.saved.value))
     init { viewModelScope.launch { while(true) { tick.value=SystemClock.elapsedRealtime(); delay(Timing.POLL_DELAY_MS) } } }
     fun scan()=graph.ble.scan()
     fun connect(device: WheelDevice)=graph.monitor.userConnect(device)

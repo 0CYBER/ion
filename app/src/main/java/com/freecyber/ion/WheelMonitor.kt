@@ -53,6 +53,7 @@ class WheelMonitor(private val graph: IonGraph) {
         TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), SystemClock.elapsedRealtime())?.let(graph.history::add)
         graph.history.checkpoint(null); lastCheckpointAt = 0L
         graph.trips.reset()
+        graph.samples.clear(); graph.chartState.value = emptyList()
     }
 
     private fun cancelReconnect() {
@@ -63,7 +64,10 @@ class WheelMonitor(private val graph: IonGraph) {
     private fun onState(s: WheelState) {
         val now = SystemClock.elapsedRealtime()
         val connected = s.verifiedHt && s.phase == Phase.CONNECTED
-        if (s.packets > lastPackets && connected) s.telemetry?.let { graph.trips.feed(it, now) }
+        if (s.packets > lastPackets && connected) s.telemetry?.let {
+            graph.trips.feed(it, now)
+            if (graph.samples.add(it, now)) graph.chartState.value = graph.samples.snapshot()
+        }
         lastPackets = s.packets
         if (connected && now - lastCheckpointAt >= CHECKPOINT_MS) {
             lastCheckpointAt = now

@@ -102,6 +102,7 @@ import kotlin.math.roundToInt
         DashTile.PWM -> PwmTile(t?.pwm,modifier)
         DashTile.TILT -> MetricTile(stringResource(R.string.tile_tilt),t?.let {"${it.pitch.fmt(1)} / ${it.roll.fmt(1)}"},stringResource(R.string.unit_degrees),Icons.Rounded.ScreenRotation,wide,modifier)
         DashTile.MODE -> ModeTile(s,modifier,env.openRideMode)
+        DashTile.CHART -> ChartTile(ui.chart,modifier)
     }
 }
 

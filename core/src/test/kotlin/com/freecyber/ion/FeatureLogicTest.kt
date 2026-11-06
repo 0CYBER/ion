@@ -246,3 +246,21 @@ class BatteryStepperTest {
         assertNull(s.next(null, false))
     }
 }
+
+class SampleBufferTest {
+    private fun t(speed: Double) = V12Protocol.Telemetry(84.0, 10.0, speed, 80.0, 40, 45, 0.0, 0.0, false, false, false)
+
+    @Test fun thinsToOnePerStepAndWraps() {
+        val b = SampleBuffer(capacity = 3, stepMs = 1_000)
+        assertTrue(b.add(t(1.0), 0))
+        assertFalse(b.add(t(2.0), 500))
+        assertTrue(b.add(t(-3.0), 1_000))
+        assertTrue(b.add(t(4.0), 2_000))
+        assertTrue(b.add(t(5.0), 3_000))
+        assertEquals(listOf(3f, 4f, 5f), b.snapshot().map { it.speed })
+        assertEquals(840f, b.snapshot().first().power, 0f)
+        b.clear()
+        assertTrue(b.snapshot().isEmpty())
+        assertTrue(b.add(t(1.0), 3_100))
+    }
+}

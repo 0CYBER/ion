@@ -148,4 +148,9 @@
     <string name="voice_link_restored">Связь восстановлена</string>
     <string name="voice_error">Ошибка колеса</string>
     <string name="voice_battery_step">Заряд %1$d процентов</string>
+    <string name="tile_chart">График</string>
+    <string name="chart_window">за %1$d мин</string>
+    <string name="chart_speed_max">Скорость до %1$s км/ч</string>
+    <string name="chart_power_max">Мощность до %1$d Вт</string>
+    <string name="chart_summary">График: максимум скорости %1$s км/ч, мощности %2$d Вт за %3$d мин</string>
 </resources>

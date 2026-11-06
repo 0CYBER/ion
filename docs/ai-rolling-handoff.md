@@ -62,3 +62,14 @@
 - `WheelService` держит несчётный `PARTIAL_WAKE_LOCK` (продлевается на 2 мин при каждом обновлении, пока связь активна; снимается при остановке). Причина: колесо опрашивается запросами, а не стримит — если CPU засыпает между опросами в кармане, телеметрия и оповещения замирают. Добавлено разрешение `WAKE_LOCK`.
 - Новый чисто-Kotlin модуль `:core` (JVM, без Android): `Protocol`, `LockSecurity`, `Formatters`, `AlertEngine`, `Config` (AlertConfig/BackgroundConfig), `Dashboard`, `TripRecorder`, `TripSummary`/`TripTotals`, `BatteryStepper`, `ReconnectPolicy`, `WheelErrors`, `WidgetSnapshot` (данные). Android-сторона (`WidgetMapping.kt`: `WidgetSnapshot.from(WheelState…)`) осталась в `:app`. Пакет прежний (`com.freecyber.ion`), импорты не менялись; `internal` → public для `frame`, `LockSecurity`, `fmt`.
 - Тесты логики переехали в `core/src/test` (вместе с `v12-fixtures.txt`), `ControlsTest`/`ConnectionTimingTest`/`ScreenshotTest` — в `:app`. Команда: `./gradlew :core:test :app:testDebugUnitTest assembleDebug`. Всего 70 тестов, зелёные. CI обновлён.
+
+## Сессия 1 — авторство коммитов
+
+- Обнаружено: коммиты ветки шли от `mybydemvarit jesse <free.wplace4@gmail.com>` — это был глобальный `git config` машины (`gh auth` отвечает только за push). Для репозитория задано `user.name=0CYBER`, `user.email=heyartemka@gmail.com` (как в исходных коммитах), 8 коммитов ветки переписаны (`rebase --exec 'commit --amend --reset-author'`) и отправлены `--force-with-lease`. `main` не трогался. Новые хэши: c9c28e7 … 351c58f.
+
+## Сессия 1 — плитка «График»
+
+- `:core` `SampleBuffer`: кольцевой буфер последних 6 мин телеметрии (скорость, мощность), прореживание до 1 точки/с, сброс при `finishTrip`. Тест в `FeatureLogicTest`.
+- `DashTile.CHART` (широкая, по умолчанию видна, добавляется в конец сохранённых раскладок автоматически). `ChartTile.kt`: Canvas — заливка-площадь скорости + линия мощности (цвет `tertiary`), легенда «Скорость до … км/ч», «Мощность до … Вт», окно «за N мин», contentDescription с итогами для TalkBack.
+- Поток: `WheelMonitor` → `IonGraph.chart` (StateFlow) → `VelaViewModel.combine` → `VelaUi.chart`.
+- Новый скриншот `ride_chart` (тёмная тема, график сразу под скоростью). 72 теста зелёные.

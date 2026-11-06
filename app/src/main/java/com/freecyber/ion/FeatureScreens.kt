@@ -37,6 +37,7 @@ internal val DashTile.titleRes: Int get() = when(this) {
     DashTile.QUICK_HIGH_BEAM -> R.string.tile_quick_high_beam
     DashTile.PLAY_SOUND -> R.string.tile_play_sound
     DashTile.MODE -> R.string.tile_mode
+    DashTile.CHART -> R.string.tile_chart
 }
 
 internal val DashTile.icon: ImageVector get() = when(this) {
@@ -58,6 +59,7 @@ internal val DashTile.icon: ImageVector get() = when(this) {
     DashTile.QUICK_HIGH_BEAM -> Icons.Rounded.Highlight
     DashTile.PLAY_SOUND -> Icons.Rounded.Campaign
     DashTile.MODE -> Icons.Rounded.Tune
+    DashTile.CHART -> Icons.Rounded.ShowChart
 }
 
 /** Lets the rider choose, order and size every dashboard module. Changes apply immediately. */
