@@ -61,6 +61,11 @@ import java.util.Date
                 TripFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",Modifier.weight(1f))
                 TripFigure(stringResource(R.string.trip_max),t.maxSpeed.fmt(1),stringResource(R.string.unit_kmh),Modifier.weight(1f))
             }
+            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                TripFigure(stringResource(R.string.trip_energy),(t.energyWh/1000).fmt(2),stringResource(R.string.unit_kwh),Modifier.weight(1f))
+                TripFigure(stringResource(R.string.trip_consumption),
+                    if(t.distanceKm>=1) (t.energyWh/t.distanceKm).fmt(1) else "—",stringResource(R.string.unit_wh_km),Modifier.weight(1f))
+            }
         }
     }
 }
