@@ -9,6 +9,7 @@ internal data class Actions(
     val setAlerts: (AlertConfig) -> Unit = {},
     val setBackground: (BackgroundConfig) -> Unit = {},
     val requestNotifications: () -> Unit = {},
+    val requestBatteryUnrestricted: () -> Unit = {},
     val resetTrip: () -> Unit = {},
     val shareTrips: () -> Unit = {},
     val deleteTrip: (TripSummary) -> Unit = {},
@@ -21,5 +22,7 @@ internal data class PrefsUi(
     val alerts: AlertConfig = AlertConfig(),
     val background: BackgroundConfig = BackgroundConfig(),
     val notificationsAllowed: Boolean = true,
+    /** Doze exemption; without it the background link may be cut on some firmwares. */
+    val batteryUnrestricted: Boolean = true,
     val trips: List<TripSummary> = emptyList(),
 )

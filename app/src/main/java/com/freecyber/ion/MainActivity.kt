@@ -1,10 +1,14 @@
 package com.freecyber.ion
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,9 +36,13 @@ class MainActivity : ComponentActivity() {
             val background by model.prefs.background.collectAsStateWithLifecycle()
             val trips by model.history.trips.collectAsStateWithLifecycle()
             var notificationsAllowed by remember { mutableStateOf(IonNotifications.canPost(this)) }
+            var batteryUnrestricted by remember { mutableStateOf(batteryUnrestricted()) }
             val dark=systemDark(preference)
             // Permission may change in system settings while we are away.
-            LifecycleResumeEffect(Unit) { notificationsAllowed=IonNotifications.canPost(this@MainActivity); onPauseOrDispose { } }
+            LifecycleResumeEffect(Unit) {
+                notificationsAllowed=IonNotifications.canPost(this@MainActivity); batteryUnrestricted=batteryUnrestricted()
+                onPauseOrDispose { }
+            }
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
             val notifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
                 notificationsAllowed=IonNotifications.canPost(this)
@@ -62,14 +70,25 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
             IonTheme(dark) {
-                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,trips),Actions(scan={permitted(null)},connect={permitted(it)},
+                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
-                    theme={model.setDark(!dark)},permissions={startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
+                    theme={model.setDark(!dark)},permissions={startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
                     setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
+                    requestBatteryUnrestricted=::requestBatteryUnrestricted,
                     resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},deleteTrip=model.history::delete,clearTrips=model.history::clear))
             }
+        }
+    }
+    private fun batteryUnrestricted()=getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(packageName)?:true
+    /** A companion app for a ride-safety device: the direct request is allowed, the settings list is the fallback. */
+    @SuppressLint("BatteryLife")
+    private fun requestBatteryUnrestricted() {
+        val direct=Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:$packageName"))
+        try { startActivity(direct) }
+        catch(_: ActivityNotFoundException) {
+            runCatching { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
         }
     }
     private fun shareTrips(trips: List<TripSummary>) {

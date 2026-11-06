@@ -127,6 +127,12 @@ internal val DashTile.icon: ImageVector get() = when(this) {
                 ApplyButton(stringResource(R.string.notif_permission),true,actions.requestNotifications)
             }
         }
+        if(!prefs.batteryUnrestricted && (bg.keepAlive || bg.autoReconnect)) item(key="battery",contentType="banner") {
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Banner(stringResource(R.string.battery_unrestricted_hint),Icons.Rounded.BatterySaver,warning=true)
+                ApplyButton(stringResource(R.string.battery_unrestricted),true,actions.requestBatteryUnrestricted)
+            }
+        }
         item(key="bg-title",contentType="section") {SectionHeader(stringResource(R.string.bg_section))}
         item(key="bg",contentType="group") {
             GroupColumn {

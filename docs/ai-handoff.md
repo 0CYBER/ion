@@ -18,11 +18,14 @@
 | Уведомления (live / alerts / link) + чип в статус-баре Android 16 | готово, NotificationTest | `IonNotifications.kt`, `WheelErrors.kt` |
 | Оповещения с гистерезисом + голос (TTS) | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
 | Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
-| Виджет (Glance) | готово | `IonWidget.kt`, `WidgetMapping.kt` |
+| Виджет (Glance): последние известные цифры, полоска заряда, превью | готово | `IonWidget.kt`, `WidgetMapping.kt`, `WidgetSnapshot` |
+| Запрос снятия оптимизации батареи (Doze) | готово | `MainActivity.kt`, `BackgroundScreen` |
+| Локализация RU/EN + выбор языка приложения (localeConfig) | готово (кроме подписей диагностики в `:core`) | `res/values-en/`, `res/xml/locales_config.xml` |
+| Доступность: fontScale 1.5, переносы, FlowRow | готово, скриншоты | `Theme.kt`, `ScreenshotTest.kt` |
 | Quick Settings tile | готово | `IonTileService.kt` |
 | Модульный экран поездки + редактор | готово | `Dashboard.kt`, `RideScreen.kt`, `FeatureScreens.kt` |
 | Плитка «График» (скорость/мощность за 6 мин) | готово | `SampleBuffer.kt`, `ChartTile.kt` |
-| Скриншот-тесты (Robolectric + Roborazzi) | 10 экранов | `ScreenshotTest.kt`, `docs/screenshots/` |
+| Скриншот-тесты (Robolectric + Roborazzi) | 14 снимков (RU/EN, светлая/тёмная, крупный шрифт) | `ScreenshotTest.kt`, `docs/screenshots/` |
 | CI | GitHub Actions | `.github/workflows/android.yml` |
 
 ## Сборка
@@ -30,7 +33,7 @@
 ```
 ./gradlew :core:test :app:testDebugUnitTest assembleDebug
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 82 теста. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ). Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 
@@ -38,8 +41,9 @@
 2. Фара в уведомлении/виджете пишет только при `safeWrite` (стоянка, проверенное HT).
 3. Авто-переподключение не срабатывает после ручного «Отключить» и «Забыть».
 4. Wake lock держится только пока приходят данные (продление на 2 мин) — проверить расход батареи телефона.
-5. TTS: если на телефоне нет русского голоса, используется системный.
+5. TTS: если на телефоне нет голоса нужного языка, используется системный.
+6. Баннер «Снять ограничение батареи» — показывается, если включена фоновая связь/переподключение, а приложение под Doze-оптимизацией; проверить диалог `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` на MIUI/One UI.
 
 ## Бэклог
 
-EN-локализация (и вынос захардкоженных строк из BLE-слоя), второй вариант виджета, ландшафт/планшет, вибро-оповещения, устаревание данных в виджете, GPX/трек, тесты на fontScale 1.5, вынос логики `WheelMonitor` в `:core`.
+локализация подписей диагностики (`Protocol.kt`, `WheelErrors.kt`), второй вариант виджета, ландшафт/планшет, вибро-оповещения, GPX/трек, вынос логики `WheelMonitor` в `:core`.

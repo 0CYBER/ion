@@ -103,3 +103,10 @@
 - Не переведено (осознанно): подписи полей диагностики и описания команд в `:core` `Protocol.kt` и названия ошибок в `WheelErrors.kt` — нужен слой строк для чистого Kotlin. `androidTest/UiVerificationTest` ищет русские тексты — запускать на русскоязычном эмуляторе.
 - Инфраструктура: на машине с 4 ГБ без swap `lintDebug` вместе с Robolectric-тестами в одном запуске вызывает OOM-killer (умирает Gradle-демон и рвётся MCP-сессия) — lint запускать отдельно. Скриншотов в `docs/screenshots/` теперь 14.
 - Язык приложения: `android:localeConfig` (`res/xml/locales_config.xml`: ru, en) — на Android 13+ в настройках системы можно выбрать язык Ion отдельно от системного.
+
+## Сессия 1 — оптимизация батареи
+
+- Многие прошивки (MIUI, One UI) усыпляют фоновый BLE даже при foreground-сервисе. В «Фон и уведомления» появился баннер «Система может усыплять фоновую связь…» + кнопка «Снять ограничение батареи» — показывается, только если включены фоновая связь или авто-переподключение и `PowerManager.isIgnoringBatteryOptimizations` = false; состояние перечитывается в `LifecycleResumeEffect`.
+- Кнопка открывает системный диалог `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (разрешение `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; приложение-компаньон устройства безопасности), запасной путь — список `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`.
+- `PrefsUi.batteryUnrestricted`, `Actions.requestBatteryUnrestricted`; строки RU/EN; снимок `background.png` обновлён. Сборка/тесты зелёные, lint 0 ошибок.
+- `docs/ai-handoff.md` актуализирован (виджет, i18n, a11y, батарея, 82 теста, 14 снимков, OOM-заметка).

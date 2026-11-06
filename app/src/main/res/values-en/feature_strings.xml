@@ -103,6 +103,8 @@
     <string name="bg_screen_on">Keep screen on</string>
     <string name="bg_screen_on_hint">While the app is open</string>
     <string name="notif_permission">Allow notifications</string>
+    <string name="battery_unrestricted">Remove battery restriction</string>
+    <string name="battery_unrestricted_hint">The system may put the background link to the wheel to sleep. Allow unrestricted use so alerts arrive on time</string>
     <string name="notif_permission_hint">Without permission, alerts and the live card are not shown</string>
     <string name="alerts_section">Alerts</string>
     <string name="alert_setting_battery">Low battery</string>

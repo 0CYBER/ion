@@ -75,7 +75,7 @@ class ScreenshotTest {
     @Config(qualifiers = "en-w411dp-h1400dp-xhdpi")
     @Test fun settingsEnglish() = shot("background_en", dark = true) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
     @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(DashboardLayout.DEFAULT, {}, {}) }
-    @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
+    @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false, batteryUnrestricted = false), Actions(), {}) }
     @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}) }
     @Test fun tripsEmpty() = shot("trips_empty", dark = true) { TripsScreen(emptyList(), Actions(), {}) }
     @Test fun settings() = shot("settings") { SettingsScreen({}, {}, {}, {}, {}) }

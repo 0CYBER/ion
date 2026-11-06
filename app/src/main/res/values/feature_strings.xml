@@ -103,6 +103,8 @@
     <string name="bg_screen_on">Не гасить экран</string>
     <string name="bg_screen_on_hint">Пока приложение открыто</string>
     <string name="notif_permission">Разрешить уведомления</string>
+    <string name="battery_unrestricted">Снять ограничение батареи</string>
+    <string name="battery_unrestricted_hint">Система может усыплять фоновую связь с колесом. Разрешите работу без ограничений, чтобы оповещения приходили вовремя</string>
     <string name="notif_permission_hint">Без разрешения оповещения и живая карточка не показываются</string>
     <string name="alerts_section">Оповещения</string>
     <string name="alert_setting_battery">Низкий заряд</string>
