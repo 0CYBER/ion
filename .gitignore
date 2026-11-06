@@ -6,7 +6,6 @@ local.properties
 
 .kotlin/
 .serena/
-
 *.jks
 *.keystore
 keystore.properties
