@@ -57,9 +57,10 @@ import androidx.compose.ui.unit.dp
                         route=="dashboard" -> DashboardEditorScreen(ui,prefs.dashboard,actions.setDashboard) {detail=null}
                         route=="background" -> BackgroundScreen(prefs,actions) {detail=null}
                         route=="trips" -> TripsScreen(prefs.trips,actions) {detail=null}
+                        route=="app" -> AppScreen({detail="appearance"},{detail="dashboard"},{detail="trips"},{detail="background"}) {detail=null}
                         route.startsWith("control:") -> ControlScreen(ui,ControlCategory.valueOf(route.substringAfter(':')),
                             {actions.read(V12Protocol.Read.SETTINGS)},::write) {detail=null}
-                        route=="tab:1" -> SettingsScreen({detail="appearance"},{detail="background"},{detail="dashboard"},{detail="trips"}) {detail="control:${it.name}"}
+                        route=="tab:1" -> SettingsScreen({detail="app"}) {detail="control:${it.name}"}
                         route=="tab:2" -> WheelScreen(ui,actions,actions.connect,{forget=true},{detail="diagnostics"})
                         else -> RideScreen(ui,prefs.dashboard,::connect,::write,{tab=2},{tab=1},{detail="dashboard"},{detail="control:${ControlCategory.RIDE.name}"},
                             {detail="trips"},actions.resetTrip)

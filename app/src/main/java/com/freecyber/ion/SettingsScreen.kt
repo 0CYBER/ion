@@ -27,14 +27,10 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
     SERVICE(R.string.category_service,R.string.category_service_hint)
 }
 
-@Composable internal fun SettingsScreen(appearance: ()->Unit,background: ()->Unit,dashboard: ()->Unit,trips: ()->Unit,open: (ControlCategory)->Unit) {
+@Composable internal fun SettingsScreen(app: ()->Unit,open: (ControlCategory)->Unit) {
     val ion=ionColors()
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item(key="heading",contentType="heading") {ScreenHeading(stringResource(R.string.nav_settings),stringResource(R.string.appearance),Icons.Rounded.Palette,appearance)}
-        item(key="appearance",contentType="tile") {
-            ToneTile(stringResource(R.string.appearance),stringResource(R.string.appearance_hint),Icons.Rounded.Palette,
-                IonTone(ion.hero,ion.onHero),minHeight=180.dp,onClick=appearance)
-        }
+        item(key="heading",contentType="heading") {ScreenHeading(stringResource(R.string.nav_settings),stringResource(R.string.app_title),Icons.Rounded.Settings,app)}
         item(key="ride-light-sound",contentType="tiles") {
             MetricPair(first={m -> ToneTile(stringResource(R.string.category_ride),stringResource(R.string.category_ride_hint),Icons.Rounded.Route,
                 IonTone(ion.accent,ion.onAccent),m,minHeight=332.dp) {open(ControlCategory.RIDE)}},second={m ->
@@ -49,10 +45,18 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
                 ion.lilac,m,minHeight=190.dp) {open(ControlCategory.PEDALS)}},second={m -> ToneTile(stringResource(R.string.category_service),stringResource(R.string.category_service_hint),Icons.Rounded.Build,
                 ion.blue,m,minHeight=190.dp) {open(ControlCategory.SERVICE)}})
         }
-        item(key="app-section",contentType="section") {SectionHeader(stringResource(R.string.app_section))}
-        item(key="background",contentType="link") {ActionRow(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),Icons.Rounded.Notifications,background)}
+        item(key="app",contentType="link") {ActionRow(stringResource(R.string.app_title),stringResource(R.string.app_hint),Icons.Rounded.Settings,app)}
+    }
+}
+
+/** App-level settings in one place: appearance, ride screen, ride history and the background link. */
+@Composable internal fun AppScreen(appearance: ()->Unit,dashboard: ()->Unit,trips: ()->Unit,background: ()->Unit,onBack: ()->Unit) {
+    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.app_title),stringResource(R.string.app_hint),onBack)}
+        item(key="appearance",contentType="link") {ActionRow(stringResource(R.string.appearance),stringResource(R.string.appearance_hint),Icons.Rounded.Palette,appearance)}
         item(key="dashboard",contentType="link") {ActionRow(stringResource(R.string.dash_editor_title),stringResource(R.string.dash_editor_hint),Icons.Rounded.DashboardCustomize,dashboard)}
         item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,trips)}
+        item(key="background",contentType="link") {ActionRow(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),Icons.Rounded.Notifications,background)}
     }
 }
 

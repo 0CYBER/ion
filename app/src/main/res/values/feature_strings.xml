@@ -93,6 +93,8 @@
     <string name="unit_degrees">°</string>
     <!-- Background and alert settings -->
     <string name="bg_title">Фон и уведомления</string>
+    <string name="app_title">Приложение</string>
+    <string name="app_hint">Оформление, экран поездки, история и фон</string>
     <string name="bg_hint">Связь при выключенном экране и оповещения</string>
     <string name="bg_section">Работа в фоне</string>
     <string name="bg_keep_alive">Держать связь в фоне</string>
@@ -121,7 +123,6 @@
     <string name="alert_above_kmh">от %1$d км/ч</string>
     <string name="mode_comfort">Комфорт</string>
     <string name="mode_normal">Нормальный</string>
-    <string name="app_section">Приложение</string>
     <string name="qs_label">Ion</string>
     <string name="qs_live">%1$d%% · %2$s км/ч</string>
     <string name="qs_connecting">Подключение…</string>
