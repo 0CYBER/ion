@@ -20,6 +20,7 @@ object ReconnectPolicy {
  * foreground service in step with the link and restores a link that dropped without the user asking. */
 class WheelMonitor(private val graph: IonGraph) {
     private val engine = AlertEngine()
+    private val stepper = BatteryStepper()
     private val reconnectingState = MutableStateFlow(false)
     /** True while the monitor is between automatic reconnect attempts or running one. */
     val reconnecting: StateFlow<Boolean> = reconnectingState.asStateFlow()
@@ -31,8 +32,11 @@ class WheelMonitor(private val graph: IonGraph) {
     private var userStopped = true
     private var lastWidgetAt = 0L
     private var lastWidgetPhase: Phase? = null
+    private var lastCheckpointAt = 0L
+    private companion object { const val CHECKPOINT_MS = 30_000L }
 
     fun start() {
+        graph.history.recoverPending()
         graph.scope.launch { graph.ble.state.collect { onState(it) } }
     }
 
@@ -41,7 +45,7 @@ class WheelMonitor(private val graph: IonGraph) {
         cancelReconnect()
         if (lastPhase == Phase.OFFLINE || graph.trips.stats.value.samples == 0) finishTrip()
         userStopped = false
-        engine.reset()
+        engine.reset(); stepper.reset()
         graph.ble.connect(device)
     }
 
@@ -55,6 +59,7 @@ class WheelMonitor(private val graph: IonGraph) {
     /** Archives the running session (if it was a real ride) and starts a fresh one. */
     fun finishTrip() {
         TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), SystemClock.elapsedRealtime())?.let(graph.history::add)
+        graph.history.checkpoint(null); lastCheckpointAt = 0L
         graph.trips.reset()
     }
 
@@ -68,6 +73,10 @@ class WheelMonitor(private val graph: IonGraph) {
         val connected = s.verifiedHt && s.phase == Phase.CONNECTED
         if (s.packets > lastPackets && connected) s.telemetry?.let { graph.trips.feed(it, now) }
         lastPackets = s.packets
+        if (connected && now - lastCheckpointAt >= CHECKPOINT_MS) {
+            lastCheckpointAt = now
+            TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), now)?.let(graph.history::checkpoint)
+        }
 
         if (connected && reconnectingState.value) { reconnectingState.value = false; attemptState.value = 0 }
         if (s.phase == Phase.ERROR && lastPhase != Phase.ERROR) onLinkFailed(lastPhase)
@@ -76,7 +85,14 @@ class WheelMonitor(private val graph: IonGraph) {
         val input = AlertInput(connected, linkLost = s.phase == Phase.ERROR || reconnectingState.value,
             battery = s.telemetry?.battery, charging = s.telemetry?.charging ?: false,
             mosTemp = s.telemetry?.mosTemp, motorTemp = s.telemetry?.motorTemp, speed = s.telemetry?.speed, errors = errors)
-        engine.evaluate(input, graph.prefs.alerts.value, now).forEach { IonNotifications.alert(graph.context, it) }
+        val config = graph.prefs.alerts.value
+        engine.evaluate(input, config, now).forEach {
+            IonNotifications.alert(graph.context, it)
+            if (config.voice) graph.voice.speak(VoiceAnnouncer.phrase(graph.context, it))
+        }
+        if (connected && config.voiceBattery) stepper.next(s.telemetry?.battery, s.telemetry?.charging ?: false)
+            ?.let { graph.voice.speak(graph.context.getString(R.string.voice_battery_step, it)) }
+        if (!config.voice && !config.voiceBattery) graph.voice.shutdown()
 
         val active = s.phase != Phase.OFFLINE && s.phase != Phase.ERROR && s.phase != Phase.SCANNING
         if ((active || reconnectingState.value) && graph.prefs.background.value.keepAlive) WheelService.ensureRunning(graph.context)

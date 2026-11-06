@@ -14,12 +14,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.*
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 class MainActivity : ComponentActivity() {
     private val model: VelaViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); enableEdgeToEdge()
+        if(savedInstanceState==null) model.autoConnect()
         setContent {
             val ui by model.ui.collectAsStateWithLifecycle()
             val preference by model.dark.collectAsStateWithLifecycle()
@@ -29,6 +31,8 @@ class MainActivity : ComponentActivity() {
             val trips by model.history.trips.collectAsStateWithLifecycle()
             var notificationsAllowed by remember { mutableStateOf(IonNotifications.canPost(this)) }
             val dark=systemDark(preference)
+            // Permission may change in system settings while we are away.
+            LifecycleResumeEffect(Unit) { notificationsAllowed=IonNotifications.canPost(this@MainActivity); onPauseOrDispose { } }
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
             val notifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
                 notificationsAllowed=IonNotifications.canPost(this)

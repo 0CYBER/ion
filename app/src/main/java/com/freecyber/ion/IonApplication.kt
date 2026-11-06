@@ -30,6 +30,7 @@ class IonGraph(val context: Context) {
     val saved: StateFlow<WheelDevice?> = savedState.asStateFlow()
     val trips = TripRecorder()
     val history = TripHistory(context)
+    val voice = VoiceAnnouncer(context)
     val ble = BleController(context, scope) { device ->
         store.saveVerified(device)
         savedState.value = device

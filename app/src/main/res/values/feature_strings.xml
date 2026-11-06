@@ -134,4 +134,18 @@
     <string name="trip_finish">Завершить</string>
     <string name="trip_moving">В движении</string>
     <string name="trip_max_temp">Макс. темп.</string>
+    <string name="bg_connect_launch">Подключаться при запуске</string>
+    <string name="bg_connect_launch_hint">При открытии приложения сразу соединяться с сохранённым колесом</string>
+    <string name="alert_setting_voice">Голосовые оповещения</string>
+    <string name="alert_setting_voice_hint">Произносить предупреждения вслух — удобно в наушниках</string>
+    <string name="alert_setting_voice_battery">Озвучивать заряд</string>
+    <string name="alert_setting_voice_battery_hint">Каждые потраченные 10 %</string>
+    <string name="voice_battery">Низкий заряд, %1$d процентов</string>
+    <string name="voice_battery_critical">Критический заряд, %1$d процентов. Замедлитесь</string>
+    <string name="voice_temperature">Перегрев, %1$d градусов</string>
+    <string name="voice_speed">Скорость %1$d</string>
+    <string name="voice_link_lost">Связь с колесом потеряна</string>
+    <string name="voice_link_restored">Связь восстановлена</string>
+    <string name="voice_error">Ошибка колеса</string>
+    <string name="voice_battery_step">Заряд %1$d процентов</string>
 </resources>

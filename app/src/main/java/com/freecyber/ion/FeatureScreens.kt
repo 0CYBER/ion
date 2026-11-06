@@ -128,6 +128,8 @@ internal val DashTile.icon: ImageVector get() = when(this) {
             GroupColumn {
                 SwitchRow(Icons.Rounded.Sync,stringResource(R.string.bg_keep_alive),bg.keepAlive,stringResource(R.string.bg_keep_alive_hint),true) {
                     actions.setBackground(bg.copy(keepAlive=it))}
+                SwitchRow(Icons.Rounded.BluetoothSearching,stringResource(R.string.bg_connect_launch),bg.connectOnLaunch,stringResource(R.string.bg_connect_launch_hint),true) {
+                    actions.setBackground(bg.copy(connectOnLaunch=it))}
                 SwitchRow(Icons.Rounded.Autorenew,stringResource(R.string.bg_reconnect),bg.autoReconnect,stringResource(R.string.bg_reconnect_hint),true) {
                     actions.setBackground(bg.copy(autoReconnect=it))}
                 SwitchRow(Icons.Rounded.Notifications,stringResource(R.string.bg_live),bg.liveNotification,stringResource(R.string.bg_live_hint),true) {
@@ -149,6 +151,10 @@ internal val DashTile.icon: ImageVector get() = when(this) {
                     actions.setAlerts(al.copy(disconnect=it))}
                 SwitchRow(Icons.Rounded.ReportProblem,stringResource(R.string.alert_setting_errors),al.wheelErrors,stringResource(R.string.alert_setting_errors_hint),true) {
                     actions.setAlerts(al.copy(wheelErrors=it))}
+                SwitchRow(Icons.Rounded.RecordVoiceOver,stringResource(R.string.alert_setting_voice),al.voice,stringResource(R.string.alert_setting_voice_hint),true) {
+                    actions.setAlerts(al.copy(voice=it))}
+                SwitchRow(Icons.Rounded.BatteryChargingFull,stringResource(R.string.alert_setting_voice_battery),al.voiceBattery,stringResource(R.string.alert_setting_voice_battery_hint),true) {
+                    actions.setAlerts(al.copy(voiceBattery=it))}
             }
         }
     }

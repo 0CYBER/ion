@@ -223,3 +223,26 @@ class TripSummaryTest {
         assertEquals(215.0, t.energyWh, 1e-9)
     }
 }
+
+class BatteryStepperTest {
+    @Test fun announcesEachDecadeOnceDespiteWobble() {
+        val s = BatteryStepper()
+        assertNull(s.next(83.0, false))
+        assertNull(s.next(80.2, false))
+        assertEquals(70, s.next(79.9, false))
+        assertNull(s.next(80.1, false))
+        assertNull(s.next(79.8, false))
+        assertEquals(60, s.next(69.0, false))
+        assertEquals(40, s.next(49.0, false))
+    }
+
+    @Test fun chargingRebasesAndGarbageIgnored() {
+        val s = BatteryStepper()
+        s.next(55.0, false)
+        assertNull(s.next(75.0, true))
+        assertEquals(60, s.next(69.0, false))
+        assertNull(s.next(Double.NaN, false))
+        assertNull(s.next(140.0, false))
+        assertNull(s.next(null, false))
+    }
+}
