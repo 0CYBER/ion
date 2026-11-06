@@ -1,5 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <!-- Language of number formatting and of the TTS voice; must match the language of this file. -->
+    <string name="format_locale">ru</string>
+    <string name="voice_locale">ru-RU</string>
     <string name="open_connection">Подключение колеса</string>
     <string name="status_live">На связи</string>
     <string name="status_busy">Проверка</string>

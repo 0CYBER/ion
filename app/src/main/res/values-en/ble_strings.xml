@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Bluetooth link status and errors (BleController) -->
+    <string name="ble_write_no_link">Writing unavailable: no connection to the wheel</string>
+    <string name="ble_write_moving">Writing unavailable: the wheel is moving</string>
+    <string name="ble_device_generic">BLE device</string>
+    <string name="ble_need_permission">Permission to scan for and connect BLE devices is required.</string>
+    <string name="ble_turn_on">Turn on Bluetooth in the phone settings.</string>
+    <string name="ble_scanning">Looking for nearby devices…</string>
+    <string name="ble_scan_unavailable">BLE scanning unavailable</string>
+    <string name="ble_permission_revoked">Bluetooth permission was revoked.</string>
+    <string name="ble_scan_check">BLE scanning unavailable. Check Bluetooth and permissions.</string>
+    <string name="ble_nothing_found">Nothing found. On Android 11 and older, check that location is on.</string>
+    <string name="ble_pick_wheel">Pick your wheel from the list</string>
+    <string name="ble_permission_denied">Connecting needs the Bluetooth permission. You can grant it in the app settings.</string>
+    <string name="ble_received">Received</string>
+    <string name="ble_live">Live from the wheel</string>
+    <string name="ble_connecting">Connecting…</string>
+    <string name="ble_unavailable">BLE unavailable</string>
+    <string name="ble_discovering">Checking BLE services…</string>
+    <string name="ble_discover_failed">Could not request BLE services</string>
+    <string name="ble_no_service">The expected INMOTION V2 service is missing</string>
+    <string name="ble_no_write_char">The request characteristic is missing</string>
+    <string name="ble_no_notify_char">The telemetry characteristic is missing</string>
+    <string name="ble_char_no_write">The characteristic does not accept requests</string>
+    <string name="ble_char_no_notify">The characteristic does not support notifications</string>
+    <string name="ble_notify_failed">Could not enable notifications</string>
+    <string name="ble_no_cccd">The notification descriptor is missing</string>
+    <string name="ble_cccd_rejected">CCCD write rejected</string>
+    <string name="ble_identifying">Checking that this is a V12 HT…</string>
+    <string name="ble_no_model">The wheel did not answer the model request</string>
+    <string name="ble_waiting_telemetry">V12 HT identified. Waiting for telemetry…</string>
+    <string name="ble_bad_telemetry">Unsupported telemetry format. The firmware needs checking.</string>
+    <string name="ble_timeout_status">No answer · timeout</string>
+    <string name="ble_no_telemetry">No telemetry answer. Check the wheel and reconnect.</string>
+    <string name="ble_not_sent_link">Not sent: no connection to the wheel</string>
+    <string name="ble_not_sent_moving">Not sent: the wheel is moving</string>
+    <string name="ble_lock_refused">Lock failed: the wheel rejected the secure exchange</string>
+    <string name="ble_lock_moving">Lock failed: the wheel is moving</string>
+    <string name="ble_apply_no_answer">Not applied: the wheel did not answer</string>
+    <string name="ble_apply_mismatch">Not applied: the wheel reports a different value</string>
+    <string name="ble_apply_unknown">Not applied: the answer was not recognised</string>
+    <string name="ble_timeout">BLE timed out. Check the wheel and try again.</string>
+    <string name="ble_connect_failed">Could not connect</string>
+    <string name="ble_waiting_answer">Waiting for an answer…</string>
+    <string name="ble_request_rejected">BLE request rejected</string>
+    <string name="ble_model_changed">The model changed. Connection stopped.</string>
+    <string name="ble_offline">Wheel not connected</string>
+    <string name="ble_write_interrupted">The link dropped during a write</string>
+    <string name="ble_scan_failed">Could not start scanning (%1$d). Try again.</string>
+    <string name="ble_link_dropped">Connection lost%1$s. Data is no longer updating.</string>
+    <string name="ble_gatt_warning">BLE warning (GATT %1$d); keeping the connection.</string>
+    <string name="ble_request_error">BLE request error (%1$d).</string>
+    <string name="ble_not_ht">Expected a V12 HT, got: %1$s. Polling stopped.</string>
+    <string name="ble_error_code">BLE error %1$d</string>
+</resources>

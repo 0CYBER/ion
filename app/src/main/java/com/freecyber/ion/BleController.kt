@@ -30,7 +30,7 @@ data class WheelDevice(val address: String, val name: String, val rssi: Int)
 data class PacketRecord(val read: V12Protocol.Read, val frame: V12Protocol.Frame? = null, val at: Long? = null, val status: String = "Ещё не запрошено")
 data class WheelState(
     val phase: Phase = Phase.OFFLINE,
-    val message: String = "Колесо не подключено",
+    val message: String = "", // set from resources by BleController
     val devices: List<WheelDevice> = emptyList(),
     val deviceName: String? = null,
     val verifiedHt: Boolean = false,
@@ -55,7 +55,9 @@ data class WheelState(
  */
 @SuppressLint("MissingPermission")
 class BleController(private val context: Context, private val scope: CoroutineScope, private val onConnected: (WheelDevice) -> Unit = {}) {
-    private val mutable = MutableStateFlow(WheelState())
+    /** UI-facing status texts come from resources so they follow the app language. */
+    private fun str(id: Int, vararg args: Any): String = context.getString(id, *args)
+    private val mutable = MutableStateFlow(WheelState(message = context.getString(R.string.ble_offline)))
     val state = mutable.asStateFlow()
     private val adapter get() = context.getSystemService(BluetoothManager::class.java)?.adapter
     @Volatile private var gatt: BluetoothGatt? = null
@@ -98,8 +100,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     fun apply(command: V12Protocol.Write) {
         // Only an in-flight write blocks a new one; queued reads must not reject the tap.
         if(!mayWrite(command.kind.tier, mutable.value.writeInFlight)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
-            "Запись недоступна: нет связи с колесом" else
-            "Запись недоступна: колесо движется") }; return }
+            str(R.string.ble_write_no_link) else
+            str(R.string.ble_write_moving)) }; return }
         enqueue(Work.Write(command))
     }
     private fun enqueue(item: Work) {
@@ -124,36 +126,36 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             scope.launch {
                 if (!scanning || !hasPermissions()) return@launch
-                val name = result.scanRecord?.deviceName ?: runCatching { result.device.name }.getOrNull() ?: "BLE-устройство"
+                val name = result.scanRecord?.deviceName ?: runCatching { result.device.name }.getOrNull() ?: str(R.string.ble_device_generic)
                 val device = WheelDevice(result.device.address, name, result.rssi)
                 mutable.update { s -> s.copy(devices = (s.devices.filterNot { it.address == device.address } + device)
                     .sortedWith(compareByDescending<WheelDevice> { it.name.contains("V12", ignoreCase = true) }.thenByDescending { it.rssi }).take(30)) }
             }
         }
-        override fun onScanFailed(errorCode: Int) { scope.launch { stopScan(); error("Не удалось начать поиск ($errorCode). Попробуй ещё раз.") } }
+        override fun onScanFailed(errorCode: Int) { scope.launch { stopScan(); error(str(R.string.ble_scan_failed, errorCode)) } }
     }
     fun scan() {
         disconnect()
-        if (!hasPermissions()) { error("Нужно разрешение на поиск и подключение BLE."); return }
+        if (!hasPermissions()) { error(str(R.string.ble_need_permission)); return }
         try {
             val a = adapter
-            if (a == null || !a.isEnabled) { error("Включи Bluetooth в настройках телефона."); return }
-            mutable.value = WheelState(phase = Phase.SCANNING, message = "Ищу устройства рядом…")
+            if (a == null || !a.isEnabled) { error(str(R.string.ble_turn_on)); return }
+            mutable.value = WheelState(phase = Phase.SCANNING, message = str(R.string.ble_scanning))
             scanning = true
-            val scanner = a.bluetoothLeScanner ?: throw IllegalStateException("BLE-поиск недоступен")
+            val scanner = a.bluetoothLeScanner ?: throw IllegalStateException(str(R.string.ble_scan_unavailable))
             scanner.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), scanCallback)
             scanTimeout = scope.launch { delay(12_000); stopScan() }
-        } catch (_: SecurityException) { error("Разрешение Bluetooth отозвано.") }
-        catch (_: Exception) { error("Поиск BLE недоступен. Проверь Bluetooth и разрешения.") }
+        } catch (_: SecurityException) { error(str(R.string.ble_permission_revoked)) }
+        catch (_: Exception) { error(str(R.string.ble_scan_check)) }
     }
     fun stopScan() {
         scanTimeout?.cancel(); scanTimeout = null
         if (scanning) runCatching { adapter?.bluetoothLeScanner?.stopScan(scanCallback) }
         scanning = false
         mutable.update { s -> if (s.phase == Phase.SCANNING) s.copy(phase = Phase.OFFLINE,
-            message = if (s.devices.isEmpty()) "Ничего не найдено. На Android 11 и ниже проверь геолокацию." else "Выбери своё колесо из списка") else s }
+            message = if (s.devices.isEmpty()) str(R.string.ble_nothing_found) else str(R.string.ble_pick_wheel)) else s }
     }
-    fun permissionDenied() { error("Для подключения нужно разрешение Bluetooth. Его можно выдать в настройках приложения.") }
+    fun permissionDenied() { error(str(R.string.ble_permission_denied)) }
     private val callback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             scope.launch {
@@ -161,9 +163,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 // A single non-success status on a live link (e.g. transient 133/8/19) is not a disconnect:
                 // only STATE_DISCONNECTED ends the session. Setup-time failures still fail via waitEvent.
                 if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    error("Связь прервана${if (status != 0) " (GATT $status)" else ""}. Данные больше не обновляются.")
+                    error(str(R.string.ble_link_dropped, if (status != 0) " (GATT $status)" else ""))
                 } else if (status != BluetoothGatt.GATT_SUCCESS) {
-                    mutable.update { it.copy(message = "Предупреждение BLE (GATT $status); соединение удерживается.") }
+                    mutable.update { it.copy(message = str(R.string.ble_gatt_warning, status)) }
                 } else if (newState == BluetoothProfile.STATE_CONNECTED) events.trySend(Event("connected", status))
             }
         }
@@ -176,7 +178,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         }
         override fun onCharacteristicWrite(g: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
             if (g !== gatt) return
-            if (status != BluetoothGatt.GATT_SUCCESS) scope.launch { if (g === gatt) error("Ошибка BLE-запроса ($status).") }
+            if (status != BluetoothGatt.GATT_SUCCESS) scope.launch { if (g === gatt) error(str(R.string.ble_request_error, status)) }
             else if (awaitingWrite) events.trySend(Event("write", status))
         }
         @Deprecated("Legacy callback for API < 33")
@@ -201,7 +203,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 }
                 if (!f.response) continue
                 if (mutable.value.verifiedHt || V12Protocol.Read.MODEL.matches(f)) {
-                    V12Protocol.Read.entries.firstOrNull { it.matches(f) }?.let { record(it,f,"Получено") }
+                    V12Protocol.Read.entries.firstOrNull { it.matches(f) }?.let { record(it,f,str(R.string.ble_received)) }
                 }
                 if (mutable.value.verifiedHt) {
                     V12Protocol.telemetry(f)?.let { parsed ->
@@ -215,7 +217,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                             val movingStreak = if(moving) s.movingStreak+1 else 0
                             val stationary = if(movingStreak >= 2) 0 else (s.stationaryPackets+1).coerceAtMost(100)
                             s.copy(telemetry = t,
-                        phase = Phase.CONNECTED, message = "Данные с колеса", lastPacketAt = SystemClock.elapsedRealtime(), packets = s.packets + 1,
+                        phase = Phase.CONNECTED, message = str(R.string.ble_live), lastPacketAt = SystemClock.elapsedRealtime(), packets = s.packets + 1,
                         firmwareUpdateStreak = streak,
                         movingStreak = movingStreak,
                         stationaryPackets = if(!t.firmwareUpdate) stationary else 0) } }
@@ -228,8 +230,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     fun connect(device: WheelDevice) {
         disconnect()
         if (!hasPermissions()) { permissionDenied(); return }
-        if(adapter?.isEnabled != true) { error("Включи Bluetooth в настройках телефона."); return }
-        mutable.value = WheelState(phase = Phase.CONNECTING, message = "Подключаюсь…", deviceName = device.name)
+        if(adapter?.isEnabled != true) { error(str(R.string.ble_turn_on)); return }
+        mutable.value = WheelState(phase = Phase.CONNECTING, message = str(R.string.ble_connecting), deviceName = device.name)
         session = scope.launch {
             var owned: BluetoothGatt? = null
             try {
@@ -240,41 +242,41 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 negotiatedMtu = 23
                 decoder = V12Protocol.Decoder()
                 val link = adapter?.getRemoteDevice(device.address)?.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
-                    ?: throw IllegalStateException("BLE недоступен")
+                    ?: throw IllegalStateException(str(R.string.ble_unavailable))
                 owned = link
                 gatt = link
                 waitEvent("connected", 12_000)
-                mutable.update { it.copy(phase = Phase.DISCOVERING, message = "Проверяю BLE-сервисы…") }
-                check(link.discoverServices()) { "Не удалось запросить BLE-сервисы" }
+                mutable.update { it.copy(phase = Phase.DISCOVERING, message = str(R.string.ble_discovering)) }
+                check(link.discoverServices()) { str(R.string.ble_discover_failed) }
                 waitEvent("services")
-                val service = link.getService(UUID.fromString(V12Protocol.SERVICE)) ?: throw IllegalStateException("Нет ожидаемого сервиса INMOTION V2")
-                val write = service.getCharacteristic(UUID.fromString(V12Protocol.WRITE)) ?: throw IllegalStateException("Нет характеристики запросов")
-                val notify = service.getCharacteristic(UUID.fromString(V12Protocol.NOTIFY)) ?: throw IllegalStateException("Нет характеристики телеметрии")
-                check(write.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) { "Характеристика не принимает запросы" }
+                val service = link.getService(UUID.fromString(V12Protocol.SERVICE)) ?: throw IllegalStateException(str(R.string.ble_no_service))
+                val write = service.getCharacteristic(UUID.fromString(V12Protocol.WRITE)) ?: throw IllegalStateException(str(R.string.ble_no_write_char))
+                val notify = service.getCharacteristic(UUID.fromString(V12Protocol.NOTIFY)) ?: throw IllegalStateException(str(R.string.ble_no_notify_char))
+                check(write.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) { str(R.string.ble_char_no_write) }
                 val notifyValue = when {
                     notify.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0 -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                     notify.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0 -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                    else -> throw IllegalStateException("Характеристика не поддерживает уведомления")
+                    else -> throw IllegalStateException(str(R.string.ble_char_no_notify))
                 }
-                check(link.setCharacteristicNotification(notify, true)) { "Не удалось включить уведомления" }
-                val cccd = notify.getDescriptor(UUID.fromString(V12Protocol.CCCD)) ?: throw IllegalStateException("Нет дескриптора уведомлений")
-                if (Build.VERSION.SDK_INT >= 33) check(link.writeDescriptor(cccd, notifyValue) == BluetoothStatusCodes.SUCCESS) { "Запись CCCD отклонена" }
+                check(link.setCharacteristicNotification(notify, true)) { str(R.string.ble_notify_failed) }
+                val cccd = notify.getDescriptor(UUID.fromString(V12Protocol.CCCD)) ?: throw IllegalStateException(str(R.string.ble_no_cccd))
+                if (Build.VERSION.SDK_INT >= 33) check(link.writeDescriptor(cccd, notifyValue) == BluetoothStatusCodes.SUCCESS) { str(R.string.ble_cccd_rejected) }
                 else {
                     @Suppress("DEPRECATION")
                     cccd.value = notifyValue
                     @Suppress("DEPRECATION")
-                    check(link.writeDescriptor(cccd)) { "Запись CCCD отклонена" }
+                    check(link.writeDescriptor(cccd)) { str(R.string.ble_cccd_rejected) }
                 }
                 waitEvent("descriptor")
-                mutable.update { it.copy(phase = Phase.IDENTIFYING, message = "Проверяю, что это V12 HT…") }
+                mutable.update { it.copy(phase = Phase.IDENTIFYING, message = str(R.string.ble_identifying)) }
                 var identity: V12Protocol.Model? = null
                 repeat(3) {
                     if (identity == null) try { identity = V12Protocol.model(ask(link, write, V12Protocol.Read.MODEL)) }
                     catch (_: TimeoutCancellationException) { /* bounded retry */ }
                 }
-                val model = identity ?: throw IllegalStateException("Колесо не ответило на запрос модели")
-                check(model.isHt) { "Ожидалась V12 HT, ответ: ${model.label}. Опрос остановлен." }
-                mutable.update { it.copy(verifiedHt = true, deviceName = model.label, message = "V12 HT определена. Жду телеметрию…") }
+                val model = identity ?: throw IllegalStateException(str(R.string.ble_no_model))
+                check(model.isHt) { str(R.string.ble_not_ht, model.label) }
+                mutable.update { it.copy(verifiedHt = true, deviceName = model.label, message = str(R.string.ble_waiting_telemetry)) }
                 optionalRead(link,write,V12Protocol.Read.SETTINGS)
                 optionalRead(link,write,V12Protocol.Read.STATISTICS) // one-time: odometer for the ride screen
                 var missed = 0
@@ -283,13 +285,13 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 while (isActive) {
                     try {
                         val frame = ask(link, write, V12Protocol.Read.TELEMETRY, Timing.TELEMETRY_ASK_MS)
-                        checkNotNull(V12Protocol.telemetry(frame)) { "Неподдерживаемый формат телеметрии. Нужна проверка прошивки." }
+                        checkNotNull(V12Protocol.telemetry(frame)) { str(R.string.ble_bad_telemetry) }
                         missed = 0
                         if(!saved) { onConnected(device); saved = true }
                     } catch (_: TimeoutCancellationException) {
-                        record(V12Protocol.Read.TELEMETRY,status="Нет ответа · тайм-аут")
+                        record(V12Protocol.Read.TELEMETRY,status=str(R.string.ble_timeout_status))
                         missed++
-                        if (missed >= 3) throw IllegalStateException("Нет ответа телеметрии. Проверь колесо и подключись заново.")
+                        if (missed >= 3) throw IllegalStateException(str(R.string.ble_no_telemetry))
                     }
                     val job = work.tryReceive().getOrNull()
                     if(job != null) {
@@ -303,17 +305,17 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                 is Work.Write -> {
                                     mutable.update { it.copy(writeInFlight=true) }
                                     if(!mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) mutable.update { it.copy(writeMessage=
-                                        if(job.command.kind.tier == V12Protocol.Tier.SAFE) "Не отправлено: нет связи с колесом"
-                                        else "Не отправлено: колесо движется") }
+                                        if(job.command.kind.tier == V12Protocol.Tier.SAFE) str(R.string.ble_not_sent_link)
+                                        else str(R.string.ble_not_sent_moving)) }
                                     else {
                                         val isLock = job.command.kind == V12Protocol.Control.LOCK
                                         if (isLock) lockTrace("begin target=${job.command.a}", reset=true)
                                         val securityReady = !isLock || prepareLockSecurity(link, write)
                                         if (!securityReady) {
-                                            mutable.update { it.copy(writeMessage="Блокировка не выполнена: колесо не приняло защитный обмен") }
+                                            mutable.update { it.copy(writeMessage=str(R.string.ble_lock_refused)) }
                                         } else if (isLock && !mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) {
                                             lockTrace("guard failed after security; no lock write")
-                                            mutable.update { it.copy(writeMessage="Блокировка не выполнена: колесо движется") }
+                                            mutable.update { it.copy(writeMessage=str(R.string.ble_lock_moving)) }
                                         } else {
                                         mutable.update { it.copy(writeMessage=null) }
                                         val bytes = job.command.bytes()
@@ -334,9 +336,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                                 "readback target=${job.command.a} result=${if (answer == null) "timeout" else if (confirmed == null) "invalid" else if (confirmed) "match" else "mismatch"}")
                                             val result = when {
                                                 confirmed == true -> null
-                                                answer == null -> "Не применилось: колесо не ответило"
-                                                confirmed == false -> "Не применилось: на колесе другое значение"
-                                                else -> "Не применилось: ответ колеса не распознан"
+                                                answer == null -> str(R.string.ble_apply_no_answer)
+                                                confirmed == false -> str(R.string.ble_apply_mismatch)
+                                                else -> str(R.string.ble_apply_unknown)
                                             }
                                             mutable.update { it.copy(writeMessage=result) }
                                         }
@@ -353,10 +355,10 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     }
                     delay(Timing.POLL_DELAY_MS)
                 }
-            } catch (_: TimeoutCancellationException) { error("Время ожидания BLE истекло. Проверь колесо и попробуй снова.") }
+            } catch (_: TimeoutCancellationException) { error(str(R.string.ble_timeout)) }
             catch (e: CancellationException) { throw e }
-            catch (_: SecurityException) { error("Разрешение Bluetooth отозвано.") }
-            catch (e: Exception) { error(e.message ?: "Не удалось подключиться") }
+            catch (_: SecurityException) { error(str(R.string.ble_permission_revoked)) }
+            catch (e: Exception) { error(e.message ?: str(R.string.ble_connect_failed)) }
             finally {
                 runCatching { owned?.disconnect(); owned?.close() }
                 if (gatt === owned) gatt = null
@@ -366,12 +368,12 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     private suspend fun waitEvent(kind: String, timeout: Long = 6000) = withTimeout(timeout) {
         while (true) {
             val e = events.receive()
-            if (e.kind == kind) { check(e.status == BluetoothGatt.GATT_SUCCESS) { "Ошибка BLE ${e.status}" }; break }
+            if (e.kind == kind) { check(e.status == BluetoothGatt.GATT_SUCCESS) { str(R.string.ble_error_code, e.status) }; break }
         }
     }
     private suspend fun ask(g: BluetoothGatt, c: BluetoothGattCharacteristic, read: V12Protocol.Read, timeout: Long = 2000): V12Protocol.Frame {
         while (responses.tryReceive().isSuccess) { }
-        record(read,status="Ожидаю ответ…")
+        record(read,status=str(R.string.ble_waiting_answer))
         send(g,c,V12Protocol.request(read))
         return withTimeout(timeout) {
             var found: V12Protocol.Frame? = null
@@ -428,13 +430,13 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         val type = if (c.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0)
             BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE else BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
         awaitingWrite = type == BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        if (Build.VERSION.SDK_INT >= 33) check(g.writeCharacteristic(c, bytes, type) == BluetoothStatusCodes.SUCCESS) { "BLE-запрос отклонён" }
+        if (Build.VERSION.SDK_INT >= 33) check(g.writeCharacteristic(c, bytes, type) == BluetoothStatusCodes.SUCCESS) { str(R.string.ble_request_rejected) }
         else {
             @Suppress("DEPRECATION")
             c.value = bytes
             c.writeType = type
             @Suppress("DEPRECATION")
-            check(g.writeCharacteristic(c)) { "BLE-запрос отклонён" }
+            check(g.writeCharacteristic(c)) { str(R.string.ble_request_rejected) }
         }
         if (type == BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) waitEvent("write") else delay(60)
         awaitingWrite = false
@@ -442,21 +444,21 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     private suspend fun optionalRead(g: BluetoothGatt, c: BluetoothGattCharacteristic, read: V12Protocol.Read): V12Protocol.Frame? {
         return try {
             val f=ask(g,c,read)
-            if(read == V12Protocol.Read.MODEL) check(V12Protocol.model(f)?.isHt == true) { "Модель изменилась. Связь остановлена." }
+            if(read == V12Protocol.Read.MODEL) check(V12Protocol.model(f)?.isHt == true) { str(R.string.ble_model_changed) }
             f
-        } catch(_: TimeoutCancellationException) { record(read,status="Нет ответа · тайм-аут"); null }
+        } catch(_: TimeoutCancellationException) { record(read,status=str(R.string.ble_timeout_status)); null }
     }
     fun disconnect() {
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.OFFLINE, message = "Колесо не подключено", verifiedHt = false, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0) }
+        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), verifiedHt = false, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0) }
     }
     private fun error(text: String) {
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.ERROR, message = text, verifiedHt = false, workPending = false, stationaryPackets = 0, writeMessage=if(it.workPending && it.writeMessage!=null) "Связь прервалась во время записи" else it.writeMessage) }
+        mutable.update { it.copy(phase = Phase.ERROR, message = text, verifiedHt = false, workPending = false, stationaryPackets = 0, writeMessage=if(it.workPending && it.writeMessage!=null) str(R.string.ble_write_interrupted) else it.writeMessage) }
     }
     fun onBackground() { if (mutable.value.phase !in listOf(Phase.OFFLINE, Phase.ERROR)) disconnect() }
 }

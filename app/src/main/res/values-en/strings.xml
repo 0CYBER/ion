@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Language of number formatting and of the TTS voice; must match the language of this file. -->
+    <string name="format_locale">en</string>
+    <string name="voice_locale">en-US</string>
+    <string name="open_connection">Wheel connection</string>
+    <string name="status_live">Connected</string>
+    <string name="status_busy">Checking</string>
+    <string name="status_offline">Offline</string>
+    <string name="no_data">No data</string>
+    <string name="expanded">Expanded</string>
+    <string name="collapsed">Collapsed</string>
+    <string name="read_pending">Reading…</string>
+    <string name="read_all">Read all</string>
+    <string name="wheel_model">V12 HT</string>
+    <string name="speed_unit">km/h</string>
+    <string name="live_telemetry">Live from the wheel</string>
+    <string name="battery_value">%1$d%%</string>
+    <string name="connection_active">Connection active</string>
+    <string name="connection_busy">Connecting…</string>
+    <string name="connection_find">Find wheel</string>
+    <string name="connection_choose">Pick your V12 HT over Bluetooth</string>
+    <string name="telemetry_stale">Readings are not updating · BLE is still connected</string>
+    <string name="metric_range">Range</string>
+    <string name="metric_voltage">Voltage</string>
+    <string name="metric_odometer">Odometer</string>
+    <string name="metric_current">Current</string>
+    <string name="unit_km">km</string>
+    <string name="unit_volts">V</string>
+    <string name="temperature_motor">Motor</string>
+    <string name="temperature_mos">MOS</string>
+    <string name="data_subtitle">V12 HT readings, settings and packets</string>
+    <string name="data_search">Find a field or packet</string>
+    <string name="data_clear_search">Clear search</string>
+    <string name="data_no_results">Nothing found</string>
+    <string name="data_no_results_hint">Try another field or packet name.</string>
+    <string name="stationary_controls_hint">Ride modes and pedals become available once the wheel stops and fresh readings arrive.</string>
+    <string name="sound_preview">Play sound</string>
+    <string name="sound_number">Sound %1$d</string>
+    <string name="wheel_saved">Your wheel</string>
+    <string name="wheel_address">V12 HT · …%1$s</string>
+    <string name="wheel_signal">…%1$s · %2$d dBm</string>
+    <string name="wheel_discovery">Nearby</string>
+    <string name="wheel_discovery_hint">Turn the wheel on and keep it close. Pick your V12 HT from the devices found.</string>
+    <string name="wheel_search_empty">Devices found will appear here</string>
+    <string name="wheel_discovery_title">Find your V12 HT</string>
+    <string name="wheel_discovery_other">Other wheel</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="forget_wheel">Forget wheel</string>
+    <string name="search_start">Search for devices</string>
+    <string name="search_stop">Stop search</string>
+    <string name="bluetooth_permissions">Bluetooth permissions</string>
+</resources>

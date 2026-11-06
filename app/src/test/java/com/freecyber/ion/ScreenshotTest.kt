@@ -24,7 +24,7 @@ import org.robolectric.annotation.GraphicsMode
  * Output: app/build/outputs/roborazzi/<name>.png */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], application = Application::class, qualifiers = "w411dp-h1400dp-xhdpi")
+@Config(sdk = [35], application = Application::class, qualifiers = "ru-w411dp-h1400dp-xhdpi")
 class ScreenshotTest {
     @get:Rule val rule = createComposeRule()
 
@@ -65,6 +65,15 @@ class ScreenshotTest {
         RideScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}, {}, {}, {}, {})
     }
     @Test fun settingsLargeFont() = shot("settings_large_font", dark = true, fontScale = 1.5f) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
+    /** English UI: strings from values-en and "23.4"-style numbers. */
+    @Config(qualifiers = "en-w411dp-h1400dp-xhdpi")
+    @Test fun rideLiveEnglish() {
+        IonFormat.locale = java.util.Locale.US
+        try { shot("ride_live_en") { RideScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}, {}, {}, {}, {}) } }
+        finally { IonFormat.locale = java.util.Locale.forLanguageTag("ru") }
+    }
+    @Config(qualifiers = "en-w411dp-h1400dp-xhdpi")
+    @Test fun settingsEnglish() = shot("background_en", dark = true) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
     @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(DashboardLayout.DEFAULT, {}, {}) }
     @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
     @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}) }

@@ -90,12 +90,12 @@ import kotlin.math.roundToInt
                         ApplyButton(stringResource(R.string.common_apply),settingsStopped && kotlin.math.abs(tilt-s.pedalTilt)>=0.05f) {request(V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,(tilt*10).roundToInt()))}
                     } else MissingSetting(stringResource(R.string.no_data))
                 }
-                ExpandRow(Icons.Rounded.NotificationsActive,stringResource(R.string.control_alarms),s?.let { "${it.alarm1.roundToInt()} · ${it.alarm2.roundToInt()} км/ч" } ?: "—") {
+                ExpandRow(Icons.Rounded.NotificationsActive,stringResource(R.string.control_alarms),s?.let { "${it.alarm1.roundToInt()} · ${it.alarm2.roundToInt()} ${stringResource(R.string.unit_kmh)}" } ?: "—") {
                     if(s!=null) {
                         var alarm1 by remember(s.alarm1) { mutableFloatStateOf(s.alarm1.coerceIn(0.0,70.0).toFloat()) }
                         var alarm2 by remember(s.alarm2) { mutableFloatStateOf(s.alarm2.coerceIn(0.0,70.0).toFloat()) }
-                        SettingSlider(stringResource(R.string.control_alarm1),alarm1,"${alarm1.roundToInt()} км/ч",0f..70f,settingsStopped) {alarm1=it}
-                        SettingSlider(stringResource(R.string.control_alarm2),alarm2,"${alarm2.roundToInt()} км/ч",0f..70f,settingsStopped) {alarm2=it}
+                        SettingSlider(stringResource(R.string.control_alarm1),alarm1,"${alarm1.roundToInt()} ${stringResource(R.string.unit_kmh)}",0f..70f,settingsStopped) {alarm1=it}
+                        SettingSlider(stringResource(R.string.control_alarm2),alarm2,"${alarm2.roundToInt()} ${stringResource(R.string.unit_kmh)}",0f..70f,settingsStopped) {alarm2=it}
                         ApplyButton(stringResource(R.string.common_apply),settingsStopped && (alarm1.roundToInt()!=s.alarm1.roundToInt() || alarm2.roundToInt()!=s.alarm2.roundToInt())) {request(V12Protocol.Write(V12Protocol.Control.ALARMS,alarm1.roundToInt(),alarm2.roundToInt()))}
                     } else MissingSetting(stringResource(R.string.no_data))
                 }
@@ -106,10 +106,10 @@ import kotlin.math.roundToInt
                 SwitchRow(Icons.Rounded.TouchApp,stringResource(R.string.control_handle),s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.LocalShipping,stringResource(R.string.control_transport),s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.Lock,stringResource(R.string.control_lock),s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
-                ExpandRow(Icons.Rounded.Timer,stringResource(R.string.control_standby),s?.let { "${(it.standbySeconds/60f).roundToInt()} мин" } ?: "—") {
+                ExpandRow(Icons.Rounded.Timer,stringResource(R.string.control_standby),s?.let { "${(it.standbySeconds/60f).roundToInt()} ${stringResource(R.string.unit_min)}" } ?: "—") {
                     if(s!=null) {
                         var minutes by remember(s.standbySeconds) { mutableFloatStateOf((s.standbySeconds/60f).coerceIn(1f,30f)) }
-                        SettingSlider(stringResource(R.string.control_timer_label),minutes,"${minutes.roundToInt()} мин",1f..30f,settingsStopped) {minutes=it}
+                        SettingSlider(stringResource(R.string.control_timer_label),minutes,"${minutes.roundToInt()} ${stringResource(R.string.unit_min)}",1f..30f,settingsStopped) {minutes=it}
                         ApplyButton(stringResource(R.string.common_apply),settingsStopped && minutes.roundToInt()*60!=s.standbySeconds) {request(V12Protocol.Write(V12Protocol.Control.STANDBY,minutes.roundToInt()))}
                     } else MissingSetting(stringResource(R.string.no_data))
                 }

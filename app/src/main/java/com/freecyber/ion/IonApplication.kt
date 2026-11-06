@@ -15,6 +15,7 @@ class IonApplication : Application() {
     lateinit var graph: IonGraph; private set
     override fun onCreate() {
         super.onCreate()
+        IonFormat.locale = java.util.Locale.forLanguageTag(getString(R.string.format_locale))
         graph = IonGraph(this)
         IonNotifications.createChannels(this)
         graph.monitor.start()

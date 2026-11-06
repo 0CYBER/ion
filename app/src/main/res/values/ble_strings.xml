@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Bluetooth link status and errors (BleController) -->
+    <string name="ble_write_no_link">Запись недоступна: нет связи с колесом</string>
+    <string name="ble_write_moving">Запись недоступна: колесо движется</string>
+    <string name="ble_device_generic">BLE-устройство</string>
+    <string name="ble_need_permission">Нужно разрешение на поиск и подключение BLE.</string>
+    <string name="ble_turn_on">Включи Bluetooth в настройках телефона.</string>
+    <string name="ble_scanning">Ищу устройства рядом…</string>
+    <string name="ble_scan_unavailable">BLE-поиск недоступен</string>
+    <string name="ble_permission_revoked">Разрешение Bluetooth отозвано.</string>
+    <string name="ble_scan_check">Поиск BLE недоступен. Проверь Bluetooth и разрешения.</string>
+    <string name="ble_nothing_found">Ничего не найдено. На Android 11 и ниже проверь геолокацию.</string>
+    <string name="ble_pick_wheel">Выбери своё колесо из списка</string>
+    <string name="ble_permission_denied">Для подключения нужно разрешение Bluetooth. Его можно выдать в настройках приложения.</string>
+    <string name="ble_received">Получено</string>
+    <string name="ble_live">Данные с колеса</string>
+    <string name="ble_connecting">Подключаюсь…</string>
+    <string name="ble_unavailable">BLE недоступен</string>
+    <string name="ble_discovering">Проверяю BLE-сервисы…</string>
+    <string name="ble_discover_failed">Не удалось запросить BLE-сервисы</string>
+    <string name="ble_no_service">Нет ожидаемого сервиса INMOTION V2</string>
+    <string name="ble_no_write_char">Нет характеристики запросов</string>
+    <string name="ble_no_notify_char">Нет характеристики телеметрии</string>
+    <string name="ble_char_no_write">Характеристика не принимает запросы</string>
+    <string name="ble_char_no_notify">Характеристика не поддерживает уведомления</string>
+    <string name="ble_notify_failed">Не удалось включить уведомления</string>
+    <string name="ble_no_cccd">Нет дескриптора уведомлений</string>
+    <string name="ble_cccd_rejected">Запись CCCD отклонена</string>
+    <string name="ble_identifying">Проверяю, что это V12 HT…</string>
+    <string name="ble_no_model">Колесо не ответило на запрос модели</string>
+    <string name="ble_waiting_telemetry">V12 HT определена. Жду телеметрию…</string>
+    <string name="ble_bad_telemetry">Неподдерживаемый формат телеметрии. Нужна проверка прошивки.</string>
+    <string name="ble_timeout_status">Нет ответа · тайм-аут</string>
+    <string name="ble_no_telemetry">Нет ответа телеметрии. Проверь колесо и подключись заново.</string>
+    <string name="ble_not_sent_link">Не отправлено: нет связи с колесом</string>
+    <string name="ble_not_sent_moving">Не отправлено: колесо движется</string>
+    <string name="ble_lock_refused">Блокировка не выполнена: колесо не приняло защитный обмен</string>
+    <string name="ble_lock_moving">Блокировка не выполнена: колесо движется</string>
+    <string name="ble_apply_no_answer">Не применилось: колесо не ответило</string>
+    <string name="ble_apply_mismatch">Не применилось: на колесе другое значение</string>
+    <string name="ble_apply_unknown">Не применилось: ответ колеса не распознан</string>
+    <string name="ble_timeout">Время ожидания BLE истекло. Проверь колесо и попробуй снова.</string>
+    <string name="ble_connect_failed">Не удалось подключиться</string>
+    <string name="ble_waiting_answer">Ожидаю ответ…</string>
+    <string name="ble_request_rejected">BLE-запрос отклонён</string>
+    <string name="ble_model_changed">Модель изменилась. Связь остановлена.</string>
+    <string name="ble_offline">Колесо не подключено</string>
+    <string name="ble_write_interrupted">Связь прервалась во время записи</string>
+    <string name="ble_scan_failed">Не удалось начать поиск (%1$d). Попробуй ещё раз.</string>
+    <string name="ble_link_dropped">Связь прервана%1$s. Данные больше не обновляются.</string>
+    <string name="ble_gatt_warning">Предупреждение BLE (GATT %1$d); соединение удерживается.</string>
+    <string name="ble_request_error">Ошибка BLE-запроса (%1$d).</string>
+    <string name="ble_not_ht">Ожидалась V12 HT, ответ: %1$s. Опрос остановлен.</string>
+    <string name="ble_error_code">Ошибка BLE %1$d</string>
+</resources>

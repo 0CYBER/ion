@@ -87,7 +87,7 @@ class WheelMonitor(private val graph: IonGraph) {
             if (config.voice) graph.voice.speak(VoiceAnnouncer.phrase(graph.context, it))
         }
         if (connected && config.voiceBattery) stepper.next(s.telemetry?.battery, s.telemetry?.charging ?: false)
-            ?.let { graph.voice.speak(graph.context.getString(R.string.voice_battery_step, it)) }
+            ?.let { graph.voice.speak(graph.context.resources.getQuantityString(R.plurals.voice_battery_step, it, it)) }
         if (!config.voice && !config.voiceBattery) graph.voice.shutdown()
 
         val active = s.phase != Phase.OFFLINE && s.phase != Phase.ERROR && s.phase != Phase.SCANNING

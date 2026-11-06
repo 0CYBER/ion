@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
 
 /** The ongoing ride card: figures while live, a status-bar chip request, and actions that match the state. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], application = Application::class, qualifiers = "ru")
 class NotificationTest {
     private val context get() = ApplicationProvider.getApplicationContext<Application>()
 
@@ -38,6 +38,22 @@ class NotificationTest {
         assertNull(NotificationCompat.getShortCriticalText(n))
         assertEquals(1, n.actions.size)
         assertTrue(n.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("3"))
+    }
+
+    @Test fun voicePhrasesUseRussianPlurals() {
+        fun battery(v: Int) = VoiceAnnouncer.phrase(context, Alert(AlertKind.BATTERY_LOW, v))
+        assertEquals("Низкий заряд, 21 процент", battery(21))
+        assertEquals("Низкий заряд, 22 процента", battery(22))
+        assertEquals("Низкий заряд, 15 процентов", battery(15))
+        assertEquals("Перегрев, 81 градус", VoiceAnnouncer.phrase(context, Alert(AlertKind.TEMPERATURE_HIGH, 81)))
+    }
+
+    @Config(qualifiers = "en")
+    @Test fun englishUiGetsEnglishPhrasesAndVoice() {
+        assertEquals("Overheating, 1 degree", VoiceAnnouncer.phrase(context, Alert(AlertKind.TEMPERATURE_HIGH, 1)))
+        assertEquals("Low battery, 15 percent", VoiceAnnouncer.phrase(context, Alert(AlertKind.BATTERY_LOW, 15)))
+        assertEquals("en-US", context.getString(R.string.voice_locale))
+        assertEquals("en", context.getString(R.string.format_locale))
     }
 
     @Test fun chipPrefersSpeedWhileRidingAndChargeAtRest() {

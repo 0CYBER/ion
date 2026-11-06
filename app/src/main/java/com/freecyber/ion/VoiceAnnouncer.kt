@@ -22,8 +22,9 @@ class VoiceAnnouncer(private val context: Context) : TextToSpeech.OnInitListener
         val engine = tts ?: return
         ready = status == TextToSpeech.SUCCESS
         if (!ready) { pending.clear(); return }
-        val russian = Locale.forLanguageTag("ru-RU")
-        if (engine.isLanguageAvailable(russian) >= TextToSpeech.LANG_AVAILABLE) engine.language = russian
+        // Speak in the language the phrases are written in (the app's resolved UI language).
+        val voice = Locale.forLanguageTag(context.getString(R.string.voice_locale))
+        if (engine.isLanguageAvailable(voice) >= TextToSpeech.LANG_AVAILABLE) engine.language = voice
         engine.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         while (pending.isNotEmpty()) say(pending.removeFirst())
@@ -35,9 +36,9 @@ class VoiceAnnouncer(private val context: Context) : TextToSpeech.OnInitListener
 
     companion object {
         fun phrase(context: Context, alert: Alert): String = when (alert.kind) {
-            AlertKind.BATTERY_LOW -> context.getString(R.string.voice_battery, alert.value)
-            AlertKind.BATTERY_CRITICAL -> context.getString(R.string.voice_battery_critical, alert.value)
-            AlertKind.TEMPERATURE_HIGH -> context.getString(R.string.voice_temperature, alert.value)
+            AlertKind.BATTERY_LOW -> context.resources.getQuantityString(R.plurals.voice_battery, alert.value, alert.value)
+            AlertKind.BATTERY_CRITICAL -> context.resources.getQuantityString(R.plurals.voice_battery_critical, alert.value, alert.value)
+            AlertKind.TEMPERATURE_HIGH -> context.resources.getQuantityString(R.plurals.voice_temperature, alert.value, alert.value)
             AlertKind.SPEED_HIGH -> context.getString(R.string.voice_speed, alert.value)
             AlertKind.LINK_LOST -> context.getString(R.string.voice_link_lost)
             AlertKind.LINK_RESTORED -> context.getString(R.string.voice_link_restored)

@@ -85,6 +85,7 @@
     <string name="unit_kmh">км/ч</string>
     <string name="unit_wh">Вт·ч</string>
     <string name="unit_wh_km">Вт·ч/км</string>
+    <string name="unit_min">мин</string>
     <string name="unit_watts">Вт</string>
     <string name="unit_percent">%</string>
     <string name="unit_celsius">°C</string>
@@ -144,17 +145,37 @@
     <string name="alert_setting_voice_hint">Произносить предупреждения вслух — удобно в наушниках</string>
     <string name="alert_setting_voice_battery">Озвучивать заряд</string>
     <string name="alert_setting_voice_battery_hint">Каждые потраченные 10 %</string>
-    <string name="voice_battery">Низкий заряд, %1$d процентов</string>
-    <string name="voice_battery_critical">Критический заряд, %1$d процентов. Замедлитесь</string>
-    <string name="voice_temperature">Перегрев, %1$d градусов</string>
     <string name="voice_speed">Скорость %1$d</string>
     <string name="voice_link_lost">Связь с колесом потеряна</string>
     <string name="voice_link_restored">Связь восстановлена</string>
     <string name="voice_error">Ошибка колеса</string>
-    <string name="voice_battery_step">Заряд %1$d процентов</string>
     <string name="tile_chart">График</string>
     <string name="chart_window">за %1$d мин</string>
     <string name="chart_speed_max">Скорость до %1$s км/ч</string>
     <string name="chart_power_max">Мощность до %1$d Вт</string>
     <string name="chart_summary">График: максимум скорости %1$s км/ч, мощности %2$d Вт за %3$d мин</string>
+    <plurals name="voice_battery">
+        <item quantity="one">Низкий заряд, %1$d процент</item>
+        <item quantity="few">Низкий заряд, %1$d процента</item>
+        <item quantity="many">Низкий заряд, %1$d процентов</item>
+        <item quantity="other">Низкий заряд, %1$d процентов</item>
+    </plurals>
+    <plurals name="voice_battery_critical">
+        <item quantity="one">Критический заряд, %1$d процент. Замедлитесь</item>
+        <item quantity="few">Критический заряд, %1$d процента. Замедлитесь</item>
+        <item quantity="many">Критический заряд, %1$d процентов. Замедлитесь</item>
+        <item quantity="other">Критический заряд, %1$d процентов. Замедлитесь</item>
+    </plurals>
+    <plurals name="voice_temperature">
+        <item quantity="one">Перегрев, %1$d градус</item>
+        <item quantity="few">Перегрев, %1$d градуса</item>
+        <item quantity="many">Перегрев, %1$d градусов</item>
+        <item quantity="other">Перегрев, %1$d градусов</item>
+    </plurals>
+    <plurals name="voice_battery_step">
+        <item quantity="one">Заряд %1$d процент</item>
+        <item quantity="few">Заряд %1$d процента</item>
+        <item quantity="many">Заряд %1$d процентов</item>
+        <item quantity="other">Заряд %1$d процентов</item>
+    </plurals>
 </resources>

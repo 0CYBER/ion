@@ -21,6 +21,8 @@ class MainActivity : ComponentActivity() {
     private val model: VelaViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); enableEdgeToEdge()
+        // The system language may have changed while the process lived on.
+        IonFormat.locale = java.util.Locale.forLanguageTag(getString(R.string.format_locale))
         if(savedInstanceState==null) model.autoConnect()
         setContent {
             val ui by model.ui.collectAsStateWithLifecycle()
