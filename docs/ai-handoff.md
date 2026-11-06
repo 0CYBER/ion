@@ -1,34 +1,45 @@
 # AI handoff — ветка `ai-experimental` (структурированно)
 
-Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`.
+Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.7.0-ai` (versionCode 16). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
 
-## Состояние
+## Модули
+
+| Модуль | Что внутри |
+|---|---|
+| `:core` (чистый Kotlin/JVM) | протокол V12, защита записи (`LockSecurity`), форматтеры, `AlertEngine`, конфиги, раскладка дашборда, `TripRecorder`/`TripSummary`/`TripTotals`, `BatteryStepper`, `ReconnectPolicy`, `WheelErrors`, `WidgetSnapshot`, `SampleBuffer` + все тесты логики |
+| `:app` | Android: BLE, сервис, уведомления, виджет, QS-плитка, TTS, Compose UI, скриншот-тесты |
+
+## Состояние функций
 
 | Область | Статус | Где |
 |---|---|---|
-| Фоновая связь (FGS connectedDevice) | готово, не проверено на устройстве | `WheelService.kt`, `IonApplication.kt` |
-| Авто-переподключение | готово, unit-тест backoff | `WheelMonitor.kt` (`ReconnectPolicy`) |
+| Фоновая связь (FGS connectedDevice) + wake lock | готово, не проверено на устройстве | `WheelService.kt`, `IonApplication.kt` |
+| Авто-переподключение, подключение при запуске | готово, тест backoff | `WheelMonitor.kt`, `ReconnectPolicy` |
 | Уведомления (live / alerts / link) | готово | `IonNotifications.kt`, `WheelErrors.kt` |
-| Оповещения с гистерезисом | готово, 8 тестов | `AlertEngine.kt` |
-| Статистика поездки | готово, 3 теста | `TripRecorder.kt` |
-| Виджет рабочего стола (Glance) | готово | `IonWidget.kt`, `WidgetSnapshot.kt`, `res/xml/ion_widget_info.xml` |
-| Модульный экран поездки | готово, 5 тестов раскладки | `Dashboard.kt`, `RideScreen.kt`, `FeatureScreens.kt` |
-| Настройки приложения | готово | `AppPrefs.kt`, `FeatureScreens.kt` (`BackgroundScreen`) |
+| Оповещения с гистерезисом + голос (TTS) | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
+| Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
+| Виджет (Glance) | готово | `IonWidget.kt`, `WidgetMapping.kt` |
+| Quick Settings tile | готово | `IonTileService.kt` |
+| Модульный экран поездки + редактор | готово | `Dashboard.kt`, `RideScreen.kt`, `FeatureScreens.kt` |
+| Плитка «График» (скорость/мощность за 6 мин) | готово | `SampleBuffer.kt`, `ChartTile.kt` |
+| Скриншот-тесты (Robolectric + Roborazzi) | 10 экранов | `ScreenshotTest.kt`, `docs/screenshots/` |
+| CI | GitHub Actions | `.github/workflows/android.yml` |
 
 ## Сборка
 
 ```
-./gradlew testDebugUnitTest assembleDebug compileDebugAndroidTestKotlin
+./gradlew :core:test :app:testDebugUnitTest assembleDebug
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`.
 
 ## Риски / что проверить на телефоне
 
-1. Android 14+: FGS `connectedDevice` требует выданного `BLUETOOTH_CONNECT` до старта сервиса — сервис стартует только после подключения из UI.
-2. Кнопка «Фара» в уведомлении и виджете шлёт запись только при `safeWrite` (стоянка, проверенное HT).
-3. Авто-переподключение не срабатывает после ручного «Отключить» и после «Забыть».
-4. Уведомление о потере связи — канал `ride_alerts` (высокий приоритет).
+1. Android 14+: FGS `connectedDevice` требует `BLUETOOTH_CONNECT` до старта сервиса — сервис стартует только после подключения.
+2. Фара в уведомлении/виджете пишет только при `safeWrite` (стоянка, проверенное HT).
+3. Авто-переподключение не срабатывает после ручного «Отключить» и «Забыть».
+4. Wake lock держится только пока приходят данные (продление на 2 мин) — проверить расход батареи телефона.
+5. TTS: если на телефоне нет русского голоса, используется системный.
 
-## Следующие идеи (бэклог)
+## Бэклог
 
-CI (GitHub Actions), история поездок + экспорт CSV/GPX, графики, Quick Settings tile, EN-локализация, вибро/голос оповещения, ландшафт/планшет, варианты виджета, lint-фиксы, разбиение на пакеты.
+EN-локализация (и вынос захардкоженных строк из BLE-слоя), второй вариант виджета, ландшафт/планшет, вибро-оповещения, устаревание данных в виджете, GPX/трек, тесты на fontScale 1.5, вынос логики `WheelMonitor` в `:core`.
