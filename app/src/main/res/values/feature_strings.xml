@@ -47,11 +47,12 @@
     <string name="dash_editor_title">Экран поездки</string>
     <string name="dash_editor_hint">Порядок, размер и видимость плиток</string>
     <string name="dash_reset">Сбросить раскладку</string>
-    <string name="dash_shown">На экране</string>
-    <string name="dash_hidden">Скрытые плитки</string>
+    <string name="dash_preview">Предпросмотр</string>
+    <string name="dash_tap_hint">Нажми на плитку, чтобы выбрать её — порядок, размер и действия настраиваются ниже.</string>
+    <string name="dash_available">Доступные плитки</string>
+    <string name="dash_param_sound">Звук сигнала</string>
     <string name="dash_move_up">Переместить выше: %1$s</string>
     <string name="dash_move_down">Переместить ниже: %1$s</string>
-    <string name="dash_show">Показать: %1$s</string>
     <string name="dash_hide">Скрыть: %1$s</string>
     <string name="dash_wide">Широкая</string>
     <string name="dash_half">Половина</string>

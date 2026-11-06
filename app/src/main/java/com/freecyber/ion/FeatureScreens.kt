@@ -1,6 +1,9 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.freecyber.ion
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +13,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,6 +40,8 @@ internal val DashTile.titleRes: Int get() = when(this) {
     DashTile.TILT -> R.string.tile_tilt
     DashTile.QUICK_HIGH_BEAM -> R.string.tile_quick_high_beam
     DashTile.PLAY_SOUND -> R.string.tile_play_sound
+    DashTile.QUICK_AUTO_LIGHT -> R.string.control_auto_light
+    DashTile.QUICK_SOUND_WAVE -> R.string.control_sound_wave
     DashTile.MODE -> R.string.tile_mode
     DashTile.CHART -> R.string.tile_chart
 }
@@ -58,59 +64,113 @@ internal val DashTile.icon: ImageVector get() = when(this) {
     DashTile.TILT -> Icons.Rounded.ScreenRotation
     DashTile.QUICK_HIGH_BEAM -> Icons.Rounded.Highlight
     DashTile.PLAY_SOUND -> Icons.Rounded.Campaign
+    DashTile.QUICK_AUTO_LIGHT -> Icons.Rounded.AutoAwesome
+    DashTile.QUICK_SOUND_WAVE -> Icons.Rounded.MusicNote
     DashTile.MODE -> Icons.Rounded.Tune
     DashTile.CHART -> Icons.Rounded.ShowChart
 }
 
-/** Lets the rider choose, order and size every dashboard module. Changes apply immediately. */
-@Composable internal fun DashboardEditorScreen(layout: DashboardLayout,change: (DashboardLayout)->Unit,onBack: ()->Unit) {
-    val shown=layout.visible
-    val hidden=layout.slots.filterNot {it.visible}
+/** Static sample telemetry so the dashboard editor previews every tile with realistic figures offline. */
+private object EditorSample {
+    val ui: VelaUi by lazy {
+        val p=ByteArray(66)
+        fun u16(i: Int,v: Int) {p[i]=v.toByte();p[i+1]=(v ushr 8).toByte()}
+        u16(0,9680); u16(2,1250); u16(4,2340); u16(6,125); u16(8,4200); u16(22,1234); u16(24,7800); u16(26,4120)
+        p[40]=220.toByte(); p[41]=226.toByte(); p[55]=1
+        val s=ByteArray(42); s[0]=0x20
+        fun set(i: Int,v: Int) {s[i]=v.toByte();s[i+1]=(v ushr 8).toByte()}
+        set(9,5000); set(11,3000); set(13,4000); set(17,600); s[20]=50; s[21]=60; s[22]=40; s[26]=70; s[27]=80; s[39]=9
+        VelaUi(WheelState(phase=Phase.CONNECTED,message="",verifiedHt=true,telemetry=V12Protocol.telemetry(V12Protocol.Frame(0x14,0x84,p)),
+            settings=V12Protocol.settings(V12Protocol.Frame(0x14,0xa0,s)),settingsAt=9500,lastPacketAt=9500,packets=128),
+            WheelDevice("AA:BB:CC:DD:EE:FF","V12HT", -55),10_000,
+            trip=TripStats(startedAt=1_000,lastAt=2_000_000,samples=4000,distanceKm=12.34,maxSpeed=41.2,movingMs=1_800_000,
+                energyWh=380.0,regenWh=30.0,startBattery=96.0,lastBattery=78.0,maxTemp=50,maxPower=2900.0))
+    }
+}
+
+/**
+ * Dashboard editor built around a live preview: the tiles look exactly as on the ride screen (real
+ * telemetry when connected, a sample otherwise). Tapping a tile selects it and opens its controls —
+ * order, size and parameters — right below the preview; hidden tiles are one tap away at the bottom.
+ */
+@Composable internal fun DashboardEditorScreen(ui: VelaUi,layout: DashboardLayout,change: (DashboardLayout)->Unit,onBack: ()->Unit) {
+    var selected by rememberSaveable {mutableStateOf<String?>(null)}
+    val sel=selected?.let {name -> DashTile.entries.firstOrNull {it.name==name}}
+    val selectedSlot=sel?.let {t -> layout.slots.firstOrNull {it.tile==t}}
+    // The preview stays read-only: writes and navigation are no-ops here, taps only select.
+    val env=TileEnv(if(ui.wheel.telemetry!=null) ui else EditorSample.ui,{},{})
+    val rows=remember(layout) {layout.rows()}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.dash_editor_title),stringResource(R.string.dash_editor_hint),onBack)}
         item(key="reset",contentType="button") {
-            OutlinedButton(onClick={change(DashboardLayout.DEFAULT)},enabled=layout!=DashboardLayout.DEFAULT,modifier=Modifier.heightIn(min=48.dp)) {
+            OutlinedButton(onClick={change(DashboardLayout.DEFAULT);selected=null},enabled=layout!=DashboardLayout.DEFAULT,modifier=Modifier.heightIn(min=48.dp)) {
                 Icon(Icons.Rounded.RestartAlt,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp));Text(stringResource(R.string.dash_reset))
             }
         }
-        item(key="shown-title",contentType="section") {SectionHeader(stringResource(R.string.dash_shown))}
-        if(shown.isEmpty()) item(key="shown-empty",contentType="note") {Banner(stringResource(R.string.dash_empty))}
-        items(shown,key={"s-"+it.tile.name},contentType={"slot"}) {slot ->
-            val index=shown.indexOf(slot)
-            EditorRow(slot,first=index==0,last=index==shown.lastIndex,
-                up={change(layout.moveVisible(slot.tile,-1))},down={change(layout.moveVisible(slot.tile,1))},
-                visibility={change(layout.toggle(slot.tile))},resize={change(layout.resize(slot.tile))})
+        item(key="preview-title",contentType="section") {
+            Column {SectionHeader(stringResource(R.string.dash_preview));Text(stringResource(R.string.dash_tap_hint),
+                style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
         }
-        if(hidden.isNotEmpty()) {
-            item(key="hidden-title",contentType="section") {SectionHeader(stringResource(R.string.dash_hidden))}
-            items(hidden,key={"h-"+it.tile.name},contentType={"slot"}) {slot ->
-                EditorRow(slot,first=true,last=true,up=null,down=null,visibility={change(layout.toggle(slot.tile))},resize=null)
+        if(rows.isEmpty()) item(key="preview-empty",contentType="note") {Banner(stringResource(R.string.dash_empty))}
+        rows.forEachIndexed {rowIndex,row ->
+            item(key="row-$rowIndex",contentType=if(row.size==2) "pair" else "single") {
+                if(row.size==2) Row(Modifier.height(IntrinsicSize.Min),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                    PreviewTile(row[0],env,selected==row[0].tile.name,Modifier.weight(1f).fillMaxHeight()) {selected=row[0].tile.name}
+                    PreviewTile(row[1],env,selected==row[1].tile.name,Modifier.weight(1f).fillMaxHeight()) {selected=row[1].tile.name}
+                } else PreviewTile(row[0],env,selected==row[0].tile.name,Modifier.fillMaxWidth()) {selected=row[0].tile.name}
+            }
+        }
+        if(selectedSlot!=null) item(key="controls",contentType="controls") {
+            SelectionControls(layout,selectedSlot,change) {selected=null}
+        }
+        item(key="available-title",contentType="section") {SectionHeader(stringResource(R.string.dash_available))}
+        item(key="available",contentType="chips") {
+            val hidden=layout.slots.filterNot {it.visible}
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                hidden.forEach {slot ->
+                    FilterChip(selected=false,onClick={change(layout.toggle(slot.tile));selected=slot.tile.name},
+                        label={Text(stringResource(slot.tile.titleRes))},
+                        leadingIcon={Icon(slot.tile.icon,null,Modifier.size(18.dp))})
+                }
             }
         }
     }
 }
 
-@Composable private fun EditorRow(slot: TileSlot,first: Boolean,last: Boolean,up: (()->Unit)?,down: (()->Unit)?,visibility: ()->Unit,resize: (()->Unit)?) {
-    Surface(shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.surfaceContainerLow) {
-        Row(Modifier.fillMaxWidth().padding(start=16.dp,end=6.dp,top=6.dp,bottom=6.dp),verticalAlignment=Alignment.CenterVertically,
-            horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-            Icon(slot.tile.icon,null,Modifier.size(24.dp),tint=if(slot.visible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(8.dp))
-            Column(Modifier.weight(1f).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(slot.tile.titleRes),style=MaterialTheme.typography.titleMedium)
-                // The size label doubles as the size switch, which keeps the row to three icon buttons.
-                if(slot.visible) {
-                    val label=stringResource(if(slot.effectiveWide) R.string.dash_wide else R.string.dash_half)
-                    if(resize!=null && slot.tile.canBeHalf) FilterChip(selected=slot.wide,onClick=resize,label={Text(label)},
-                        leadingIcon={Icon(if(slot.wide) Icons.Rounded.ViewStream else Icons.Rounded.GridView,null,Modifier.size(18.dp))})
-                    else Text(label,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+/** A preview tile: rendered exactly as on the ride screen; a transparent layer turns taps into selection. */
+@Composable private fun PreviewTile(slot: TileSlot,env: TileEnv,selected: Boolean,modifier: Modifier,tap: ()->Unit) {
+    val border=if(selected) Modifier.border(2.dp,MaterialTheme.colorScheme.primary,RoundedCornerShape(22.dp)) else Modifier
+    Box(modifier.then(border).squashClick(enabled=true,onClick=tap)) {
+        DashTileView(slot,env,Modifier.fillMaxWidth())
+        // Swallows touches so preview toggles never write to the wheel.
+        Box(Modifier.matchParentSize().clickable(interactionSource=remember {MutableInteractionSource()},indication=null) {tap()})
+    }
+}
+
+/** Order, size and parameters of the tile selected in the preview. */
+@Composable private fun SelectionControls(layout: DashboardLayout,slot: TileSlot,change: (DashboardLayout)->Unit,onHide: ()->Unit) {
+    val index=layout.visible.indexOfFirst {it.tile==slot.tile}
+    Surface(shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Column(Modifier.fillMaxWidth().padding(start=10.dp,end=10.dp,top=8.dp,bottom=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(2.dp)) {
+                Icon(slot.tile.icon,null,Modifier.size(22.dp),tint=MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(slot.tile.titleRes),style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
+                IconButton(onClick={change(layout.moveVisible(slot.tile,-1))},enabled=index>0) {Icon(Icons.Rounded.ArrowUpward,stringResource(R.string.dash_move_up))}
+                IconButton(onClick={change(layout.moveVisible(slot.tile,1))},enabled=index>=0 && index<layout.visible.lastIndex) {Icon(Icons.Rounded.ArrowDownward,stringResource(R.string.dash_move_down))}
+                IconButton(onClick={onHide();change(layout.toggle(slot.tile))}) {Icon(Icons.Rounded.VisibilityOff,stringResource(R.string.dash_hide))}
             }
-            if(up!=null) IconButton(onClick=up,enabled=!first) {Icon(Icons.Rounded.ArrowUpward,stringResource(R.string.dash_move_up))}
-            if(down!=null) IconButton(onClick=down,enabled=!last) {Icon(Icons.Rounded.ArrowDownward,stringResource(R.string.dash_move_down))}
-            IconButton(onClick=visibility) {
-                Icon(if(slot.visible) Icons.Rounded.VisibilityOff else Icons.Rounded.AddCircle,
-                    stringResource(if(slot.visible) R.string.dash_hide else R.string.dash_show))
+            if(slot.tile.canBeHalf) Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected=!slot.effectiveWide,onClick={if(slot.effectiveWide) change(layout.resize(slot.tile))},label={Text(stringResource(R.string.dash_half))})
+                FilterChip(selected=slot.effectiveWide,onClick={if(!slot.effectiveWide) change(layout.resize(slot.tile))},label={Text(stringResource(R.string.dash_wide))})
+            }
+            slot.tile.param?.let {range ->
+                Text(stringResource(R.string.dash_param_sound),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                    (range.first..range.last).forEach {number ->
+                        FilterChip(selected=slot.param==number,onClick={change(layout.setParam(slot.tile,number))},label={Text("$number")})
+                    }
+                }
             }
         }
     }

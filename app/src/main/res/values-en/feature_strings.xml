@@ -47,11 +47,12 @@
     <string name="dash_editor_title">Ride screen</string>
     <string name="dash_editor_hint">Order, size and visibility of tiles</string>
     <string name="dash_reset">Reset layout</string>
-    <string name="dash_shown">On screen</string>
-    <string name="dash_hidden">Hidden tiles</string>
+    <string name="dash_preview">Live preview</string>
+    <string name="dash_tap_hint">Tap a tile to select it — order, size and actions are set below.</string>
+    <string name="dash_available">Available tiles</string>
+    <string name="dash_param_sound">Horn sound</string>
     <string name="dash_move_up">Move up: %1$s</string>
     <string name="dash_move_down">Move down: %1$s</string>
-    <string name="dash_show">Show: %1$s</string>
     <string name="dash_hide">Hide: %1$s</string>
     <string name="dash_wide">Wide</string>
     <string name="dash_half">Half</string>

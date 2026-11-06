@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
                     when {
                         route=="appearance" -> AppearanceScreen(dark,actions.theme) {detail=null}
                         route=="diagnostics" -> DiagnosticsScreen(ui,actions) {detail=null}
-                        route=="dashboard" -> DashboardEditorScreen(prefs.dashboard,actions.setDashboard) {detail=null}
+                        route=="dashboard" -> DashboardEditorScreen(ui,prefs.dashboard,actions.setDashboard) {detail=null}
                         route=="background" -> BackgroundScreen(prefs,actions) {detail=null}
                         route=="trips" -> TripsScreen(prefs.trips,actions) {detail=null}
                         route.startsWith("control:") -> ControlScreen(ui,ControlCategory.valueOf(route.substringAfter(':')),

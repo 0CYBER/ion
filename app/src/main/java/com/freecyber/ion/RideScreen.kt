@@ -98,8 +98,13 @@ import kotlin.math.roundToInt
         }
         DashTile.QUICK_MUTE -> QuickToggle(stringResource(R.string.quick_mute),s?.muted,Icons.AutoMirrored.Rounded.VolumeOff,
             ui.safeWrite && ui.settingsFresh,modifier) {env.write(V12Protocol.Write(V12Protocol.Control.MUTE,if(it) 1 else 0))}
+        DashTile.QUICK_AUTO_LIGHT -> QuickToggle(stringResource(R.string.control_auto_light),s?.autoLight,Icons.Rounded.AutoAwesome,
+            ui.safeWrite && ui.settingsFresh,modifier) {env.write(V12Protocol.Write(V12Protocol.Control.AUTO_LIGHT,if(it) 1 else 0))}
+        DashTile.QUICK_SOUND_WAVE -> QuickToggle(stringResource(R.string.control_sound_wave),s?.soundWave,Icons.Rounded.MusicNote,
+            ui.safeWrite && ui.settingsFresh,modifier) {env.write(V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,if(it) 1 else 0))}
         DashTile.PLAY_SOUND -> ActionTile(stringResource(R.string.tile_play_sound),Icons.Rounded.Campaign,ui.safeWrite,modifier) {
-            env.write(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,1))
+            // The rider picks the horn sound in the editor; 4 is the classic signal on the V12 HT.
+            env.write(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,slot.param ?: DashTile.PLAY_SOUND.defaultParam ?: 4))
         }
         DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,modifier,env.openTrips,env.finishTrip)
         DashTile.TRIP -> MetricTile(stringResource(R.string.tile_trip),t?.tripKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Route,wide,modifier)

@@ -126,10 +126,27 @@ class DashboardLayoutTest {
     }
 
     @Test fun heroTilesCannotBeHalved() {
-        val l = DashboardLayout.DEFAULT.resize(DashTile.SPEED)
-        assertTrue(l.slots.first { it.tile == DashTile.SPEED }.effectiveWide)
+        val l = DashboardLayout.DEFAULT.resize(DashTile.TRIP_SESSION)
+        assertTrue(l.slots.first { it.tile == DashTile.TRIP_SESSION }.effectiveWide)
+        // SPEED used to be hero-only; it is resizable now so a half speed + half PWM row is possible.
+        val s = DashboardLayout.DEFAULT.resize(DashTile.SPEED)
+        assertFalse(s.slots.first { it.tile == DashTile.SPEED }.effectiveWide)
         val t = DashboardLayout.DEFAULT.toggle(DashTile.POWER)
         assertTrue(t.slots.first { it.tile == DashTile.POWER }.visible)
+    }
+
+    @Test fun playSoundParamSurvivesRoundTripAndDefaultsToHorn4() {
+        assertEquals(4, DashTile.PLAY_SOUND.defaultParam)
+        assertEquals(7, DashboardLayout.decode("PLAY_SOUND:1:0:7").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        // Legacy layouts without a param pick up the default horn sound.
+        val legacy = DashboardLayout.decode("PLAY_SOUND:1:0")
+        assertEquals(4, legacy.slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        // Out-of-range params fall back to the default.
+        assertEquals(4, DashboardLayout.decode("PLAY_SOUND:1:0:99").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        val set = legacy.setParam(DashTile.PLAY_SOUND, 2)
+        assertTrue(set.encode().split(',').any { it.startsWith("PLAY_SOUND:1:0:2") })
+        // setParam ignores values outside the tile's range.
+        assertEquals(4, legacy.setParam(DashTile.PLAY_SOUND, 42).slots.first { it.tile == DashTile.PLAY_SOUND }.param)
     }
 }
 

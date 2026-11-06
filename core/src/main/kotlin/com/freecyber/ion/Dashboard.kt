@@ -1,9 +1,11 @@
 package com.freecyber.ion
 
 /** Every building block the ride dashboard can show. Order here is the catalogue order in the editor.
- * [defaultWide] is the initial size; [canBeHalf] false keeps hero-sized tiles full width. */
-enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val canBeHalf: Boolean = true) {
-    SPEED(true, true, canBeHalf = false),
+ * [defaultWide] is the initial size; [canBeHalf] false keeps hero-sized tiles full width.
+ * Tiles may carry a [Param] that the rider chooses in the editor (e.g. which horn sound to play). */
+enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val canBeHalf: Boolean = true,
+                    val param: IntRange? = null, val defaultParam: Int? = null) {
+    SPEED(true, true),
     BATTERY(true, false),
     RANGE(true, false),
     QUICK_LIGHT(true, false),
@@ -19,12 +21,14 @@ enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val c
     PWM(false, false),
     TILT(false, false),
     QUICK_HIGH_BEAM(false, false),
-    PLAY_SOUND(false, false),
-    MODE(false, true, canBeHalf = true),
+    PLAY_SOUND(false, false, param = 1..8, defaultParam = 4),
+    QUICK_AUTO_LIGHT(false, false),
+    QUICK_SOUND_WAVE(false, false),
+    MODE(false, true),
     CHART(true, true, canBeHalf = false),
 }
 
-data class TileSlot(val tile: DashTile, val visible: Boolean, val wide: Boolean) {
+data class TileSlot(val tile: DashTile, val visible: Boolean, val wide: Boolean, val param: Int? = null) {
     val effectiveWide get() = wide || !tile.canBeHalf
 }
 
@@ -32,7 +36,7 @@ data class TileSlot(val tile: DashTile, val visible: Boolean, val wide: Boolean)
  * unknown ids are dropped and tiles added in later versions are appended with their defaults. */
 data class DashboardLayout(val slots: List<TileSlot>) {
     companion object {
-        val DEFAULT = DashboardLayout(DashTile.entries.map { TileSlot(it, it.defaultVisible, it.defaultWide) })
+        val DEFAULT = DashboardLayout(DashTile.entries.map { TileSlot(it, it.defaultVisible, it.defaultWide, it.defaultParam) })
         fun decode(text: String?): DashboardLayout {
             if (text.isNullOrBlank()) return DEFAULT
             val seen = LinkedHashMap<DashTile, TileSlot>()
@@ -40,17 +44,24 @@ data class DashboardLayout(val slots: List<TileSlot>) {
                 val bits = part.split(':')
                 val tile = DashTile.entries.firstOrNull { it.name == bits.getOrNull(0) } ?: return@forEach
                 if (tile in seen) return@forEach
-                seen[tile] = TileSlot(tile, bits.getOrNull(1) != "0", bits.getOrNull(2)?.let { it == "1" } ?: tile.defaultWide)
+                val param = bits.getOrNull(3)?.toIntOrNull()
+                    ?.takeIf { tile.param != null && it in tile.param } ?: tile.defaultParam
+                seen[tile] = TileSlot(tile, bits.getOrNull(1) != "0", bits.getOrNull(2)?.let { it == "1" } ?: tile.defaultWide, param)
             }
             if (seen.isEmpty()) return DEFAULT
-            DashTile.entries.filter { it !in seen }.forEach { seen[it] = TileSlot(it, it.defaultVisible, it.defaultWide) }
+            DashTile.entries.filter { it !in seen }.forEach { seen[it] = TileSlot(it, it.defaultVisible, it.defaultWide, it.defaultParam) }
             return DashboardLayout(seen.values.toList())
         }
     }
-    fun encode(): String = slots.joinToString(",") { "${it.tile.name}:${if (it.visible) 1 else 0}:${if (it.wide) 1 else 0}" }
+    fun encode(): String = slots.joinToString(",") {
+        "${it.tile.name}:${if (it.visible) 1 else 0}:${if (it.wide) 1 else 0}${it.param?.let { p -> ":$p" } ?: ""}"
+    }
     val visible get() = slots.filter { it.visible }
     fun toggle(tile: DashTile) = copy(slots = slots.map { if (it.tile == tile) it.copy(visible = !it.visible) else it })
     fun resize(tile: DashTile) = copy(slots = slots.map { if (it.tile == tile && it.tile.canBeHalf) it.copy(wide = !it.wide) else it })
+    fun setParam(tile: DashTile, param: Int) = copy(slots = slots.map {
+        if (it.tile == tile && tile.param != null && param in tile.param) it.copy(param = param) else it
+    })
     /** Moves a tile by [delta] positions inside the full list, clamped to the bounds. */
     fun move(tile: DashTile, delta: Int): DashboardLayout {
         val from = slots.indexOfFirst { it.tile == tile }
