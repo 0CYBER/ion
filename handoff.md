@@ -1,169 +1,92 @@
-# Ion — handoff
+# Ion — handoff (финальная реализация)
 
-## CI — обновление 2026-11-06
+Актуальное состояние проекта. Хронология работы, гипотезы и опровергнутые выводы — `docs/rolling-handoff.md`.
 
-GitHub Android CI публикует **app-release**, собирая assembleRelease (R8 + resource shrinking), с JVM-тестами и lintRelease. Скриншоты выключены -PskipScreenshots. По прямому указанию владельца **не добавлять проверку эмулятором в workflow**: ни emulator action, ни запуск Test-ApkStartup.ps1. Скрипт ручной проверки APK сохраняется отдельно; запрет относится к CI. compileDebugAndroidTestKotlin проверяет только компиляцию тестов, не запускает эмулятор.
+## Статус
 
-Существующая подпись release остаётся debug signingConfig: CI-ключ может отличаться от локального; для обновления между источниками нужен общий signing key. Секреты и ключи в этой доработке не передавались и не менялись.
+- Ветка **main** (35 коммитов ai-experimental перенесены fast-forward до b13af2a; экспериментальная ветка сохранена). Remote: https://github.com/0CYBER/ion.
+- Версия **0.9.2-ai / versionCode 20**. Рекомендуемый артефакт: `app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk`. **0.9.1 / v19 не использовать** — R8 удалял reflection-конструктор WorkDatabase_Impl, падала при запуске.
+- Приложение: персональный компаньон INMOTION V12 HT (Kotlin + Compose, Material 3 Expressive), `applicationId`/`namespace` = `com.freecyber.ion`. Вкладки: Поездка / Настройки / Колесо.
+- Исследование: lock/unlock работает на V12 HT владельца, подтверждено аппаратно (обе операции + read-back match).
 
+## Модули
 
-## Ветка — 2026-11-06
+| Модуль | Что внутри |
+|---|---|
+| `:core` (чистый Kotlin/JVM) | протокол V12, защита записи (`LockSecurity`), форматтеры, `AlertEngine`, конфиги, раскладка дашборда, `TripRecorder`/`Track`/`TripSummary`/`TripTotals`, `BatteryStepper`, `ReconnectPolicy`, `WheelErrors`, `WidgetSnapshot`, `SampleBuffer`, `CoreText` (`tr(ru,en)`) + все тесты логики |
+| `:app` | Android: BLE, сервис, уведомления, виджет, QS-плитка, TTS, Compose UI, скриншот-тесты (архив) |
 
-Рабочая ветка теперь **main**: по запросу владельца в неё fast-forward перенесены все 35 коммитов ai-experimental до b13af2a, история сохранена. Экспериментальная ветка не удалялась. Remote: https://github.com/0CYBER/ion; main публикуется обычным push. Последний актуальный APK остаётся 0.9.2-ai / v20, исправленный и проверенный запуском; v19 не использовать. Детали переноса — в конце docs/ai-rolling-handoff.md.
+Ключевые файлы: `Protocol.kt` (framing/decoder, Tier+Control, allowlist с read-back), `BleController.kt` (GATT-машина, Timing, tier-aware `mayWrite`), `VelaViewModel.kt` (combine + hysteresis), `Dashboard.kt`/`DashboardEditor.kt` (v2-раскладка с id, повторяемые плитки), `Theme.kt` (единственный дом цветов), `Ui.kt` (`ExpandSliders`, squash-нажатия, группы), `IonApp.kt` (док-навигация, стек вложенных экранов, landscape rail).
 
+## Проверенный протокол замка V12 HT
 
-## Приоритетный hotfix — 0.9.2-ai / versionCode 20 (2026-11-06)
+1. Подключение, неподвижность + свежая телеметрия, MTU ≥ 44 (наблюдалось 247).
+2. Запрос `AA AA 13 04 02 00 00 02 17` → валидный ответ `12 13 02 80 02` с 16 байтами; те же байты уходят в запросе `13 14 02 00 00 82` (получаются от текущего колеса, не хардкодятся, между сессиями не хранятся).
+3. Ожидать строго `AA AA 12 04 02 80 82 01`; иначе lock не отправлять.
+4. Один кадр: lock `AA AA 16 05 02 21 60 31 01 60`, unlock `AA AA 16 05 02 21 60 31 00 61`. ACK `... E0 31 00 E1` не заменяет read-back.
+5. Read-back: SETTINGS byte39, mask `0x20` (1 = locked).
 
-**Предыдущий optimized APK 0.9.1 / v19 падает при запуске, не использовать и не отдавать.** Причина подтверждена logcat на emulator-5580: R8 удалил вызываемый через reflection конструктор WorkDatabase_Impl из транзитивных Room 2.2.5 / WorkManager 2.7.1. Ошибка была до открытия Activity, поэтому прежние debug/JVM-тесты, lint и проверка подписи её не ловили.
+Guard STATIONARY пере-проверяется после security-обмена; повторов write нет; fallback — офф. приложение. Реализация: `LockSecurity.kt` + `BleController`. Read-back бит `0x20` найден диффом; подтверждён контрольными экспортами. Проверено на одном V12 HT / прошивке / телефоне; универсальность для других моделей не доказана.
 
-Точечные keepclassmembers для WorkDatabase_Impl и InputMerger constructors в app/proguard-rules.pro; R8 сохранён. Новый APK: `app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk`. Release build/lint прошли. **Сам этот APK проверен двумя холодными запусками:** процесс жив после 5 с, MainActivity resumed, app crash отсутствует; XML UI подтверждает реально отрисованный Ion. Файл для передачи совпадает с протестированным по SHA-256.
+## Функции
 
-Обязательная проверка каждого следующего готового release APK (без скриншотов): `./tools/Test-ApkStartup.ps1 -Apk app/build/outputs/apk/release/app-release.apk -Serial emulator-5580`. Сначала дождаться загрузки отдельного эмулятора. Скрипт намеренно разрешает только emulator-serial. На сломанном v19 он падал, на исправленном v20 прошёл. JVM-тесты не заменяют этот smoke test. Полная запись — последняя секция docs/ai-rolling-handoff.md.
+| Область | Статус |
+|---|---|
+| Фоновая связь (FGS `connectedDevice`) + wake lock (продление 2 мин) | готово, не проверено на устройстве |
+| Авто-переподключение (`ReconnectPolicy`, backoff 2 с→60 с, 40 попыток), подключение при запуске | готово |
+| Уведомления (live/alerts/link) + чип статус-бара Android 16 (`setRequestPromotedOngoing`) | готово |
+| Оповещения с гистерезисом + TTS, «цель зарядки» (перевзвод после −5 %) | готово |
+| Поездки: статистика, история (≤200), CSV + **GPS-треки** (LocationManager, трек ≤2400 точек, GPX-экспорт, экран с маршрутом и скраббером) | готово; поле не проверено |
+| Виджет (Glance): последние известные цифры, полоска заряда, превью | готово, 4 Glance-теста |
+| Модульный экран + редактор: v2-раскладка с id, повторяемые плитки, `DashToggle` (11 переключателей), нижний лист | готово |
+| Ландшафт: боковая навигация, спидометр закреплён слева при ≥560 dp | готово |
+| Локализация RU/EN (`values-en/`, `CoreText.tr`, localeConfig), доступность (fontScale 1.5, переносы, FlowRow) | готово |
+| QS-плитка, Doze-баннер (battery optimization) | готово |
+| Скорость/плавность: Onest + tnum, drawWithCache, drawBehind, `FrameRateCategory.High`, нативный charging wave | готово; 165 fps не измерялось |
+| CI (GitHub Actions) | собран и опубликован app-release |
 
+## Сборка и проверки
 
-## Уточнение 2026-11-06 — Ion 0.9.1-ai / versionCode 19
+```powershell
+# JVM-тесты (101: core 58 + app 43) без снимков
+.\gradlew.bat :core:test :app:testDebugUnitTest -PskipScreenshots
+# lint — отдельно от Robolectric-тестов (иначе OOM на 4 ГБ)
+.\gradlew.bat lintDebug assembleDebug assembleDebugAndroidTest
+# release
+.\gradlew.bat :app:lintRelease :app:assembleRelease
+```
 
-Этот блок новее описания 0.9.0 ниже. Возвращена капсула дока; удалена именно прямоугольная полоса Scaffold.bottomBar: dock теперь поверх viewport, а отступ от него — внутри scroll content (`LocalDockClearance`). Последний элемент доскролливается выше дока; кнопка добавления в редакторе не перекрывается.
+Окружение: JDK 21 (`C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`), SDK 37, AGP 9.3.1, Gradle 9.7.1, Compose BOM 2026.09.00, minSdk 26 / targetSdk 35. На машине с 4 ГБ: `~/.gradle/gradle.properties` — `-Xmx1600m -XX:+UseSerialGC`, `workers.max=1`, `kotlin.compiler.execution.strategy=in-process`; перед длинной сессией `./gradlew --stop`.
 
-Поля диагностики теперь Onest/tnum, Mono только для raw. Скорость компактнее (padding 16 dp, gaps 8 dp, без «Показания с колеса»). Зарядка использует отдельный нативный indeterminate MD3 wave при живых свежих данных; процент фактический, нормальный уровень плавно меняется через ProgressAnimationSpec.
+Instrumentation (изолированный эмулятор, отдельный serial): `-e screenshots false`, RU-локаль — `adb shell cmd locale set-app-locales com.freecyber.ion --locales ru`.
 
-Для плавности кэшируются Paths графика, цвет dock pill читается на draw-фазе, запрашивается FrameRateCategory.High. Отдельный оптимизированный release: R8 + shrinkResources, не debuggable, локальный debug-ключ для совместимости с личными APK. Рекомендуемый APK для проверки: `app/build/outputs/apk/release/app-release.apk`. Нет утверждения о достигнутых 165 fps: подключённого телефона и frame timing замеров нет.
+**Release APK (обязательно перед передачей)**: `.\tools\Test-ApkStartup.ps1 -Apk app/build/outputs/apk/release/app-release.apk -Serial emulator-5580` — установка на изолированный эмулятор, два холодных запуска, проверка pid/resumed Activity/лога. Build + JVM-тесты + lint подписи недостаточны: v19 прошла их и падала (R8/reflection). R8 keepclassmembers для `WorkDatabase_Impl` и `InputMerger` в `app/proguard-rules.pro` — не удалять.
 
-Без скриншотов прошли 101 JVM-тест (58 + 43), включая геометрию overlay-дока, доступность конца списка, компактную скорость и ветку зарядки. Инструкция владельца о запрете снимков, handoff и коммитах без соавторства остаётся в силе. Подробности — последнее продолжение в docs/ai-rolling-handoff.md.
+## CI
 
-## Актуально на 2026-11-06 — Ion 0.9.0-ai (versionCode 18)
+`.github/workflows/android.yml`: JDK 21 + SDK 37, `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:assembleRelease`, `:app:compileDebugAndroidTestKotlin` (-PskipScreenshots). Артефакт `app-release` + mapping в reports. **По прямому указанию владельца проверку эмулятором в CI не добавлять** (Test-ApkStartup — только для ручной передачи). Подпись CI — debug signingConfig раннера; обновление поверх локального APK требует общего ключа.
 
-Этот блок описывает текущее состояние и имеет приоритет над историческими версиями ниже. Проект состоит из :app и :core, текущие вкладки — Поездка / Настройки / Колесо. Код — коммит `704f5c5` (автор владельца, без Co-authored-by). Полная хронология этой доработки — docs/ai-rolling-handoff.md, сессия 3.
+## Инструкция владельца (постоянно действующие)
 
-- Переделан редактор: нажатие на плитку → нижний лист (размер, порядок, назначение, удаление); кнопка добавления всегда доступна, каталог сгруппирован. Поддерживаются независимые повторяющиеся плитки, в том числе универсальный переключатель всех 11 булевых настроек колеса. Новые метрики — максимум/средняя скорость, энергия/расход.
-- Раскладка v2 хранит стабильный id каждого экземпляра и назначение переключателя. Старый формат, QUICK_* и выбранный звук сохраняются. Пустая/удалённая раскладка в v2 не заполняется автоматически. Не откатывать кодек к уникальности по DashTile.
-- Настройки: широкое «Приложение», ровные пары категорий, различные формы с анимацией нажатия. Вложенная навигация сохраняет стек: Back возвращает на один шаг, включая App → дочерний экран и Trips → Trip.
-- Док уменьшен, общая подложка удалена; Onest заменяет JetBrains Mono в пользовательских цифрах, Mono остаётся в диагностике.
-- Плавность: live State читается в нужном destination, clock-only состояния подавляются без потери freshness/guard границ, возраст пакета обновляется отдельно; UI clock отменяется без подписчиков. Исправлен crash половинной скорости из-за intrinsic sizing.
-- Без скриншотов: 98 JVM-тестов и 16/16 instrumentation-тестов на отдельном эмуляторе прошли; lint 0 ошибок / 24 предупреждения; debug APK и androidTest APK собраны. Команда: `.\gradlew.bat :core:test :app:testDebugUnitTest -PskipScreenshots`; lint/build можно запускать отдельно. При запуске существующих инструментальных тестов передавать `-e screenshots false`.
-- **Инструкция владельца: больше не генерировать и не просматривать скриншоты для проверки без нового запроса.** Они расходуют лимит. Старые картинки docs/screenshots и docs/design-preview в этой сессии не обновлялись.
-- Автор коммитов — локальный git config владельца; **без Co-authored-by**. Обновлять handoff.md и docs/ai-rolling-handoff.md при продолжении. Push не запрашивался.
-- Физический телефон/колесо не подключались, команды реальному колесу не отправлялись. FPS на телефоне не измерялся. Нужна пользовательская проверка ощущений от редактора/плавности и реального read-back назначенных переключателей.
+- Не генерировать и не просматривать скриншоты для проверки без нового запроса (расходуют лимит). JVM: `-PskipScreenshots`; instrumentation: `-e screenshots false`.
+- Коммиты от локального git config владельца (`0CYBER`), **без Co-authored-by**. Push не запрашивался без указания.
+- Записи колесу — только с ведома владельца; lock — только через проверенную последовательность с fallback'ом.
 
+## Риски / проверить на телефоне
 
-> **Актуально, 2026-11-06 — ветка `ai-experimental`, 0.8.0-ai (versionCode 17):** четыре фичи автономной сессии 2: (1) фикс «настройки применяются один раз» — раскрывающиеся слайдер-редакторы (`ExpandSliders`) держат драфты против read-back'ов, Apply подтверждается, тихих дропов записей нет; (2) редактор дашборда с живым предпросмотром — тап по плитке выбирает её, порядок/размер/параметры под превью, `PLAY_SOUND` — выбираемый номер звука (по умолчанию **4**, раньше 1), скорость и режим — половинки, новые плитки автосвета и звука движения; (3) отдельное меню **«Приложение»** в настройках (оформление, экран поездки, история, фон); (4) **GPS-треки**: запись с каждой поездкой (LocationManager, без Play Services), экран поездки с маршрутом на масштабе и статистикой в моменте (время/скорость/пройдено/высота по точке), переключатель записи и запрос разрешения в «Фоне». 105 unit-тестов, lint 0 ошибок; собран debug-APK 0.8.0-ai. Полная хронология — `docs/ai-rolling-handoff.md` (Сессия 2), сводка — `docs/ai-handoff.md`. Историческая часть ниже про 0.4.0.
+1. Android 14+: FGS `connectedDevice` требует `BLUETOOTH_CONNECT` до старта сервиса.
+2. Фара из уведомления/виджета пишет только при `safeWrite`.
+3. Авто-переподключение не срабатывает после ручного «Отключить» и «Забыть».
+4. Расход батареи телефона от wake lock.
+5. TTS fallback на системный голос; чип Android 16 при targetSdk 35.
+6. Doze-баннер на MIUI/One UI.
+7. GPS в поле: точность, расход, трек >2400 точек, разрешения на MIUI/ColorOS.
 
-> **0.4.0, 2026-11-02:** пакет `com.freecyber.ion` (versionCode 13); наклон педалей в 0.01° (был ×10); телеметрический «пробег» = дистанция поездки (`tripKm`); убраны фейковые поля (темп. батареи/фары, темп. батарей 1/2, зарядный ток, поле [20]); переключатели без диалога подтверждения; ползунки в раскрывающихся `ExpandRow`; служебные тексты убраны, сообщения записи — только об ошибках. Детали — `docs/rolling-handoff.md`, раздел «2026-11-02 (вечер)». Исторические разделы ниже про 0.3.x не переписывались; везде, где сказано «диалог подтверждения», `dev.vela.v12` или «пробег телеметрии», действует эта строка.
+## Бэклог
 
-> **Актуальный статус блокировки, 2026-11-02:** владелец успешно проверил включение и выключение на своём V12 HT из тестовой Ion. Оба действия подтверждены read-back; перед командой реализован наблюдавшийся защитный обмен. Подробности, ограничения, установленная сборка и свидетельства — в `docs/rolling-handoff.md`. Историю фикса см. в git. Сведения ниже про незавершённый RE, B2 и отсутствие аппаратной проверки — исторические, не текущий статус.
+Второй вариант виджета, планшет (двухпанельные настройки), вибро-оповещения, вынос логики `WheelMonitor` в `:core`; чтение возраста телеметрии в листьях, фоновый сервис-виджеты Glance (частично сделано), бандл шрифтов, frame timing/Perfetto на устройстве владельца при сохранении неровности анимаций.
 
-> RE update 2026-11-01: прежний вывод «V12 HT использует Ezcan/B2; остался сериализатор» НЕ подтверждён. Общая facade.genLockMsg вызывает one2one.genLockMsg; связь Ezcan с HT не доказана. EzcanEncoder.msgToBytes найден (ci39358), escape ci39359; footer = 55 55, есть A5 escaping. Правильная HT-команда остаётся открытой; см. docs/protocol-re-lock.md A8 и обновлённый docs/re-lock-handoff.md. Не интегрировать исторический B2-фрейм как команду HT.
+## Лицензии и RE-инфраструктура
 
-## 1. Коротко: где продолжать и что сейчас
-
-**Ion** — персональное Android-приложение (Kotlin + Compose, один модуль `app`) для моноколеса **INMOTION V12 HT**: BLE-телеметрия + пульт настроек с двухуровневой защитой записей.
-
-- Актуальный проект: `C:\Users\Bishkeks\Desktop\ion`. Research root (не трогать без нужды): `C:\Users\Bishkeks\Documents\inmotion-research` (REA-разбор офф. INMOTION 8.1.34, WheelLog reference, evidence).
-- Текущий код: **Ion 0.4.0, versionCode 13**, `applicationId`/`namespace` = `com.freecyber.ion`, исходники в `app/src/*/java/com/freecyber/ion/`. Собран, unit 35/35, lint 0 errors; **на телефон не установлен и не закоммичен**. Новый applicationId ставится рядом со старой `dev.vela.v12` (предыдущая 0.3.8 была установлена на `adb serial 3B15BM00SJR00000`); сохранённое колесо не переносится. Старая история 0.3.8: всё было закоммичено и запушено в `origin/main` (github.com/0CYBER/ion); .zcode/ в .gitignore.
-- **Одометр подтверждён пользователем**: статистика (u32LE[0], км = raw/100) совпадает с реальным пробегом ✓.
-- **0.3.8**: остаточная серость переключателей = STATIONARY-гейт проверял возраст телеметрии ≤1500 мс, а один потерянный цикл опроса даёт разрыв до 1.7 с → окно расширено до 2500 мс (`V12Protocol.STATIONARY_AGE_WINDOW_MS`). Неподвижность по-прежнему держит дебаунс-счётчик.
-- **Bluetooth-донгл MA530 возвращён в Windows** (usbipd unbind выполнен, устройство снова в Windows BT-стеке; usbipd-win остался установлен). Эксперименты с Bumble-бриджем закрыты: HCI отвечает, но LE-приёмник глух под тремя вариантами прошивок (BU/B/ROM-patch); fake-wheel+эмулятор план отклонён пользователем (риск привязки фейкового колеса к его аккаунту офф. приложения).
-- Динамический RE замка продолжается статическим агентом (см. ниже); захват трафика на этом телефоне недоступен.
-- **⚠️ ЛИМИТЫ СЕССИИ ЗАКАНЧИВАЮТСЯ — передача RE-работы**: полный контекст по блокировке вынесен в **`docs/re-lock-handoff.md`** (ЧИТАТЬ ПЕРВЫМ при продолжении RE). Статус: опкод замка найден (payload `B2 00 00 00 04 00 00 00` / unlock `...03...`, поколение Ezcan, НЕ 0x31), осталась одна функция — сериализатор EzcanMessage (16-байтовый фрейм: AA AA, type 0x0A, len 0x10, сумма байтов вместо XOR). Детали: `docs/protocol-re-lock.md` (A1–A7). Инфраструктура парсинга в `%TEMP%\inmotion-re\` (d219.py, funcs.pkl) — сохранить до очистки TEMP! Read-back замка уже в Ion (settings byte39 bit5). Бонус-команды: поворотник 0x30, габарит 0x3B, standby 0x16; ⚠️ power off 0x77 — не интегрировать без явного решения пользователя.
-- **0.3.7**: (а) серые переключатели — колесо на балансировке микродёргается, порог неподвижности поднят до 0.5 км/ч, одиночный всплеск скорости больше не обнуляет счётчик (`movingStreak`, сброс только после 2 подряд «движущихся» пакетов); (б) режимы — два НЕЗАВИСИМЫХ переключателя по вендору: classic = **Бездорожье** (выкл = Комфорт), fancier = **Продвинутый** (выкл = Нормальный); (в) DRL удалён из протокола и UI (в офф. приложении HT его нет; у пользователя «Автофара» = наш autoLight).
-- **0.3.2**: счётчик неподвижных пакетов не сбрасывается на зарядке (STATIONARY работает на зарядке на стоянке).
-- **0.3.4**: кнопка «Экспорт пакетов» на «Данных» — JSON всех сырых фреймов в `Android/data/com.freecyber.ion/files/` (до 0.4.0 — `dev.vela.v12`); метод before/after-диффа вокруг изменения в офф. приложении.
-- **0.3.5**: **байт замка найден диффом: settings byte39 бит 5 (0x20)**; «Автофара» офф. приложения = наш autoLight (бит 3); телеметрия pcMode 4→3 при блокировке; LOCK получил настоящий read-back.
-- **0.3.6**: (а) флаг `writeInFlight` — фоновые чтения (5-секундный settings-полл) больше не сереют переключатели; блокирует только реально летящий write; (б) замок — read-only строка с объяснением: **колесо игнорирует наш write 0x31, хотя состояние читается и офф. приложение переключает** — вероятно, authenticated/signed writes (машина есть в бинарнике офф. приложения, см. docs/protocol-re-notes.md §5); (в) режимы переименованы по вендору: classic = «Бездорожье», fancier = «Комфорт» (проверено пользователем).
-- **Frida-сессия на этом телефоне — НЕ использовать**: spawn frida 16 с зависшим инъектом уронил загрузку (вылечено хард-ребутом), а ColorOS вырезает GATT-данные из всех HCI-логов (cached_hci содержит только management-пакеты; свойства persist.vendor.bluetooth.btsnooprootpath и persist.bluetooth.btsnooplog проверены — не помогают; свойства сброшены, /data/local/tmp чист). Рабочий метод динамического RE на этом телефоне — before/after-дифф через экспорт Ion.
-- **0.3.1 правки по фидбеку**: FAN/FAN_QUIET удалены (у V12 HT/HS вентилятора нет); SAFE-tier больше не требует свежий возраст телеметрии (только живой verified-линк — как в офф. приложении; это главный фикс «переключатели через раз не доходят»); STATIONARY убран запрет зарядки (заряжающееся колесо неподвижно); stale-баннер только после ~5 с простоя; одометр на «Езде» берётся из STATISTICS (читается один раз после подключения), телеметрический mileage помечен как неподтверждённый по семантике на HT; read-back перечитывается 1 раз при таймауте (read-only, безопасно).
-- Пользователь подтвердил: hotfix 0.2.1 против мигания статуса **сработал**, но при пропадании пакетов на 1–2 с ещё мелькал баннер — это починено в 0.3.0 (см. §3), подтверждения на колесе пока нет.
-- На телефоне фолкпатч-рут (если `su` не работает — `truncate su`), установлена Ion 0.3.0, колесо подключено и на зарядке. Пользователь разрешил install + чтения, **записи колесу не отправлять без его ведома**.
-
-## 2. Продуктовые решения (зафиксированы пользователем)
-
-- Дизайн-ориентиры: **Orion Store** (github.com/RookieEnough/Orion-Store) и **Lumen** (github.com/krambovic/Lumen, Android UI), Material 3 Expressive. В 0.3.0 сделан полный рестайл (см. §5).
-- **Двухуровневый guard записи** (решение пользователя): SAFE-команды доступны всегда при живой связи (даже в движении и на зарядке, как в офф. приложении); STATIONARY — только на стоячем колесе без зарядки.
-- Добавлены **все** группы команд WheelLog + пользователь просил **углублённый RE офф. приложения** для команд сверх WheelLog (см. §6).
-- Деморежима и «О Vela» в приложении нет (не возвращать без запроса). Вкладки: Езда / Данные / Пульт / Связь.
-- Название Ion; пакет — `com.freecyber.ion` (решение владельца, 0.4.0). Классы `Vela*` и файл префов `vela_preferences` остались как есть (внутренние имена). Записи без диалога подтверждения; тексты — минимум, без пояснений и предупреждений (решение владельца).
-
-## 3. Что изменилось в 0.3.0
-
-### Фикс остаточного мигания статуса
-- Причина второго пути: цикл опроса при одном таймауте (2000+500 мс) превышал окно свежести 2500 мс → красный баннер на ~0.5 с.
-- `BleController.kt`: объект `Timing` (TELEMETRY_ASK_MS=1200, POLL_DELAY_MS=500, FRESH_WINDOW_MS=2500, STALE_HYSTERESIS_MS=1000); ask телеметрии с таймаутом 1200 → худший цикл ~1.7 с < окна.
-- `VelaViewModel.kt`: hysteresis — `staleSince` в combine, баннер показывается только после ≥1 с непрерывной не-свежести (`staleConfirmed`); стиль warning, не error.
-- `BleController.onConnectionStateChange`: одиночный GATT status ≠ SUCCESS при живом линке больше не роняет соединение (лог+сообщение), разрыв только по STATE_DISCONNECTED.
-- Тесты: `ConnectionTimingTest` (в т.ч. `oneTelemetryTimeoutCannotExceedTheFreshnessWindow`, `stalenessNeedsSustainedHysteresisBeforeAnyBanner`), UI-тест `briefPollHiccupShowsNoStaleBanner`.
-
-### Двухуровневый guard
-- `V12Protocol.Tier { SAFE, STATIONARY }`; `canWriteSafe(...)` и `canWrite(tier, ...)`. Проверяется в UI (`VelaUi.safeWrite/stoppedWrite/canTier/canWrite(write)`) и повторно перед отправкой (`mayWrite(tier)`).
-- SAFE: verified HT + CONNECTED + телеметрия ≤1500 мс + не firmwareUpdate. STATIONARY добавляет 3 неподвижных пакета, |speed|<0.1, !charging.
-- Диалог подтверждения: для STATIONARY — «колесо неподвижно и не на зарядке»; mute/volume и lock имеют красные предупреждения.
-
-### Новые команды (все из WheelLog `InmotionAdapterV2.java`, flags14/cmd60)
-LIGHTS 50, BRIGHTNESS 2b, AUTO_LIGHT 2f, DRL 2d, VOLUME 26, MUTE 2c (инверт), SOUND_WAVE 39, FAN 43, FAN_QUIET 38, PLAY_SOUND 51,a,01, CLASSIC 23, FANCIER 24, SPLIT_MODE 42, SPLIT_ACCEL_BRAKE 40,a,b, PEDAL_SENS 25,a,a, PEDAL_TILT 22 s16, ALARMS 3E two s16, HANDLE_BUTTON 2e (инверт), LOCK 31, TRANSPORT 32, STANDBY 28. **Все многобайтовые значения на проводе little-endian** (WheelLog getBytes BE → реверс; проверено в репо). Валидация: VOLUME/PEDAL_SENS/SPLIT 0..100, PEDAL_TILT −10..10°, ALARMS 0..70, PLAY_SOUND 0..15, STANDBY 1..30 мин.
-Read-back: SETTINGS для настроечных, TELEMETRY для LIGHTS; **DRL/FAN/FAN_QUIET/PLAY_SOUND/LOCK — readBack=null** (состояние нечитаемо), UI честно это помечает (`BlindSwitchRow` с локальным optimistic-состоянием).
-
-### Декодирование данных (по WheelLog)
-- **STATISTICS (0x14/0x11)**: u32LE×6; пробег u32[0] в единицах 10 м (**км = raw/100**), энергия [4]/[8] /100 кВт·ч (единица не подтверждена), время поездки/включения секунды. Fixture-проверка: 205.79 km.
-- **BATTERY (0x05)**: обе батареи напряжение/темп/valid/enabled/work, зарядное напряжение/ток; масштаб /100 В — по аналогии, не подтверждён.
-- **SERIAL** (key 02, 16 ASCII), **VERSIONS** (key 06, тройки X.Y.Z: driver 2/4/5, main 11/13/14, BLE 20/22/23), **DIAGNOSTIC** (все нули = ок).
-- Телеметрия: пробег u16[22] и остаток u16[26] → км (/100, единицы WheelLog — пользователь подтвердит на колесе); ошибки [59..] декодируются в имена err_* (WheelLog getError, байт 3 — два 2-битных поля).
-- Пробег и остаток пути выведены также на экран «Езда» метриками.
-
-## 4. Архитектура и карта файлов
-
-| Файл | Назначение |
-| --- | --- |
-| `Protocol.kt` | `V12Protocol`: framing/decoder, модель HT, Read-каталог (9), телеметрия/настройки/статистика/батарея/serial/версии/ошибки, `Tier`+21 `Control`, allowlist Write c read-back, `canWriteSafe/canWrite(tier)` |
-| `BleController.kt` | GATT-машина состояний, `Timing`, последовательный setup, опрос, Work-канал, tier-aware `mayWrite`, мягкий GATT-status |
-| `VelaViewModel.kt` | combine + `wheelUiSnapshot(wheel,saved,staleSince){clock}`, hysteresis staleSince, `VelaUi` (fresh/busy/connected/staleConfirmed/safeWrite/stoppedWrite/settingsFresh) |
-| `WheelStore.kt` | Сохранение проверенного колеса (`vela_preferences`) |
-| `Theme.kt` | **Единственный дом сырых цветов/шейпов**: схема light/dark, `IonColors` (hero/accent/warning), `IonShapes` (8/12/14/18/20/28/32), MaterialExpressiveTheme |
-| `Ui.kt` | Общие компоненты: `squashClick` (0.94+haptic), Heading, SectionHeader, Status, Banner(info/warning/error), GroupColumn/GroupRow (морф углов 28↔4), SwitchRow (морф фона/рамки), BlindSwitchRow, SettingSlider, ApplyButton, Metric(ExtraBold), MetricPair, ReadAllButton |
-| `MainActivity.kt` | Route-часть: док-навигация (pill, border, morph), 4 экрана, диалоги |
-| Тесты | `ProtocolTest` (9), `ControlsTest` (17: tier-guard, payload'ы, read-back, декодеры, наклон 0.01°, fixture статистики), `ConnectionTimingTest` (6), `LockSecurityTest` (3), `UiVerificationTest` (androidTest) |
-
-Фазы WheelState: OFFLINE, SCANNING, CONNECTING, DISCOVERING, IDENTIFYING, CONNECTED, ERROR. Сборка/опрос/записи — см. комментарии в коде; последовательность setup не менялась.
-
-NUS UUID и framing — без изменений (см. git history 0.2.1 или Protocol.kt). HT identity: flags11/cmd02/selector01, series=7 variant=2.
-
-## 5. Рестайл (Orion/Lumen токены)
-
-- Палитра: lilac/acid сохранены; extended-слоты `IonColors` (hero, accent, warning). Тёмная тема без чистого чёрного. **Hex-цвета только в Theme.kt** (гейт compose-скилла проверен grep'ом).
-- Шейпы: лестница IonShapes; группированные ряды с морфом углов; SwitchRow с анимированным фоном/рамкой; FilterChips; squash-пресс с haptics; док-навигация с morphing pill и scale иконки.
-- Типографика: ExtraBold для крупных цифр с отрицательным трекингом, Monospace для тикающих значений и полей данных.
-- Известные отступления от compose-правил (осознанные): строки хардкодом RU (одноязычное личное приложение), `ui.now` читается на верхнем уровне (500 мс тикер инвалидирует экраны — потенциальный follow-up: читать возраст в листьях).
-- Шрифты Geist/JetBrains Mono НЕ бандлились (нулевой вес активов); дефолтный Roboto — возможный follow-up.
-
-## 6. RE офф. приложения (этап 5) — PASS 2 ЗАВЕРШЁН, без новых опкодов
-
-- Отчёт: **`docs/protocol-re-notes.md`** (169 строк, всё с confidence-метками; ничего не выдумано). Скрипты — `%LOCALAPPDATA%\Temp\inmotion-re\`, patched darter — `%TEMP%\darter`.
-- Главный вывод: **новых V12 опкодов не извлечено**. Время ушло на необходимый фундамент: полное маппинг-описание Dart AOT контейнера. Ключевые факты: libapp.so — **ELF32 ARM (armeabi-v7a), не ARM64**; snapshot Dart 3.7.x era, имена функций СОХРАНЕНЫ (`no-dwarf_stack_traces_mode`); заголовки/кластеры/LEB-энкодинги (вкл. big-endian ref-id +128) задокументированы.
-- **Блокер**: энкодинг cluster-tags первого кластера изолята противоречит `ClassIdTag::encode` всех проверенных SDK-исходников → ref-id не присваиваются → Function→Code→ObjectPool→Smi не резолвятся. Известные ищейки (immediates в .text, Smi-паттерны, LEB-пары) дали только шум — зафиксирован как leads, не evidence.
-- **Auth-gating записей V12: не определено.** Машина (`genVerifyPwdMsg`, `genRequestEncryptedKeyMsg`, `authenticated_signed_writes`, `V12Settings{passwordType:`) в бинарнике есть; команды WheelLog заведомо работают без аутентификации.
-- Deep-RE инструменты (Ghidra/Hopper/Rizin через REA) на этом Windows-хосте недоступны для ELF — только ручной парсинг.
-- **Следующий проход** (план в notes §6, ранжирован): добить darter-порт (дельты точно известны, tags-энкодинг — единственное неизвестное), либо **blutter** с matched SDK (тяжело, но надёжно). Дешёвая частичная победа: Smi-cluster fill → все целые константы приложения с ref-id, привязка к пулу через литерал "Low beam and high beam state should be set in the same time in V12." (`0x4cca74`). Динамическое подтверждение — Frida-хук BLE write path (ground truth).
-
-## 7. Сборка и окружение
-
-- JDK 21: `C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`; SDK `C:\Users\Bishkeks\AppData\Local\Android\Sdk`; adb оттуда.
-- AGP 9.3.1, Kotlin/Compose plugin 2.4.0, Gradle 9.7.1; compileSdk 37, targetSdk 35, minSdk 26; Compose BOM 2026.09.00, Material3 1.5.0-beta01; Espresso 3.7.0 закреплён (не откатывать).
-- Команда: `.\gradlew.bat testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest` (JAVA_HOME на JDK 21).
-- Статус 0.3.0: unit 30/30, UI 9/9 (headless AVD `Pixel_10_Pro_XL`, emulator-5580, read-only), lint 0 errors, APK `app\build\outputs\apk\debug\app-debug.apk`.
-- Изолированный headless эмулятор для UI-тестов — всегда отдельный serial (не трогать физический телефон). Синтетические данные только в androidTest APK.
-- Не коммитить/пушить без запроса пользователя; `.gitignore` уже покрывает кэши/ключи.
-
-## 8. Лицензии — не потерять перед публикацией
-
-- Протокол выведен из WheelLog (GPL-3.0, pinned `f44e39e...`, `third-party/WheelLog-LICENSE.txt`). MIT LICENSE в корне НЕ снимает GPL-обязательств; перед публикацией решить лицензионный вопрос.
-- Вендорский APK/декомпилят в приложение не включены; RE-заметки — только константы/заметки.
-- Orion/Lumen — визуальные ориентиры (оба GPL-3.0), код не копировался.
-
-## 9. Ближайшие шаги
-
-1. **Пользователь проверяет 0.3.0 на колесе**: мигание при лагах пакетов; декодированные пробег/остаток (единицы!), статистика, BMS, версии, serial; SAFE-записи в движении/на зарядке (свет/громкость) и STATIONARY на стоянке; read-back статусы. Особо: PEDAL_TILT/ALARMS на HT не тестировались — по одной команде за раз.
-2. Завершить/проверить RE-заметки (§6); подтверждённые команды — только после фиксации в notes.
-3. Возможные follow-ups: чтение возраста телеметрии в листьях (compose rule 2), фоновый сервис + виджеты (Glance), бандл шрифтов, экспорт/история поездок, strings в ресурсы при локализации.
-4. versionCode следующий — 14; пакет `com.freecyber.ion`, ключ не менять. Проверить на колесе запись наклона педалей (единица записи выведена из чтения).
-
-**Резюме: Ion 0.4.0 собран (unit 35/35, lint 0 errors), не установлен и не закоммичен. Открыто: проверка наклона педалей на колесе, прогон UI-тестов на эмуляторе, лицензии перед публикацией.**
-
-Проверка 0.9.1: `:core:test :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease -PskipScreenshots` — успешно. Release APK около 2,2 МБ, package/version проверены через aapt2; debuggable-флаг отсутствует, apksigner подтвердил совпадение сертификата с debug APK. Снимков в этом продолжении не создавали и не просматривали.
+- Протокол выведен из WheelLog (GPL-3.0, `third-party/WheelLog-LICENSE.txt`); MIT LICENSE в корне не снимает GPL-обязательств — решить перед публикацией. Orion/Lumen — визуальные ориентиры, код не копировался. Вендорский APK/декомпилят не включены.
+- Research root: `C:\Users\Bishkeks\Documents\inmotion-research` (офф. APK 8.1.34 ARM32+ARM64, evidence, приватные логи — не публиковать). Скрипты: `tools/re/` (`verify_arm64_lock.py`, `dispatch_lock.py`, `extract_observed_lock.py`, `compare_security_sessions.py`, `compare_ion_settings.py`). Парсеры в `%TEMP%\inmotion-re\` и `re-work` — сохранить до очистки TEMP.

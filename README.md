@@ -31,9 +31,8 @@ APK: `app/build/outputs/apk/debug/app-debug.apk` (debug-signed personal build).
 
 ## Docs
 - `docs/design-system.md` — Material 3 Expressive design code: visual direction, tokens, components, motion, states and implementation rules. Redesign based on commit `3b82cd3` (0.4.0).
-- `handoff.md` — project overview and decisions.
-- `docs/rolling-handoff.md` — running work log (lock RE and later app changes).
-- `docs/protocol-re-lock.md`, `docs/re-lock-handoff.md`, `docs/protocol-re-notes.md` — reverse-engineering notes.
+- `handoff.md` — current implementation: status, verified lock protocol, modules, build, CI.
+- `docs/rolling-handoff.md` — full running work log: lock RE (hypotheses, refutations, evidence) and app evolution.
 
 Protocol derived from WheelLog (GPL-3.0); see `THIRD_PARTY.md` and `third-party/WheelLog-LICENSE.txt` before redistribution.
 
