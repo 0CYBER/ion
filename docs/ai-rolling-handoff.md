@@ -247,3 +247,12 @@ Red/green: скрипт действительно отклонил v19 с ис�
 ## 2026-11-06 — перенос ai-experimental в main
 
 По прямому запросу владельца все 35 коммитов ai-experimental (до b13af2a включительно) перенесены в main fast-forward от 395db99. Переписывания истории и squash нет, экспериментальная ветка сохранена. Удалённые refs проверены через git fetch origin; origin/main не содержал отдельных новых коммитов. Далее main отправляется в https://github.com/0CYBER/ion обычным push без force. Код при переносе не менялся; последняя проверенная release-версия — 0.9.2-ai / v20 с исправлением WorkManager и двумя успешными холодными запусками APK. Снимки не создавались. Продолжать работу теперь на main; старые заголовки ветки в этом журнале — исторические.
+
+
+## 2026-11-06 — GitHub Actions собирает release
+
+По запросу владельца Android CI теперь выполняет :core:test, :app:testDebugUnitTest, :app:lintRelease, :app:assembleRelease и :app:compileDebugAndroidTestKotlin. Продуктовый артефакт — `app-release` с app/build/outputs/apk/release/app-release.apk; assembleDebug и публикация app-debug убраны. Сборка использует существующие R8/shrinkResources и исправленные reflection rules. В reports добавлен release mapping для разбора возможных obfuscated crash logs; отсутствие APK считается ошибкой загрузки.
+
+**Владелец отдельно запретил добавлять проверку эмулятором в workflow.** CI не устанавливает/не запускает эмулятор и не вызывает Test-ApkStartup.ps1. Это явное исключение для CI из прежней рекомендации обязательного startup smoke test. JVM-тесты остаются, снимки выключены -PskipScreenshots; compileDebugAndroidTestKotlin только компилирует instrumentation-код, не запускает устройство.
+
+Локально проверены YAML, отсутствие emulator steps и Gradle task graph (--dry-run): assembleRelease включает minifyReleaseWithR8. Код приложения/версия/схема подписи не менялись. GitHub runner использует собственный debug signing key согласно существующему release signingConfig; его подпись не гарантирует обновление поверх APK, собранного на локальном компьютере, пока не настроен общий signing key.
