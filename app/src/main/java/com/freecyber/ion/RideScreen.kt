@@ -40,16 +40,29 @@ import kotlin.math.roundToInt
         ui.wheel.writeMessage?.let {message -> item(key="write-error",contentType="banner") {Banner(message,Icons.Rounded.ErrorOutline,error=true)}}
         if(t?.firmwareUpdate==true) item(key="firmware",contentType="banner") {Banner(stringResource(R.string.firmware_busy),Icons.Rounded.Lock,warning=true)}
         if(ui.staleConfirmed) item(key="stale",contentType="banner") {Banner(stringResource(R.string.telemetry_stale),Icons.Rounded.Update,warning=true)}
-        val visibleRows=rows.mapNotNull {row -> row.filterNot {it.tile==DashTile.SPEED && t==null}.takeIf {it.isNotEmpty()}}
-        if(visibleRows.isEmpty()) item(key="dash-empty",contentType="note") {Banner(stringResource(R.string.dash_empty),Icons.Rounded.DashboardCustomize)}
+        // Without any readings a wall of dashes helps nobody: only an unfinished session stays visible.
+        val visibleRows=if(t!=null) rows else rows.flatten().filter {it.tile==DashTile.TRIP_SESSION && ui.trip.samples>0}.map {listOf(it)}
+        if(visibleRows.isEmpty() && t!=null) item(key="dash-empty",contentType="note") {Banner(stringResource(R.string.dash_empty),Icons.Rounded.DashboardCustomize)}
         items(visibleRows,key={row -> row.joinToString("+") {it.tile.name}},contentType={row -> if(row.size==2) "pair" else "single"}) {row ->
             val env=TileEnv(ui,write,openRideMode,openTrips,finishTrip)
-            if(row.size==2) MetricPair(first={m -> DashTileView(row[0],env,m)},second={m -> DashTileView(row[1],env,m)})
+            if(row.size==2) TilePair({m -> DashTileView(row[0],env,m)},{m -> DashTileView(row[1],env,m)})
             else DashTileView(row[0],env,Modifier.fillMaxWidth())
         }
+        item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,openTrips)}
         item(key="settings",contentType="link") {ActionRow(stringResource(R.string.wheel_settings),stringResource(R.string.wheel_settings_hint),Icons.Rounded.Tune,openSettings)}
         item(key="connection",contentType="link") {
             ActionRow(stringResource(R.string.nav_wheel),stringResource(if(ui.connected) R.string.connection_active else R.string.connection_choose),Icons.Rounded.Bluetooth,openWheel)
+        }
+    }
+}
+
+/** Two half tiles side by side with equal height; stacks them when the width or font scale leaves no room. */
+@Composable private fun TilePair(first: @Composable (Modifier)->Unit,second: @Composable (Modifier)->Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if(maxWidth<300.dp || LocalDensity.current.fontScale>1.2f)
+            Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {first(Modifier.fillMaxWidth());second(Modifier.fillMaxWidth())}
+        else Row(Modifier.height(IntrinsicSize.Min),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+            first(Modifier.weight(1f).fillMaxHeight());second(Modifier.weight(1f).fillMaxHeight())
         }
     }
 }

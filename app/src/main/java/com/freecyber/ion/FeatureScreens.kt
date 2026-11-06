@@ -4,6 +4,7 @@ package com.freecyber.ion
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.*
@@ -93,17 +94,18 @@ internal val DashTile.icon: ImageVector get() = when(this) {
             horizontalArrangement=Arrangement.spacedBy(4.dp)) {
             Icon(slot.tile.icon,null,Modifier.size(24.dp),tint=if(slot.visible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(8.dp))
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f).padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(2.dp)) {
                 Text(stringResource(slot.tile.titleRes),style=MaterialTheme.typography.titleMedium)
-                if(slot.visible) Text(stringResource(if(slot.effectiveWide) R.string.dash_wide else R.string.dash_half),
-                    style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                // The size label doubles as the size switch, which keeps the row to three icon buttons.
+                if(slot.visible) {
+                    val label=stringResource(if(slot.effectiveWide) R.string.dash_wide else R.string.dash_half)
+                    if(resize!=null && slot.tile.canBeHalf) FilterChip(selected=slot.wide,onClick=resize,label={Text(label)},
+                        leadingIcon={Icon(if(slot.wide) Icons.Rounded.ViewStream else Icons.Rounded.GridView,null,Modifier.size(18.dp))})
+                    else Text(label,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             if(up!=null) IconButton(onClick=up,enabled=!first) {Icon(Icons.Rounded.ArrowUpward,stringResource(R.string.dash_move_up))}
             if(down!=null) IconButton(onClick=down,enabled=!last) {Icon(Icons.Rounded.ArrowDownward,stringResource(R.string.dash_move_down))}
-            if(resize!=null && slot.tile.canBeHalf) IconButton(onClick=resize) {
-                Icon(if(slot.wide) Icons.Rounded.ViewAgenda else Icons.Rounded.ViewStream,
-                    stringResource(if(slot.wide) R.string.dash_half else R.string.dash_wide))
-            }
             IconButton(onClick=visibility) {
                 Icon(if(slot.visible) Icons.Rounded.VisibilityOff else Icons.Rounded.AddCircle,
                     stringResource(if(slot.visible) R.string.dash_hide else R.string.dash_show))
@@ -164,7 +166,8 @@ internal val DashTile.icon: ImageVector get() = when(this) {
 @Composable private fun ThresholdSlider(label: String,value: Int,range: IntRange,describe: @Composable (Int)->String,commit: (Int)->Unit) {
     var draft by remember(value) {mutableFloatStateOf(value.toFloat())}
     val shown=draft.roundToInt()
-    Column(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=8.dp)) {
+    Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xs)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=12.dp)) {
         Row(verticalAlignment=Alignment.CenterVertically) {
             Text(label,style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
             Text(if(shown==0) stringResource(R.string.alert_off) else describe(shown),style=MaterialTheme.typography.labelLarge,
@@ -172,5 +175,6 @@ internal val DashTile.icon: ImageVector get() = when(this) {
         }
         Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
             valueRange=range.first.toFloat()..range.last.toFloat())
+    }
     }
 }

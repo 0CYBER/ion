@@ -73,10 +73,10 @@
     <!-- Trip -->
     <string name="trip_distance">Дистанция</string>
     <string name="trip_max">Максимум</string>
-    <string name="trip_avg">Средняя в движении</string>
+    <string name="trip_avg">Средняя</string>
     <string name="trip_energy">Энергия</string>
     <string name="trip_consumption">Расход</string>
-    <string name="trip_battery_used">Потрачено заряда</string>
+    <string name="trip_battery_used">Потрачено</string>
     <string name="trip_empty">Статистика появится после первых показаний</string>
     <string name="unit_kmh">км/ч</string>
     <string name="unit_wh">Вт·ч</string>
