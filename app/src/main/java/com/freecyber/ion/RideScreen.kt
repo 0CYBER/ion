@@ -106,7 +106,7 @@ import kotlin.math.roundToInt
             // The rider picks the horn sound in the editor; 4 is the classic signal on the V12 HT.
             env.write(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,slot.param ?: DashTile.PLAY_SOUND.defaultParam ?: 4))
         }
-        DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,modifier,env.openTrips,env.finishTrip)
+        DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,ui.gpsPoints,modifier,env.openTrips,env.finishTrip)
         DashTile.TRIP -> MetricTile(stringResource(R.string.tile_trip),t?.tripKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Route,wide,modifier)
         DashTile.ODOMETER -> MetricTile(stringResource(R.string.metric_odometer),ui.odometerKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Timeline,wide,modifier)
         DashTile.VOLTAGE -> MetricTile(stringResource(R.string.metric_voltage),t?.voltage?.fmt(1),stringResource(R.string.unit_volts),Icons.Rounded.ElectricBolt,wide,modifier)
@@ -228,12 +228,14 @@ import kotlin.math.roundToInt
     }
 }
 
-@Composable private fun TripSessionCard(trip: TripStats,modifier: Modifier,openTrips: ()->Unit,finishTrip: ()->Unit) {
+@Composable private fun TripSessionCard(trip: TripStats,gpsPoints: Int,modifier: Modifier,openTrips: ()->Unit,finishTrip: ()->Unit) {
     Surface(modifier,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Rounded.Insights,null,Modifier.size(22.dp),tint=MaterialTheme.colorScheme.primary)
                 Text(stringResource(R.string.tile_trip_session),style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
+                if(gpsPoints>0) Text(stringResource(R.string.trip_gps_points,gpsPoints),style=MaterialTheme.typography.labelMedium,
+                    color=MaterialTheme.colorScheme.onSurfaceVariant)
                 trip.startedAt?.let {Text(V12Protocol.formatDuration((trip.movingMs/1000)),style=MaterialTheme.typography.labelLarge,fontFamily=IonMono,color=MaterialTheme.colorScheme.onSurfaceVariant)}
             }
             if(trip.samples==0) Text(stringResource(R.string.trip_empty),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)

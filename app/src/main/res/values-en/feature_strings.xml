@@ -136,6 +136,7 @@
     <string name="location_permission">Allow location access</string>
     <string name="trips_track">Route</string>
     <string name="trips_track_length">Route length: %1$s km</string>
+    <string name="trip_gps_points">GPS: %1$d</string>
     <string name="trips_export_gpx">Export GPX</string>
     <string name="trips_track_missing">No GPS track recorded</string>
     <string name="trip_point_time">Time</string>

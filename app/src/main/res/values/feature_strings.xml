@@ -136,6 +136,7 @@
     <string name="location_permission">Разрешить местоположение</string>
     <string name="trips_track">Маршрут</string>
     <string name="trips_track_length">Длина маршрута: %1$s км</string>
+    <string name="trip_gps_points">GPS: %1$d</string>
     <string name="trips_export_gpx">Экспорт GPX</string>
     <string name="trips_track_missing">GPS-трек не записан</string>
     <string name="trip_point_time">Время</string>

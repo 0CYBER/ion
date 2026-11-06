@@ -25,7 +25,6 @@ class WheelMonitor(private val graph: IonGraph) {
     private var lastWidgetAt = 0L
     private var lastWidgetPhase: Phase? = null
     private var lastCheckpointAt = 0L
-    private var tracking = false
     private companion object { const val CHECKPOINT_MS = 30_000L }
 
     fun start() {
@@ -56,7 +55,6 @@ class WheelMonitor(private val graph: IonGraph) {
             graph.history.add(summary)
             graph.history.saveTrack(summary.startedAt, graph.track.stop())
         } else graph.track.stop()
-        tracking = false
         graph.history.checkpoint(null); lastCheckpointAt = 0L
         graph.trips.reset()
         graph.samples.clear(); graph.chartState.value = emptyList()
@@ -72,7 +70,8 @@ class WheelMonitor(private val graph: IonGraph) {
         val connected = s.verifiedHt && s.phase == Phase.CONNECTED
         if (s.packets > lastPackets && connected) s.telemetry?.let {
             graph.trips.feed(it, now)
-            if (!tracking) { tracking = true; graph.track.start() }
+            // Re-checked per packet: permission granted mid-session still starts the recorder.
+            if (!graph.track.listening) graph.track.start()
             if (graph.samples.add(it, now)) graph.chartState.value = graph.samples.snapshot()
         }
         lastPackets = s.packets

@@ -11,6 +11,9 @@ import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Collects GPS fixes while a ride session runs and hands them over when the trip is archived.
@@ -33,6 +36,11 @@ class TrackRecorder(private val context: Context, private val enabled: () -> Boo
     private var listener: Listener? = null
     private val points = mutableListOf<TrackPoint>()
 
+    /** Fixes collected in the running session; lets the UI show that GPS is actually working. */
+    private val countState = MutableStateFlow(0)
+    val count: StateFlow<Int> = countState.asStateFlow()
+    val listening: Boolean get() = listener != null
+
     fun granted(): Boolean = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         .any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
 
@@ -42,7 +50,7 @@ class TrackRecorder(private val context: Context, private val enabled: () -> Boo
         if (listener != null || !granted() || !enabled()) return
         val lm = context.getSystemService(LocationManager::class.java) ?: return
         startedAt = SystemClock.elapsedRealtime()
-        points.clear()
+        points.clear(); countState.value = 0
         val l = Listener()
         listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER).forEach { provider ->
             runCatching { if (lm.isProviderEnabled(provider)) lm.requestLocationUpdates(provider, MIN_TIME_MS, MIN_DISTANCE_M, l, Looper.getMainLooper()) }
@@ -55,6 +63,7 @@ class TrackRecorder(private val context: Context, private val enabled: () -> Boo
         val lm = context.getSystemService(LocationManager::class.java)
         listener?.let { runCatching { lm?.removeUpdates(it) } }
         listener = null
+        countState.value = 0
         return points.toList().also { points.clear() }
     }
 
@@ -68,6 +77,7 @@ class TrackRecorder(private val context: Context, private val enabled: () -> Boo
             val last = points.lastOrNull()
             if (last != null && t - last.t < SKIP_MS && Track.metres(last, fix) < SKIP_METRES) return
             points += fix
+            countState.value = points.size
             // Long rides are decimated in place, never truncated.
             if (points.size >= Track.MAX_POINTS * 2) {
                 val thinned = Track.thin(points.toList())
