@@ -49,6 +49,8 @@ dependencies {
     testImplementation(platform("androidx.compose:compose-bom:2026.09.00"))
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation("androidx.glance:glance-appwidget-testing:1.1.1")
+    testImplementation("androidx.test:core:1.6.1")
     testImplementation("io.github.takahirom.roborazzi:roborazzi:1.77.0")
     testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.77.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

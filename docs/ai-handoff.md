@@ -18,7 +18,7 @@
 | Уведомления (live / alerts / link) + чип в статус-баре Android 16 | готово, NotificationTest | `IonNotifications.kt`, `WheelErrors.kt` |
 | Оповещения с гистерезисом + голос (TTS), вкл. «цель зарядки» | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
 | Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
-| Виджет (Glance): последние известные цифры, полоска заряда, превью | готово | `IonWidget.kt`, `WidgetMapping.kt`, `WidgetSnapshot` |
+| Виджет (Glance): последние известные цифры, полоска заряда, превью | готово, 4 Glance-теста размеров и состояний | `IonWidget.kt`, `WidgetMapping.kt`, `WidgetSnapshot` |
 | Запрос снятия оптимизации батареи (Doze) | готово | `MainActivity.kt`, `BackgroundScreen` |
 | Локализация RU/EN + выбор языка приложения (localeConfig) | готово, включая подписи диагностики и ошибок в `:core` (`tr()` в `CoreText.kt`) | `res/values-en/`, `res/xml/locales_config.xml` |
 | Доступность: fontScale 1.5, переносы, FlowRow | готово, скриншоты | `Theme.kt`, `ScreenshotTest.kt` |
@@ -34,7 +34,7 @@
 ```
 ./gradlew :core:test :app:testDebugUnitTest assembleDebug
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 90 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 94 теста. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 

@@ -74,7 +74,7 @@ object IonWidgetUpdater {
     }
 }
 
-@Composable private fun WidgetBody(context: Context, snap: WidgetSnapshot, size: DpSize) {
+@Composable internal fun WidgetBody(context: Context, snap: WidgetSnapshot, size: DpSize) {
     val colors = GlanceTheme.colors
     val live = snap.state == WidgetSnapshot.State.LIVE
     val open: Action = actionStartActivity<MainActivity>()
