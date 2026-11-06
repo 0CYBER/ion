@@ -1,5 +1,6 @@
 package com.freecyber.ion
 
+import androidx.core.content.edit
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +37,7 @@ class AppPrefs(context: Context) {
     val dark: StateFlow<Boolean?> = darkState.asStateFlow()
     fun setDark(value: Boolean?) {
         darkState.value = value
-        prefs.edit().apply { if (value == null) remove("dark") else putBoolean("dark", value) }.apply()
+        prefs.edit { if (value == null) remove("dark") else putBoolean("dark", value) }
     }
 
     private val alertState = MutableStateFlow(loadAlerts())
@@ -49,9 +50,9 @@ class AppPrefs(context: Context) {
         prefs.getBoolean("alert_errors", true))
     fun setAlerts(value: AlertConfig) {
         alertState.value = value
-        prefs.edit().putInt("alert_battery", value.batteryLowPercent).putInt("alert_temperature", value.temperatureHighC)
+        prefs.edit { putInt("alert_battery", value.batteryLowPercent).putInt("alert_temperature", value.temperatureHighC)
             .putInt("alert_speed", value.speedHighKmh).putBoolean("alert_disconnect", value.disconnect)
-            .putBoolean("alert_errors", value.wheelErrors).apply()
+            .putBoolean("alert_errors", value.wheelErrors) }
     }
 
     private val backgroundState = MutableStateFlow(loadBackground())
@@ -61,14 +62,14 @@ class AppPrefs(context: Context) {
         prefs.getBoolean("bg_live_notification", true), prefs.getBoolean("keep_screen_on", false))
     fun setBackground(value: BackgroundConfig) {
         backgroundState.value = value
-        prefs.edit().putBoolean("bg_keep_alive", value.keepAlive).putBoolean("bg_reconnect", value.autoReconnect)
-            .putBoolean("bg_live_notification", value.liveNotification).putBoolean("keep_screen_on", value.keepScreenOn).apply()
+        prefs.edit { putBoolean("bg_keep_alive", value.keepAlive).putBoolean("bg_reconnect", value.autoReconnect)
+            .putBoolean("bg_live_notification", value.liveNotification).putBoolean("keep_screen_on", value.keepScreenOn) }
     }
 
     private val dashboardState = MutableStateFlow(DashboardLayout.decode(prefs.getString("dashboard", null)))
     val dashboard: StateFlow<DashboardLayout> = dashboardState.asStateFlow()
     fun setDashboard(value: DashboardLayout) {
         dashboardState.value = value
-        prefs.edit().putString("dashboard", value.encode()).apply()
+        prefs.edit { putString("dashboard", value.encode()) }
     }
 }

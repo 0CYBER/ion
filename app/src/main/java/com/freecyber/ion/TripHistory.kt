@@ -1,5 +1,6 @@
 package com.freecyber.ion
 
+import androidx.core.content.edit
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,6 +85,6 @@ class TripHistory(context: Context) {
 
     private fun save(list: List<TripSummary>) {
         state.value = list
-        prefs.edit().putString("trips", list.joinToString("\n") { it.encode() }).apply()
+        prefs.edit { putString("trips", list.joinToString("\n") { it.encode() }) }
     }
 }

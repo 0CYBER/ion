@@ -20,7 +20,6 @@
     <string name="telemetry_stale">Показания не обновляются · BLE остаётся подключён</string>
     <string name="metric_range">Остаток пути</string>
     <string name="metric_voltage">Напряжение</string>
-    <string name="metric_trip">Поездка</string>
     <string name="metric_odometer">Одометр</string>
     <string name="metric_current">Ток</string>
     <string name="unit_km">км</string>

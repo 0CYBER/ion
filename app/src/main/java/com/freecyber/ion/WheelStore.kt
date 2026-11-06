@@ -1,4 +1,5 @@
 package com.freecyber.ion
+import androidx.core.content.edit
 import android.content.Context
 
 /** Stores only the last verified wheel identity, never telemetry or commands. */
@@ -10,7 +11,7 @@ internal class WheelStore(context: Context, file: String = "vela_preferences") {
     }
     fun saveVerified(device: WheelDevice) {
         require(SavedWheelFormat.validAddress(device.address))
-        prefs.edit().putString("wheel_address",device.address).putString("wheel_name",device.name.take(100)).apply()
+        prefs.edit { putString("wheel_address",device.address).putString("wheel_name",device.name.take(100)) }
     }
-    fun forget() {prefs.edit().remove("wheel_address").remove("wheel_name").apply()}
+    fun forget() {prefs.edit { remove("wheel_address").remove("wheel_name") }}
 }

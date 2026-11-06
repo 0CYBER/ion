@@ -48,7 +48,8 @@ class IonTileService : TileService() {
         if (Build.VERSION.SDK_INT >= 34) {
             startActivityAndCollapse(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE))
         } else {
-            @Suppress("DEPRECATION") startActivityAndCollapse(intent)
+            @Suppress("DEPRECATION") @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
+            startActivityAndCollapse(intent)
         }
     }
 

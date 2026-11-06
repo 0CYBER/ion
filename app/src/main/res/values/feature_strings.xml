@@ -76,7 +76,6 @@
     <string name="trip_avg">Средняя в движении</string>
     <string name="trip_energy">Энергия</string>
     <string name="trip_consumption">Расход</string>
-    <string name="trip_duration">В пути</string>
     <string name="trip_battery_used">Потрачено заряда</string>
     <string name="trip_empty">Статистика появится после первых показаний</string>
     <string name="unit_kmh">км/ч</string>
@@ -112,7 +111,6 @@
     <string name="alert_below">ниже %1$d%%</string>
     <string name="alert_above_c">от %1$d °C</string>
     <string name="alert_above_kmh">от %1$d км/ч</string>
-    <string name="alert_threshold">Порог</string>
     <string name="mode_comfort">Комфорт</string>
     <string name="mode_normal">Нормальный</string>
     <string name="app_section">Приложение</string>

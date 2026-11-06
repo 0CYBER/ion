@@ -33,13 +33,10 @@
     <string name="ride_ready">Твоё колесо готово к поездке</string>
     <string name="ride_start_hint">Включи V12 HT и подключи её по Bluetooth. Здесь появятся показания с колеса.</string>
     <string name="last_readings">Последние показания</string>
-    <string name="quick_controls">Под рукой</string>
     <string name="quick_light">Ближний свет</string>
     <string name="quick_mute">Без звука</string>
-    <string name="quick_offline">Быстрые действия доступны после подключения колеса.</string>
     <string name="wheel_settings">Настройки колеса</string>
     <string name="wheel_settings_hint">Режим езды, педали, свет и звук</string>
-    <string name="ride_details">О поездке</string>
     <string name="metric_battery">Заряд</string>
     <string name="ion_state_on">Включено</string>
     <string name="ion_state_off">Выключено</string>

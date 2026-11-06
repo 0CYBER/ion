@@ -21,7 +21,6 @@ object IonNotifications {
     private const val ALERT_BASE_ID = 100
 
     fun createChannels(context: Context) {
-        if (Build.VERSION.SDK_INT < 26) return
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         nm.createNotificationChannels(listOf(
             NotificationChannel(CHANNEL_LIVE, context.getString(R.string.channel_live), NotificationManager.IMPORTANCE_LOW).apply {
