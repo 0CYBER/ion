@@ -25,7 +25,8 @@ import kotlin.math.roundToInt
 
 /** The everyday surface, assembled from the rider's own [DashboardLayout]: every tile is an independent module. */
 @Composable internal fun RideScreen(ui: VelaUi,layout: DashboardLayout,connect: ()->Unit,write: (V12Protocol.Write)->Unit,
-    openWheel: ()->Unit,openSettings: ()->Unit,editDashboard: ()->Unit,openRideMode: ()->Unit) {
+    openWheel: ()->Unit,openSettings: ()->Unit,editDashboard: ()->Unit,openRideMode: ()->Unit,
+    openTrips: ()->Unit={},finishTrip: ()->Unit={}) {
     val t=ui.wheel.telemetry
     val rows=remember(layout) {layout.rows()}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -42,7 +43,7 @@ import kotlin.math.roundToInt
         val visibleRows=rows.mapNotNull {row -> row.filterNot {it.tile==DashTile.SPEED && t==null}.takeIf {it.isNotEmpty()}}
         if(visibleRows.isEmpty()) item(key="dash-empty",contentType="note") {Banner(stringResource(R.string.dash_empty),Icons.Rounded.DashboardCustomize)}
         items(visibleRows,key={row -> row.joinToString("+") {it.tile.name}},contentType={row -> if(row.size==2) "pair" else "single"}) {row ->
-            val env=TileEnv(ui,write,openRideMode)
+            val env=TileEnv(ui,write,openRideMode,openTrips,finishTrip)
             if(row.size==2) MetricPair(first={m -> DashTileView(row[0],env,m)},second={m -> DashTileView(row[1],env,m)})
             else DashTileView(row[0],env,Modifier.fillMaxWidth())
         }
@@ -54,7 +55,8 @@ import kotlin.math.roundToInt
 }
 
 /** Everything a tile may need; tiles never reach outside this. */
-@Immutable internal class TileEnv(val ui: VelaUi,val write: (V12Protocol.Write)->Unit,val openRideMode: ()->Unit)
+@Immutable internal class TileEnv(val ui: VelaUi,val write: (V12Protocol.Write)->Unit,val openRideMode: ()->Unit,
+    val openTrips: ()->Unit={},val finishTrip: ()->Unit={})
 
 @Composable internal fun DashTileView(slot: TileSlot,env: TileEnv,modifier: Modifier) {
     val ui=env.ui; val t=ui.wheel.telemetry; val s=ui.wheel.settings
@@ -76,7 +78,7 @@ import kotlin.math.roundToInt
         DashTile.PLAY_SOUND -> ActionTile(stringResource(R.string.tile_play_sound),Icons.Rounded.Campaign,ui.safeWrite,modifier) {
             env.write(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,1))
         }
-        DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,modifier)
+        DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,modifier,env.openTrips,env.finishTrip)
         DashTile.TRIP -> MetricTile(stringResource(R.string.tile_trip),t?.tripKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Route,wide,modifier)
         DashTile.ODOMETER -> MetricTile(stringResource(R.string.metric_odometer),ui.odometerKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Timeline,wide,modifier)
         DashTile.VOLTAGE -> MetricTile(stringResource(R.string.metric_voltage),t?.voltage?.fmt(1),stringResource(R.string.unit_volts),Icons.Rounded.ElectricBolt,wide,modifier)
@@ -197,7 +199,7 @@ import kotlin.math.roundToInt
     }
 }
 
-@Composable private fun TripSessionCard(trip: TripStats,modifier: Modifier) {
+@Composable private fun TripSessionCard(trip: TripStats,modifier: Modifier,openTrips: ()->Unit,finishTrip: ()->Unit) {
     Surface(modifier,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
@@ -218,11 +220,19 @@ import kotlin.math.roundToInt
                     TripFigure(stringResource(R.string.trip_battery_used),trip.batteryUsed?.fmt(0) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
                 }
             }
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick=openTrips,modifier=Modifier.heightIn(min=48.dp)) {
+                    Icon(Icons.Rounded.History,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_title))
+                }
+                if(trip.distanceKm>=TripSummary.MIN_DISTANCE_KM) TextButton(onClick=finishTrip,modifier=Modifier.heightIn(min=48.dp)) {
+                    Icon(Icons.Rounded.Flag,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trip_finish))
+                }
+            }
         }
     }
 }
 
-@Composable private fun TripFigure(label: String,value: String,unit: String,modifier: Modifier) {
+@Composable internal fun TripFigure(label: String,value: String,unit: String,modifier: Modifier) {
     Column(modifier,verticalArrangement=Arrangement.spacedBy(2.dp)) {
         Text(label,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1)
         Text(value,style=MaterialTheme.typography.titleLarge,fontFamily=IonMono,maxLines=1)

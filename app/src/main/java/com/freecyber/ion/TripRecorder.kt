@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 /** Session statistics derived from telemetry samples; one session spans one connection (survives auto-reconnects). */
 data class TripStats(
     val startedAt: Long? = null,
+    /** Monotonic time of the newest sample; with [startedAt] gives the session duration. */
+    val lastAt: Long? = null,
     val samples: Int = 0,
     val distanceKm: Double = 0.0,
     val maxSpeed: Double = 0.0,
@@ -55,6 +57,7 @@ class TripRecorder {
         val temp = listOf(t.mosTemp, t.motorTemp).filter { it in -50..180 }.maxOrNull()
         mutable.value = s.copy(
             startedAt = s.startedAt ?: now,
+            lastAt = now,
             samples = s.samples + 1,
             distanceKm = s.distanceKm + distanceDelta,
             maxSpeed = maxOf(s.maxSpeed, kotlin.math.abs(t.speed)),

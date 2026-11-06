@@ -116,4 +116,24 @@
     <string name="mode_comfort">Комфорт</string>
     <string name="mode_normal">Нормальный</string>
     <string name="app_section">Приложение</string>
+    <string name="qs_label">Ion</string>
+    <string name="qs_live">%1$d%% · %2$s км/ч</string>
+    <string name="qs_connecting">Подключение…</string>
+    <string name="qs_tap_connect">Нажмите, чтобы подключить</string>
+    <string name="qs_no_wheel">Колесо не выбрано</string>
+    <string name="status_connected_short">Подключено</string>
+    <string name="trips_title">История поездок</string>
+    <string name="trips_hint">Прошлые поездки, итоги и экспорт CSV</string>
+    <string name="trips_empty">Пока нет завершённых поездок. Поездка сохраняется при отключении или по кнопке «Завершить».</string>
+    <string name="trips_export">Экспорт CSV</string>
+    <string name="trips_export_subject">Поездки Ion</string>
+    <string name="trips_clear">Очистить</string>
+    <string name="trips_clear_title">Удалить всю историю?</string>
+    <string name="trips_clear_message">Все сохранённые поездки будут удалены с телефона.</string>
+    <string name="trips_delete">Удалить поездку</string>
+    <string name="trips_total">Всего</string>
+    <string name="trips_count">Поездок</string>
+    <string name="trip_finish">Завершить</string>
+    <string name="trip_moving">В движении</string>
+    <string name="trip_max_temp">Макс. темп.</string>
 </resources>

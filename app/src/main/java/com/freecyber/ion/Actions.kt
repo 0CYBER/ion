@@ -10,6 +10,9 @@ internal data class Actions(
     val setBackground: (BackgroundConfig) -> Unit = {},
     val requestNotifications: () -> Unit = {},
     val resetTrip: () -> Unit = {},
+    val shareTrips: () -> Unit = {},
+    val deleteTrip: (TripSummary) -> Unit = {},
+    val clearTrips: () -> Unit = {},
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */
@@ -18,4 +21,5 @@ internal data class PrefsUi(
     val alerts: AlertConfig = AlertConfig(),
     val background: BackgroundConfig = BackgroundConfig(),
     val notificationsAllowed: Boolean = true,
+    val trips: List<TripSummary> = emptyList(),
 )

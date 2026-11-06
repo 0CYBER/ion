@@ -27,7 +27,7 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
     SERVICE(R.string.category_service,R.string.category_service_hint)
 }
 
-@Composable internal fun SettingsScreen(appearance: ()->Unit,background: ()->Unit,dashboard: ()->Unit,open: (ControlCategory)->Unit) {
+@Composable internal fun SettingsScreen(appearance: ()->Unit,background: ()->Unit,dashboard: ()->Unit,trips: ()->Unit,open: (ControlCategory)->Unit) {
     val ion=ionColors()
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {ScreenHeading(stringResource(R.string.nav_settings),stringResource(R.string.appearance),Icons.Rounded.Palette,appearance)}
@@ -52,6 +52,7 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
         item(key="app-section",contentType="section") {SectionHeader(stringResource(R.string.app_section))}
         item(key="background",contentType="link") {ActionRow(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),Icons.Rounded.Notifications,background)}
         item(key="dashboard",contentType="link") {ActionRow(stringResource(R.string.dash_editor_title),stringResource(R.string.dash_editor_hint),Icons.Rounded.DashboardCustomize,dashboard)}
+        item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,trips)}
     }
 }
 

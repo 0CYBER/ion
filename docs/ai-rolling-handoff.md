@@ -30,3 +30,15 @@
 Проверка: `./gradlew testDebugUnitTest assembleDebug compileDebugAndroidTestKotlin` — BUILD SUCCESSFUL, 55 unit-тестов зелёные (новые: AlertEngineTest 8, DashboardLayoutTest 5, TripRecorderTest 3, WidgetSnapshotTest, ReconnectPolicyTest, WheelErrorsTest). На реальном колесе/телефоне не проверялось.
 
 Версия: 0.7.0-ai (versionCode 16).
+
+## Сессия 1 — CI (коммит «ci: GitHub Actions…»)
+
+- `.github/workflows/android.yml`: JDK 21 + Android SDK 37, `testDebugUnitTest assembleDebug compileDebugAndroidTestKotlin`, артефакты: отчёты и debug-APK. Запускается на push в `main`/`ai-experimental` и на PR.
+
+## Сессия 1 — Quick Settings, история поездок
+
+- `IonTileService`: плитка в шторке. Тап — подключить сохранённое колесо / завершить сессию; без колеса или разрешений открывает приложение. Подзаголовок: «78% · 23 км/ч», «Переподключение…», «Нажмите, чтобы подключить».
+- `TripHistory` + `TripSummary` + `TripTotals`: завершённые поездки сохраняются (до 200, новые сверху) в `ion_trips`. Поездка архивируется при ручном отключении, при новой сессии, по кнопке «Завершить» на карточке сессии; поездки < 50 м отбрасываются. `TripStats.lastAt` даёт длительность; монотонное время переводится в настенное при архивации.
+- `TripsScreen`: итоги (км, число поездок, время в движении, максимум), карточки поездок (дата, длительность, дистанция, макс/средняя, Wh/км, расход заряда, макс. температура), удаление, очистка с подтверждением, экспорт CSV через системный «Поделиться».
+- Вход: карточка «Сессия» на экране поездки (кнопки «История поездок» и «Завершить»), раздел «Приложение» в настройках.
+- Тесты: +4 (TripSummaryTest). Всего 59, все зелёные; `assembleDebug` ок.

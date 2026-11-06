@@ -53,7 +53,8 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
     fun connect(device: WheelDevice)=graph.monitor.userConnect(device)
     fun forget()=graph.forget()
     fun disconnect()=graph.monitor.userDisconnect()
-    fun resetTrip()=graph.trips.reset()
+    fun resetTrip()=graph.monitor.finishTrip()
+    val history get() = graph.history
     /** Called when the activity leaves the screen: the link stays only if background mode is on. */
     fun onBackground() {
         if(!graph.prefs.background.value.keepAlive && graph.ble.state.value.phase !in listOf(Phase.OFFLINE, Phase.ERROR)) graph.monitor.userDisconnect()

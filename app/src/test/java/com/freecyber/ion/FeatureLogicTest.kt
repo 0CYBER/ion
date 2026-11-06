@@ -187,3 +187,39 @@ class WheelErrorsTest {
         assertTrue(WheelErrors.label("err_something_new").isNotBlank())
     }
 }
+
+class TripSummaryTest {
+    private val sample = TripSummary(1_700_000_000_000, 600_000, 540_000, 4.321, 31.2, 28.8, 120.0, 12.5, 7.0, 55)
+
+    @Test fun roundTripIncludingNulls() {
+        assertEquals(sample, TripSummary.decode(sample.encode()))
+        val bare = sample.copy(batteryUsed = null, maxTemp = null)
+        assertEquals(bare, TripSummary.decode(bare.encode()))
+        assertNull(TripSummary.decode("1;2;3"))
+        assertNull(TripSummary.decode("x;2;3;4;5;6;7;8;;"))
+    }
+
+    @Test fun fromStatsConvertsClockAndDropsBlips() {
+        val stats = TripStats(startedAt = 10_000, lastAt = 70_000, samples = 60, distanceKm = 0.5, movingMs = 50_000)
+        val s = TripSummary.from(stats, wallNow = 1_000_000, elapsedNow = 100_000)!!
+        assertEquals(910_000L, s.startedAt)
+        assertEquals(60_000L, s.durationMs)
+        assertNull(TripSummary.from(stats.copy(distanceKm = 0.01), 1_000_000, 100_000))
+        assertNull(TripSummary.from(TripStats(), 1_000_000, 100_000))
+    }
+
+    @Test fun csvHasHeaderAndDotDecimals() {
+        val lines = TripSummary.csv(listOf(sample)).trim().lines()
+        assertEquals(TripSummary.CSV_HEADER, lines[0])
+        assertEquals("1700000000000,600,540,4.321,31.2,28.8,120.0,12.5,7.0,55", lines[1])
+        assertEquals(10, lines[0].split(',').size)
+    }
+
+    @Test fun totals() {
+        val t = TripTotals.of(listOf(sample, sample.copy(distanceKm = 1.0, maxSpeed = 40.0)))
+        assertEquals(2, t.count)
+        assertEquals(5.321, t.distanceKm, 1e-9)
+        assertEquals(40.0, t.maxSpeed, 0.0)
+        assertEquals(215.0, t.energyWh, 1e-9)
+    }
+}

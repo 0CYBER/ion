@@ -18,6 +18,13 @@
             </intent-filter>
         </activity>
         <service android:name=".WheelService" android:exported="false" android:foregroundServiceType="connectedDevice" />
+        <service android:name=".IonTileService" android:exported="true" android:label="@string/qs_label"
+            android:icon="@drawable/ic_stat_ion" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="false" />
+        </service>
         <receiver android:name=".IonWidgetReceiver" android:exported="true" android:label="@string/widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

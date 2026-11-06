@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
             val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
             val background by model.prefs.background.collectAsStateWithLifecycle()
+            val trips by model.history.trips.collectAsStateWithLifecycle()
             var notificationsAllowed by remember { mutableStateOf(IonNotifications.canPost(this)) }
             val dark=systemDark(preference)
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
@@ -55,15 +56,22 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
             IonTheme(dark) {
-                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed),Actions(scan={permitted(null)},connect={permitted(it)},
+                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,trips),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},permissions={startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
                     setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
-                    resetTrip=model::resetTrip))
+                    resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},deleteTrip=model.history::delete,clearTrips=model.history::clear))
             }
         }
+    }
+    private fun shareTrips(trips: List<TripSummary>) {
+        if(trips.isEmpty()) return
+        val send=Intent(Intent.ACTION_SEND).setType("text/csv")
+            .putExtra(Intent.EXTRA_SUBJECT,getString(R.string.trips_export_subject))
+            .putExtra(Intent.EXTRA_TEXT,TripSummary.csv(trips))
+        startActivity(Intent.createChooser(send,getString(R.string.trips_export)))
     }
     override fun onStop() { super.onStop(); if(!isChangingConfigurations) model.onBackground() }
 }

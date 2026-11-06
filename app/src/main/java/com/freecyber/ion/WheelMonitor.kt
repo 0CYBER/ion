@@ -39,7 +39,7 @@ class WheelMonitor(private val graph: IonGraph) {
     /** The user asked for a link: a fresh trip unless this continues a dropped session. */
     fun userConnect(device: WheelDevice) {
         cancelReconnect()
-        if (lastPhase == Phase.OFFLINE || graph.trips.stats.value.samples == 0) graph.trips.reset()
+        if (lastPhase == Phase.OFFLINE || graph.trips.stats.value.samples == 0) finishTrip()
         userStopped = false
         engine.reset()
         graph.ble.connect(device)
@@ -49,6 +49,13 @@ class WheelMonitor(private val graph: IonGraph) {
         userStopped = true
         cancelReconnect()
         graph.ble.disconnect()
+        finishTrip()
+    }
+
+    /** Archives the running session (if it was a real ride) and starts a fresh one. */
+    fun finishTrip() {
+        TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), SystemClock.elapsedRealtime())?.let(graph.history::add)
+        graph.trips.reset()
     }
 
     private fun cancelReconnect() {
