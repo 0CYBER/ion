@@ -73,8 +73,8 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val sheetHeight = maxHeight * .9f
-        Column(Modifier.fillMaxSize()) {
-            LazyColumn(Modifier.weight(1f).testTag("dashboard-preview"), state=listState, contentPadding=PagePadding, verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxSize().padding(bottom=LocalDockClearance.current)) {
+            LazyColumn(Modifier.weight(1f).testTag("dashboard-preview"), state=listState, contentPadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=20.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 item(key="heading", contentType="heading") { DetailHeading(stringResource(R.string.dash_editor_title), stringResource(R.string.dash_tap_hint), onBack) }
                 if(rows.isEmpty()) item(key="empty", contentType="empty") { Banner(stringResource(R.string.dash_empty)) }
                 items(rows, key={ it.joinToString("+") { s -> s.id } }, contentType={ if(it.size==2) "pair" else "single" }) { row ->

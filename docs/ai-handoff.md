@@ -1,6 +1,6 @@
 # AI handoff — ветка `ai-experimental` (структурированно)
 
-Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.9.0-ai` (versionCode 18). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
+Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.9.1-ai` (versionCode 19). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
 
 ## Модули
 
@@ -35,7 +35,7 @@
 ./gradlew :core:test :app:testDebugUnitTest -PskipScreenshots
 ./gradlew lintDebug assembleDebug assembleDebugAndroidTest
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 98 тестов без ScreenshotTest (58 core + 40 app), также 16/16 инструментальных тестов на emulator-5580 с RU locale и отключёнными снимками. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 101 тест без ScreenshotTest (58 core + 43 app), также 16/16 инструментальных тестов на emulator-5580 с RU locale и отключёнными снимками. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 
@@ -58,3 +58,6 @@
 По инструкции владельца проверять без снимков: `-PskipScreenshots` для JVM, `-e screenshots false` для instrumentation. Старые картинки не отражают эту ревизию. Измерений FPS на реальном устройстве нет.
 
 Код текущей ревизии: `704f5c5`. Инструментальные тесты: выставить app locale ru и запускать с `-e screenshots false`. Все 16 прошли.
+
+
+Уточнение 0.9.1: капсула дока сохранена, прямоугольная полоса удалена переносом дока из Scaffold.bottomBar в overlay и scroll clearance. Скорость компактнее; Onest в полях диагностики; отдельный нативный charging wave. Для оценки плавности отдавать release APK (`assembleRelease`, R8/shrinkResources, локальная debug-подпись, не debuggable), а не debug. Высокая частота запрашивается через FrameRateCategory.High; реальных измерений 165 fps пока нет. См. актуальный блок ../handoff.md.

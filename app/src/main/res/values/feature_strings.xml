@@ -220,4 +220,5 @@
     <string name="tile_toggle">Переключатель</string>
     <string name="tile_energy">Энергия поездки</string>
     <string name="tile_consumption">Расход</string>
+    <string name="battery_charging">Зарядка</string>
 </resources>

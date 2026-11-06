@@ -3,6 +3,8 @@ package com.freecyber.ion
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,7 +98,7 @@ import kotlin.math.roundToInt
     }
     when(slot.tile) {
         DashTile.SPEED -> SpeedInstrument(ui,modifier)
-        DashTile.BATTERY -> BatteryTile(t?.battery,modifier)
+        DashTile.BATTERY -> BatteryTile(t?.battery,ui.connected && ui.fresh && t?.charging==true,modifier)
         DashTile.RANGE -> FigureTile(stringResource(R.string.metric_range),t?.rangeKm?.takeIf {it>0}?.fmt(1) ?: "—",
             stringResource(R.string.unit_km),Icons.Rounded.Navigation,ion.blue,modifier)
         DashTile.PLAY_SOUND -> ActionTile(stringResource(R.string.tile_play_sound),Icons.Rounded.Campaign,ui.safeWrite,modifier) {
@@ -148,8 +150,8 @@ import kotlin.math.roundToInt
 
 @Composable private fun SpeedInstrument(ui: VelaUi,modifier: Modifier) {
     val ion=ionColors()
-    Surface(modifier,color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
-        Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    Surface(modifier.testTag("speed-instrument"),color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
+        Column(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text(stringResource(R.string.wheel_model),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
                 Icon(if(ui.fresh) Icons.Rounded.Sensors else Icons.Rounded.Update,null,Modifier.size(24.dp))
@@ -163,20 +165,25 @@ import kotlin.math.roundToInt
                     Text(stringResource(R.string.speed_unit),style=MaterialTheme.typography.titleLarge)
                 }
             }
-            Text(stringResource(if(ui.fresh) R.string.live_telemetry else R.string.last_readings),style=MaterialTheme.typography.bodyMedium)
+            if(!ui.fresh) Text(stringResource(R.string.last_readings),style=MaterialTheme.typography.bodySmall)
         }
     }
 }
 
-@Composable private fun BatteryTile(battery: Double?,modifier: Modifier) {
+@Composable private fun BatteryTile(battery: Double?,charging: Boolean,modifier: Modifier) {
     val ion=ionColors()
     val valid=battery?.takeIf {it.isFinite() && it in 0.0..100.0}
+    val progress=animateFloatAsState((valid?.toFloat() ?: 0f)/100f,ProgressIndicatorDefaults.ProgressAnimationSpec,label="battery-level")
     Surface(modifier,color=if(valid!=null) ion.accent else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor=if(valid!=null) ion.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,shape=IonShapes.discovery) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.metric_battery),style=MaterialTheme.typography.labelLarge)
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                Text(stringResource(R.string.metric_battery),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
+                if(charging) Icon(Icons.Rounded.Bolt,stringResource(R.string.battery_charging),Modifier.size(20.dp))
+            }
             Text(valid?.let {stringResource(R.string.battery_value,it.roundToInt())} ?: "—",style=IonType.figure)
-            if(valid!=null) LinearWavyProgressIndicator(progress={valid.toFloat()/100f},modifier=Modifier.fillMaxWidth(),color=ion.onAccent,trackColor=ion.onAccent.copy(alpha=.15f))
+            if(valid!=null && charging) LinearWavyProgressIndicator(modifier=Modifier.fillMaxWidth().testTag("battery-charge-wave"),color=ion.onAccent,trackColor=ion.onAccent.copy(alpha=.15f))
+            else if(valid!=null) LinearWavyProgressIndicator(progress={progress.value},modifier=Modifier.fillMaxWidth().testTag("battery-level-wave"),color=ion.onAccent,trackColor=ion.onAccent.copy(alpha=.15f))
             else Text(stringResource(R.string.no_data),style=MaterialTheme.typography.bodySmall)
         }
     }

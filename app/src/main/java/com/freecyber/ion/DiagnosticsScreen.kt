@@ -118,7 +118,7 @@ import androidx.compose.ui.text.style.TextAlign
     Column(Modifier.fillMaxWidth().padding(vertical=12.dp)) {
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically) {
             Text(field.label,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.weight(1f))
-            SelectionContainer { Text(field.value,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Medium,fontFamily=IonMono,modifier=Modifier.widthIn(max=155.dp),textAlign=TextAlign.End) }
+            SelectionContainer { Text(field.value,style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),fontWeight=FontWeight.Medium,fontFamily=IonSans,modifier=Modifier.widthIn(max=155.dp),textAlign=TextAlign.End) }
         }
         if(field.note.isNotEmpty()) Text(field.note,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=5.dp))
     }

@@ -1,5 +1,6 @@
 package com.freecyber.ion
 
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,26 +42,40 @@ import androidx.compose.ui.unit.dp
             }
             if(samples.size<2) Text(stringResource(R.string.trip_empty),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
             else {
-                Canvas(Modifier.fillMaxWidth().height(120.dp).semantics {contentDescription=summary}) {
-                    val t0=samples.first().at.toFloat(); val span=(samples.last().at-samples.first().at).coerceAtLeast(1).toFloat()
-                    fun x(s: Sample)=(s.at-t0)/span*size.width
+                Box(Modifier.fillMaxWidth().height(120.dp).semantics {contentDescription=summary}.drawWithCache {
+                    // Cache geometry for the current samples and size; scrolling must not allocate paths.
+                    val t0=samples.first().at
+                    val span=(samples.last().at-t0).coerceAtLeast(1).toFloat()
+                    fun x(s: Sample)=(s.at-t0).toFloat()/span*size.width
                     val sTop=maxOf(maxSpeed,10f)*1.1f
                     val area=Path().apply {
                         moveTo(0f,size.height)
                         samples.forEach {lineTo(x(it),size.height-it.speed/sTop*size.height)}
-                        lineTo(size.width,size.height); close()
+                        lineTo(size.width,size.height);close()
                     }
-                    drawPath(area,speedColor.copy(alpha=.18f))
-                    val line=Path().apply {samples.forEachIndexed {i,s -> val y=size.height-s.speed/sTop*size.height; if(i==0) moveTo(x(s),y) else lineTo(x(s),y)}}
-                    drawPath(line,speedColor,style=Stroke(3.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round))
-                    if(maxPower>0f) {
+                    val line=Path().apply {
+                        samples.forEachIndexed {i,s ->
+                            val y=size.height-s.speed/sTop*size.height
+                            if(i==0) moveTo(x(s),y) else lineTo(x(s),y)
+                        }
+                    }
+                    val power=if(maxPower>0f) Path().apply {
                         val pTop=maxPower*1.1f
-                        val power=Path().apply {samples.forEachIndexed {i,s ->
-                            val y=size.height-(s.power.coerceAtLeast(0f)/pTop)*size.height; if(i==0) moveTo(x(s),y) else lineTo(x(s),y)}}
-                        drawPath(power,powerColor,style=Stroke(2.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round))
+                        samples.forEachIndexed {i,s ->
+                            val y=size.height-s.power.coerceAtLeast(0f)/pTop*size.height
+                            if(i==0) moveTo(x(s),y) else lineTo(x(s),y)
+                        }
+                    } else null
+                    val speedStroke=Stroke(3.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round)
+                    val powerStroke=Stroke(2.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round)
+                    val baseline=1.dp.toPx()
+                    onDrawBehind {
+                        drawPath(area,speedColor.copy(alpha=.18f))
+                        drawPath(line,speedColor,style=speedStroke)
+                        power?.let {drawPath(it,powerColor,style=powerStroke)}
+                        drawLine(speedColor.copy(alpha=.3f),Offset(0f,size.height),Offset(size.width,size.height),baseline)
                     }
-                    drawLine(speedColor.copy(alpha=.3f),Offset(0f,size.height),Offset(size.width,size.height),1.dp.toPx())
-                }
+                })
                 Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     Legend(speedColor,stringResource(R.string.chart_speed_max,maxSpeed.toDouble().fmt(1)))
                     Legend(powerColor,stringResource(R.string.chart_power_max,maxPower.toInt()))

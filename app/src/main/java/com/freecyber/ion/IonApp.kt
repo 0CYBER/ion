@@ -4,6 +4,10 @@ package com.freecyber.ion
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.FrameRateCategory
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -43,19 +47,17 @@ import androidx.compose.ui.unit.dp
     fun write(command: V12Protocol.Write) {actions.write(command)}
     fun connect() {if(ui().saved!=null) actions.connect(ui().saved!!) else {tab=2;actions.scan()}}
     // A phone on its side has little height: the dock becomes a rail at the start edge.
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().preferredFrameRate(FrameRateCategory.High)) {
     val rail=maxWidth>maxHeight && maxHeight<480.dp
-    Scaffold(modifier=Modifier.imePadding(),containerColor=MaterialTheme.colorScheme.background,
-        contentWindowInsets=if(rail) WindowInsets.safeDrawing else WindowInsets.safeDrawing.only(WindowInsetsSides.Top+WindowInsetsSides.Horizontal),bottomBar={
-            if(!rail) Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal=16.dp,vertical=6.dp),contentAlignment=Alignment.Center) {
-                IonDock(tab) {tab=it;routes=emptyList()}
-            }
-        }) {inset ->
+    val dockClearance=if(rail) 0.dp else 72.dp+WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    CompositionLocalProvider(LocalDockClearance provides dockClearance) {
+    Scaffold(containerColor=Color.Transparent,
+        contentWindowInsets=if(rail) WindowInsets.safeDrawing else WindowInsets.safeDrawing.only(WindowInsetsSides.Top+WindowInsetsSides.Horizontal)) {inset ->
         Row(Modifier.fillMaxSize().padding(inset).consumeWindowInsets(inset)) {
         if(rail) IonRail(tab) {tab=it;routes=emptyList()}
-        Box(Modifier.weight(1f).fillMaxHeight(),contentAlignment=Alignment.TopCenter) {
+        Box(Modifier.weight(1f).fillMaxHeight().testTag("app-content"),contentAlignment=Alignment.TopCenter) {
             AnimatedContent(targetState=detail ?: "tab:$tab",modifier=Modifier.widthIn(max=840.dp).fillMaxSize(),
-                transitionSpec={(fadeIn(motion.defaultEffectsSpec())+slideInHorizontally(motion.defaultSpatialSpec()) {it/30}) togetherWith fadeOut(motion.fastEffectsSpec())},label="destination") {route ->
+                transitionSpec={(fadeIn(motion.defaultEffectsSpec())+slideInHorizontally(motion.defaultSpatialSpec()) {it/12}) togetherWith fadeOut(motion.fastEffectsSpec())},label="destination") {route ->
                 savedPages.SaveableStateProvider(route) {
                     when {
                         route=="appearance" -> AppearanceScreen(dark,actions.theme) {back()}
@@ -76,6 +78,10 @@ import androidx.compose.ui.unit.dp
             }
         }
         }
+    }
+    }
+    if(!rail) Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal=16.dp,vertical=6.dp)) {
+        IonDock(tab) {tab=it;routes=emptyList()}
     }
     }
     if(forget) AlertDialog(onDismissRequest={forget=false},title={Text(stringResource(R.string.forget_title))},
@@ -110,23 +116,27 @@ private val DockIcons=listOf(Icons.Rounded.Home,Icons.Rounded.Tune,Icons.Rounded
     val labels=DockLabels
     val icons=DockIcons
     val showLabel=LocalDensity.current.fontScale<=1.3f
-    Row(Modifier.selectableGroup().padding(4.dp),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically) {
-        labels.forEachIndexed {index,label ->
-            val selected=tab==index
-            val color by animateColorAsState(if(selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                MaterialTheme.motionScheme.fastEffectsSpec(),label="dock-color")
-            val title=stringResource(label)
-            Row(Modifier.heightIn(min=48.dp).widthIn(min=48.dp).clip(RoundedCornerShape(50)).background(color)
-                .selectable(selected=selected,role=Role.Tab,onClick={select(index)}).padding(horizontal=14.dp,vertical=10.dp),
-                horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
-                Icon(icons[index],if(!selected || !showLabel) title else null,Modifier.size(22.dp),
-                    tint=if(selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                AnimatedVisibility(selected && showLabel,enter=expandHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())+fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
-                    exit=shrinkHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())+fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())) {
-                    Row {Spacer(Modifier.width(8.dp));Text(title,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onPrimary,maxLines=1)}
+    Surface(Modifier.testTag("navigation-dock"),shape=RoundedCornerShape(50),color=MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Row(Modifier.selectableGroup().padding(4.dp),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically) {
+            labels.forEachIndexed {index,label ->
+                val selected=tab==index
+                val color=animateColorAsState(if(selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    MaterialTheme.motionScheme.fastEffectsSpec(),label="dock-color")
+                val title=stringResource(label)
+                Row(Modifier.heightIn(min=48.dp).widthIn(min=48.dp).clip(RoundedCornerShape(50)).drawBehind {drawRect(color.value)}
+                    .selectable(selected=selected,role=Role.Tab,onClick={select(index)}).padding(horizontal=14.dp,vertical=10.dp),
+                    horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
+                    Icon(icons[index],if(!selected || !showLabel) title else null,Modifier.size(22.dp),
+                        tint=if(selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    AnimatedVisibility(selected && showLabel,enter=expandHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())+fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+                        exit=shrinkHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())+fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())) {
+                        Row {Spacer(Modifier.width(8.dp));Text(title,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onPrimary,maxLines=1)}
+                    }
                 }
             }
         }
     }
 }
-internal val PagePadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=20.dp)
+internal val LocalDockClearance=staticCompositionLocalOf {0.dp}
+internal val PagePadding: PaddingValues
+    @Composable get()=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=20.dp+LocalDockClearance.current)
