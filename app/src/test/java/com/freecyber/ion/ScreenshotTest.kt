@@ -79,11 +79,20 @@ class ScreenshotTest {
     }
     @Config(qualifiers = "en-w411dp-h1400dp-xhdpi")
     @Test fun settingsEnglish() = shot("background_en", dark = true) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
-    @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(DashboardLayout.DEFAULT, {}, {}) }
+    @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}) }
     @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false, batteryUnrestricted = false), Actions(), {}) }
-    @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}) }
-    @Test fun tripsEmpty() = shot("trips_empty", dark = true) { TripsScreen(emptyList(), Actions(), {}) }
-    @Test fun settings() = shot("settings") { SettingsScreen({}, {}, {}, {}, {}) }
+    @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}, {}) }
+    @Test fun tripsEmpty() = shot("trips_empty", dark = true) { TripsScreen(emptyList(), Actions(), {}, {}) }
+    @Test fun settings() = shot("settings") { SettingsScreen({}, {}) }
+    /** Ride detail with a synthetic GPS loop: the route canvas, scrubber and per-point stats. */
+    @Test fun tripDetail() = shot("trip_detail", dark = true) {
+        val track = List(120) { i ->
+            val a = i / 120.0 * 2 * Math.PI
+            TrackPoint(i * 2_000L, 55.751 + 0.002 * Math.sin(a), 37.618 + 0.003 * Math.cos(a),
+                160.0 + 10 * Math.sin(a), 6.0 + 2 * Math.sin(a))
+        }
+        TripDetailScreen(trips.first(), track, {}, {})
+    }
 }
 
 /** Realistic wheel state built from protocol frames, shared by screenshot tests. */

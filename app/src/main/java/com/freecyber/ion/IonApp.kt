@@ -56,7 +56,8 @@ import androidx.compose.ui.unit.dp
                         route=="diagnostics" -> DiagnosticsScreen(ui,actions) {detail=null}
                         route=="dashboard" -> DashboardEditorScreen(ui,prefs.dashboard,actions.setDashboard) {detail=null}
                         route=="background" -> BackgroundScreen(prefs,actions) {detail=null}
-                        route=="trips" -> TripsScreen(prefs.trips,actions) {detail=null}
+                        route=="trips" -> TripsScreen(prefs.trips,actions,{trip -> detail="trip:${trip.startedAt}"}) {detail=null}
+                        route.startsWith("trip:") -> TripDetailRoute(route.substringAfter(':').toLongOrNull(),prefs.trips,actions) {detail=null}
                         route=="app" -> AppScreen({detail="appearance"},{detail="dashboard"},{detail="trips"},{detail="background"}) {detail=null}
                         route.startsWith("control:") -> ControlScreen(ui,ControlCategory.valueOf(route.substringAfter(':')),
                             {actions.read(V12Protocol.Read.SETTINGS)},::write) {detail=null}

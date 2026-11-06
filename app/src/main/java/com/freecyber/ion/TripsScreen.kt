@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
 
-/** Ride log: lifetime totals, then every stored ride newest first, with CSV export. */
-@Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,onBack: ()->Unit) {
+/** Ride log: lifetime totals, then every stored ride newest first, with CSV export. Tapping a ride opens it. */
+@Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,openTrip: (TripSummary)->Unit,onBack: ()->Unit) {
     var confirmClear by rememberSaveable {mutableStateOf(false)}
     val totals=remember(trips) {TripTotals.of(trips)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -38,7 +38,8 @@ import java.util.Date
                 }
             }
         }
-        items(trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip -> TripCard(trip) {actions.deleteTrip(trip)}}
+        items(trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip ->
+            TripCard(trip,open={openTrip(trip)},delete={actions.deleteTrip(trip)})}
     }
     if(confirmClear) AlertDialog(onDismissRequest={confirmClear=false},title={Text(stringResource(R.string.trips_clear_title))},
         text={Text(stringResource(R.string.trips_clear_message))},
@@ -64,9 +65,9 @@ import java.util.Date
     }
 }
 
-@Composable private fun TripCard(trip: TripSummary,delete: ()->Unit) {
+@Composable private fun TripCard(trip: TripSummary,open: ()->Unit,delete: ()->Unit) {
     val date=remember(trip.startedAt) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))}
-    Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
+    Surface(onClick=open,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
         Column(Modifier.fillMaxWidth().padding(start=20.dp,end=8.dp,top=12.dp,bottom=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

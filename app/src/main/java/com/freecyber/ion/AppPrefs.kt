@@ -41,12 +41,12 @@ class AppPrefs(context: Context) {
     private fun loadBackground() = BackgroundConfig(
         prefs.getBoolean("bg_keep_alive", true), prefs.getBoolean("bg_reconnect", true),
         prefs.getBoolean("bg_live_notification", true), prefs.getBoolean("keep_screen_on", false),
-        prefs.getBoolean("bg_connect_on_launch", true))
+        prefs.getBoolean("bg_connect_on_launch", true), prefs.getBoolean("bg_gps_track", true))
     fun setBackground(value: BackgroundConfig) {
         backgroundState.value = value
         prefs.edit { putBoolean("bg_keep_alive", value.keepAlive).putBoolean("bg_reconnect", value.autoReconnect)
             .putBoolean("bg_live_notification", value.liveNotification).putBoolean("keep_screen_on", value.keepScreenOn)
-            .putBoolean("bg_connect_on_launch", value.connectOnLaunch) }
+            .putBoolean("bg_connect_on_launch", value.connectOnLaunch).putBoolean("bg_gps_track", value.gpsTrack) }
     }
 
     private val dashboardState = MutableStateFlow(DashboardLayout.decode(prefs.getString("dashboard", null)))

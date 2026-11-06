@@ -10,10 +10,13 @@ internal data class Actions(
     val setBackground: (BackgroundConfig) -> Unit = {},
     val requestNotifications: () -> Unit = {},
     val requestBatteryUnrestricted: () -> Unit = {},
+    val requestLocation: () -> Unit = {},
     val resetTrip: () -> Unit = {},
     val shareTrips: () -> Unit = {},
     val deleteTrip: (TripSummary) -> Unit = {},
     val clearTrips: () -> Unit = {},
+    /** GPS fixes stored for a finished ride, keyed by its startedAt. */
+    val tripTrack: (Long) -> List<TrackPoint> = { emptyList() },
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */
@@ -25,4 +28,5 @@ internal data class PrefsUi(
     /** Doze exemption; without it the background link may be cut on some firmwares. */
     val batteryUnrestricted: Boolean = true,
     val trips: List<TripSummary> = emptyList(),
+    val locationAllowed: Boolean = true,
 )

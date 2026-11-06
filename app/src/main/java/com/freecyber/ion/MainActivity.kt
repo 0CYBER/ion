@@ -37,10 +37,12 @@ class MainActivity : ComponentActivity() {
             val trips by model.history.trips.collectAsStateWithLifecycle()
             var notificationsAllowed by remember { mutableStateOf(IonNotifications.canPost(this)) }
             var batteryUnrestricted by remember { mutableStateOf(batteryUnrestricted()) }
+            var locationAllowed by remember { mutableStateOf(model.ble.grantedLocation()) }
             val dark=systemDark(preference)
             // Permission may change in system settings while we are away.
             LifecycleResumeEffect(Unit) {
                 notificationsAllowed=IonNotifications.canPost(this@MainActivity); batteryUnrestricted=batteryUnrestricted()
+                locationAllowed=model.ble.grantedLocation()
                 onPauseOrDispose { }
             }
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
@@ -48,6 +50,9 @@ class MainActivity : ComponentActivity() {
                 notificationsAllowed=IonNotifications.canPost(this)
             }
             fun askNotifications() { if(Build.VERSION.SDK_INT >= 33 && !IonNotifications.canPost(this)) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            val location=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+                locationAllowed=model.ble.grantedLocation()
+            }
             val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
                 if(result.values.all { it } && model.ble.hasPermissions()) {
                     pendingDevice?.let(model::connect) ?: model.scan()
@@ -70,14 +75,16 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
             IonTheme(dark) {
-                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips),Actions(scan={permitted(null)},connect={permitted(it)},
+                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips,locationAllowed),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},permissions={startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
                     setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
-                    resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},deleteTrip=model.history::delete,clearTrips=model.history::clear))
+                    requestLocation={ location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
+                    resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},deleteTrip=model.history::delete,clearTrips=model.history::clear,
+                    tripTrack=model.history::track))
             }
         }
     }

@@ -31,4 +31,6 @@ data class BackgroundConfig(
     val keepScreenOn: Boolean = false,
     /** Reconnect to the saved wheel when the app is opened. */
     val connectOnLaunch: Boolean = true,
+    /** Record a GPS track with every ride. */
+    val gpsTrack: Boolean = true,
 )

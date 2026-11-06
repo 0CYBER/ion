@@ -10,8 +10,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 16
-        versionName = "0.7.0-ai"
+        versionCode = 17
+        versionName = "0.8.0-ai"
     }
     buildFeatures { compose = true }
     compileOptions {

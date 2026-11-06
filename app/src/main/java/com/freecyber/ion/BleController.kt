@@ -118,6 +118,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     }
 
     fun hasPermissions(): Boolean = permissions().all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+    /** Location permission for the GPS track; separate from the Bluetooth set and never auto-requested. */
+    fun grantedLocation(): Boolean = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        .any { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
     fun permissions(): Array<String> = if (Build.VERSION.SDK_INT >= 31)
         arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
     else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)

@@ -31,6 +31,8 @@ class IonGraph(val context: Context) {
     val saved: StateFlow<WheelDevice?> = savedState.asStateFlow()
     val trips = TripRecorder()
     val history = TripHistory(context)
+    /** GPS fixes of the running ride; written by the monitor, archived with the trip. */
+    val track = TrackRecorder(context) { prefs.background.value.gpsTrack }
     val voice = VoiceAnnouncer(context)
     /** Recent telemetry for the live chart; written by the monitor, read by the UI. */
     val samples = SampleBuffer()

@@ -193,6 +193,12 @@ private object EditorSample {
                 ApplyButton(stringResource(R.string.battery_unrestricted),true,actions.requestBatteryUnrestricted)
             }
         }
+        if(!prefs.locationAllowed && bg.gpsTrack) item(key="location",contentType="banner") {
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Banner(stringResource(R.string.location_permission_hint),Icons.Rounded.LocationOff,warning=true)
+                ApplyButton(stringResource(R.string.location_permission),true,actions.requestLocation)
+            }
+        }
         item(key="bg-title",contentType="section") {SectionHeader(stringResource(R.string.bg_section))}
         item(key="bg",contentType="group") {
             GroupColumn {
@@ -206,6 +212,8 @@ private object EditorSample {
                     actions.setBackground(bg.copy(liveNotification=it))}
                 SwitchRow(Icons.Rounded.LightMode,stringResource(R.string.bg_screen_on),bg.keepScreenOn,stringResource(R.string.bg_screen_on_hint),true) {
                     actions.setBackground(bg.copy(keepScreenOn=it))}
+                SwitchRow(Icons.Rounded.LocationOn,stringResource(R.string.bg_gps),bg.gpsTrack,stringResource(R.string.bg_gps_hint),true) {
+                    actions.setBackground(bg.copy(gpsTrack=it))}
             }
         }
         item(key="alerts-title",contentType="section") {SectionHeader(stringResource(R.string.alerts_section))}
