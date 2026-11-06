@@ -29,7 +29,7 @@ import kotlin.math.roundToInt
     openTrips: ()->Unit={},finishTrip: ()->Unit={}) {
     val t=ui.wheel.telemetry
     val rows=remember(layout) {layout.rows()}
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    @Composable fun list(rows: List<List<TileSlot>>,modifier: Modifier) = LazyColumn(modifier,contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {
             ScreenHeading(stringResource(R.string.ride_title),stringResource(R.string.open_connection),Icons.Rounded.Bluetooth,openWheel,
                 secondaryLabel=stringResource(R.string.dash_edit),secondaryIcon=Icons.Rounded.DashboardCustomize,onSecondary=editDashboard)
@@ -53,6 +53,16 @@ import kotlin.math.roundToInt
         item(key="connection",contentType="link") {
             ActionRow(stringResource(R.string.nav_wheel),stringResource(if(ui.connected) R.string.connection_active else R.string.connection_choose),Icons.Rounded.Bluetooth,openWheel)
         }
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Landscape: the speed stays in view on the left while the other tiles scroll on the right.
+        val split=t!=null && maxWidth>=560.dp && maxWidth>maxHeight*1.2f && rows.any {row -> row.any {it.tile==DashTile.SPEED}}
+        if(split) Row(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(.42f).fillMaxHeight().padding(start=20.dp,top=12.dp,bottom=20.dp),contentAlignment=Alignment.Center) {
+                SpeedInstrument(ui,Modifier.fillMaxWidth())
+            }
+            list(rows.map {row -> row.filter {it.tile!=DashTile.SPEED}}.filter {it.isNotEmpty()},Modifier.weight(.58f).fillMaxHeight())
+        } else list(rows,Modifier.fillMaxSize())
     }
 }
 

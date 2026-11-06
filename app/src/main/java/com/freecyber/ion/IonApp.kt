@@ -34,13 +34,18 @@ import androidx.compose.ui.unit.dp
     BackHandler(detail!=null) {detail=null}
     fun write(command: V12Protocol.Write) {if(ui.canWrite(command)) actions.write(command)}
     fun connect() {if(ui.saved!=null) actions.connect(ui.saved) else {tab=2;actions.scan()}}
+    // A phone on its side has little height: the dock becomes a rail at the start edge.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val rail=maxWidth>maxHeight && maxHeight<480.dp
     Scaffold(modifier=Modifier.imePadding(),containerColor=MaterialTheme.colorScheme.background,
-        contentWindowInsets=WindowInsets.safeDrawing.only(WindowInsetsSides.Top+WindowInsetsSides.Horizontal),bottomBar={
-            Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal=24.dp,vertical=12.dp),contentAlignment=Alignment.Center) {
+        contentWindowInsets=if(rail) WindowInsets.safeDrawing else WindowInsets.safeDrawing.only(WindowInsetsSides.Top+WindowInsetsSides.Horizontal),bottomBar={
+            if(!rail) Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal=24.dp,vertical=12.dp),contentAlignment=Alignment.Center) {
                 IonDock(tab) {tab=it;detail=null}
             }
         }) {inset ->
-        Box(Modifier.fillMaxSize().padding(inset).consumeWindowInsets(inset),contentAlignment=Alignment.TopCenter) {
+        Row(Modifier.fillMaxSize().padding(inset).consumeWindowInsets(inset)) {
+        if(rail) IonRail(tab) {tab=it;detail=null}
+        Box(Modifier.weight(1f).fillMaxHeight(),contentAlignment=Alignment.TopCenter) {
             AnimatedContent(targetState=detail ?: "tab:$tab",modifier=Modifier.widthIn(max=840.dp).fillMaxSize(),
                 transitionSpec={(fadeIn(motion.defaultEffectsSpec())+slideInHorizontally(motion.defaultSpatialSpec()) {it/30}) togetherWith fadeOut(motion.fastEffectsSpec())},label="destination") {route ->
                 savedPages.SaveableStateProvider(route) {
@@ -60,6 +65,8 @@ import androidx.compose.ui.unit.dp
                 }
             }
         }
+        }
+    }
     }
     if(forget) AlertDialog(onDismissRequest={forget=false},title={Text(stringResource(R.string.forget_title))},
         text={Text(stringResource(R.string.forget_message))},
@@ -67,10 +74,31 @@ import androidx.compose.ui.unit.dp
         dismissButton={TextButton(onClick={forget=false}) {Text(stringResource(R.string.cancel))}})
 }
 
+private val DockLabels=listOf(R.string.nav_ride,R.string.nav_settings,R.string.nav_wheel)
+private val DockIcons=listOf(Icons.Rounded.Home,Icons.Rounded.Tune,Icons.Rounded.TripOrigin)
+
+/** Landscape counterpart of [IonDock]: icon-only pills stacked at the start edge, names kept for TalkBack. */
+@Composable private fun IonRail(tab: Int,select: (Int)->Unit) {
+    Surface(Modifier.padding(start=12.dp,top=12.dp,bottom=12.dp).fillMaxHeight(),shape=RoundedCornerShape(40.dp),color=MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.fillMaxHeight().selectableGroup().padding(5.dp),verticalArrangement=Arrangement.spacedBy(8.dp,Alignment.CenterVertically)) {
+            DockLabels.forEachIndexed {index,label ->
+                val selected=tab==index
+                val color by animateColorAsState(if(selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                    MaterialTheme.motionScheme.fastEffectsSpec(),label="rail-color")
+                Box(Modifier.size(56.dp).clip(RoundedCornerShape(50)).background(color)
+                    .selectable(selected=selected,role=Role.Tab,onClick={select(index)}),contentAlignment=Alignment.Center) {
+                    Icon(DockIcons[index],stringResource(label),Modifier.size(24.dp),
+                        tint=if(selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
 /** Expanding selected destination: one label, three full accessible names at every font scale. */
 @Composable private fun IonDock(tab: Int,select: (Int)->Unit) {
-    val labels=listOf(R.string.nav_ride,R.string.nav_settings,R.string.nav_wheel)
-    val icons=listOf(Icons.Rounded.Home,Icons.Rounded.Tune,Icons.Rounded.TripOrigin)
+    val labels=DockLabels
+    val icons=DockIcons
     val showLabel=LocalDensity.current.fontScale<=1.3f
     Surface(modifier=Modifier.widthIn(max=440.dp),shape=RoundedCornerShape(50),color=MaterialTheme.colorScheme.surfaceContainer) {
         Row(Modifier.fillMaxWidth().selectableGroup().padding(5.dp),horizontalArrangement=Arrangement.spacedBy(4.dp)) {

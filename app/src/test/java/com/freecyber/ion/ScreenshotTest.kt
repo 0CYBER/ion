@@ -60,6 +60,11 @@ class ScreenshotTest {
     @Test fun rideChart() = shot("ride_chart", dark = true) {
         RideScreen(Samples.live(), DashboardLayout.DEFAULT.move(DashTile.CHART, -100).move(DashTile.SPEED, -100), {}, {}, {}, {}, {}, {})
     }
+    /** Phone on its side: navigation rail, speed pinned on the left, tiles scrolling on the right. */
+    @Config(qualifiers = "ru-w860dp-h400dp-land-xhdpi")
+    @Test fun rideLandscape() = shot("ride_landscape", dark = true) {
+        IonApp(Samples.live(), true, PrefsUi(), Actions())
+    }
     /** Accessibility: the largest common system font size must not clip tile labels or values. */
     @Test fun rideLargeFont() = shot("ride_large_font", fontScale = 1.5f) {
         RideScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}, {}, {}, {}, {})

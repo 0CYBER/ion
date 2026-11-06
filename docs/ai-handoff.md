@@ -14,7 +14,7 @@
 | Область | Статус | Где |
 |---|---|---|
 | Фоновая связь (FGS connectedDevice) + wake lock | готово, не проверено на устройстве | `WheelService.kt`, `IonApplication.kt` |
-| Авто-переподключение, подключение при запуске | готово, тест backoff | `WheelMonitor.kt`, `ReconnectPolicy` |
+| Авто-переподключение, подключение при запуске | готово, тесты backoff и `ReconnectPolicy.decide` | `WheelMonitor.kt`, `ReconnectPolicy` |
 | Уведомления (live / alerts / link) + чип в статус-баре Android 16 | готово, NotificationTest | `IonNotifications.kt`, `WheelErrors.kt` |
 | Оповещения с гистерезисом + голос (TTS) | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
 | Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
@@ -24,8 +24,9 @@
 | Доступность: fontScale 1.5, переносы, FlowRow | готово, скриншоты | `Theme.kt`, `ScreenshotTest.kt` |
 | Quick Settings tile | готово | `IonTileService.kt` |
 | Модульный экран поездки + редактор | готово | `Dashboard.kt`, `RideScreen.kt`, `FeatureScreens.kt` |
+| Ландшафт: боковая навигация + скорость закреплена слева | готово, скриншот `ride_landscape` | `IonApp.kt` (`IonRail`), `RideScreen.kt` |
 | Плитка «График» (скорость/мощность за 6 мин) | готово | `SampleBuffer.kt`, `ChartTile.kt` |
-| Скриншот-тесты (Robolectric + Roborazzi) | 14 снимков (RU/EN, светлая/тёмная, крупный шрифт) | `ScreenshotTest.kt`, `docs/screenshots/` |
+| Скриншот-тесты (Robolectric + Roborazzi) | 15 снимков (вкл. ландшафт, RU/EN, светлая/тёмная, крупный шрифт) | `ScreenshotTest.kt`, `docs/screenshots/` |
 | CI | GitHub Actions | `.github/workflows/android.yml` |
 
 ## Сборка
@@ -33,7 +34,7 @@
 ```
 ./gradlew :core:test :app:testDebugUnitTest assembleDebug
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 85 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ). Lint: 0 ошибок.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 89 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ). Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 
@@ -46,4 +47,4 @@
 
 ## Бэклог
 
-второй вариант виджета, ландшафт/планшет, вибро-оповещения, GPX/трек, вынос логики `WheelMonitor` в `:core`.
+второй вариант виджета, планшет (двухпанельные настройки), вибро-оповещения, GPX/трек, вынос логики `WheelMonitor` в `:core`.
