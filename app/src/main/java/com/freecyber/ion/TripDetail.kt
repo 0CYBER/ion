@@ -87,7 +87,7 @@ import kotlin.math.roundToInt
         Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.trip_distance),style=MaterialTheme.typography.labelLarge)
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMedium,fontFamily=IonMono)
+                Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMedium,fontFamily=IonSans)
                 Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
             }
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {

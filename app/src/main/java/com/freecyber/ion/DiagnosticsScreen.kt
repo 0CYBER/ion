@@ -93,8 +93,7 @@ import androidx.compose.ui.text.style.TextAlign
             Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode) {expanded=!expanded}.padding(start=18.dp,top=10.dp,bottom=10.dp,end=6.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(read.label,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Medium)
-                    val age=record?.at?.let { stringResource(R.string.data_age,((now-it).coerceAtLeast(0)/1000)) }.orEmpty()
-                    Text((record?.status ?: stringResource(R.string.data_not_requested))+age,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    PacketAge(record,now)
                 }
                 IconButton(onClick=refresh,enabled=enabled) { Icon(Icons.Rounded.Refresh,stringResource(R.string.data_refresh,read.label)) }
                 if(!rawMode) Icon(if(expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,stringResource(R.string.data_expand),Modifier.size(24.dp))
@@ -126,3 +125,18 @@ import androidx.compose.ui.text.style.TextAlign
     HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant.copy(alpha=.45f))
 }
 
+
+/** Only this text observes the age clock; packets, fields and raw rendering do not tick. */
+@Composable private fun PacketAge(record: PacketRecord?, snapshotAt: Long) {
+    val now by produceState(snapshotAt, snapshotAt, record?.at) {
+        if(record==null) return@produceState
+        val anchor=android.os.SystemClock.elapsedRealtime()
+        while(true) {
+            value=snapshotAt+android.os.SystemClock.elapsedRealtime()-anchor
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    val age=record?.at?.let {stringResource(R.string.data_age,(now-it).coerceAtLeast(0)/1000)}.orEmpty()
+    Text((record?.status ?: stringResource(R.string.data_not_requested))+age,
+        style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+}

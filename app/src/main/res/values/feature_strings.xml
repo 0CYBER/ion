@@ -48,7 +48,7 @@
     <string name="dash_editor_hint">Порядок, размер и видимость плиток</string>
     <string name="dash_reset">Сбросить раскладку</string>
     <string name="dash_preview">Предпросмотр</string>
-    <string name="dash_tap_hint">Нажми на плитку, чтобы выбрать её — порядок, размер и действия настраиваются ниже.</string>
+    <string name="dash_tap_hint">Нажми на плитку — настрой её размер, порядок и действие.</string>
     <string name="dash_available">Доступные плитки</string>
     <string name="dash_param_sound">Звук сигнала</string>
     <string name="dash_move_up">Переместить выше: %1$s</string>
@@ -56,7 +56,7 @@
     <string name="dash_hide">Скрыть: %1$s</string>
     <string name="dash_wide">Широкая</string>
     <string name="dash_half">Половина</string>
-    <string name="dash_empty">Все плитки скрыты. Включи нужные в настройке экрана.</string>
+    <string name="dash_empty">Добавь первую плитку кнопкой внизу.</string>
     <string name="tile_speed">Скорость</string>
     <string name="tile_battery">Заряд</string>
     <string name="tile_range">Остаток пути</string>
@@ -209,4 +209,15 @@
         <item quantity="many">Заряд %1$d процентов, можно отключать зарядку</item>
         <item quantity="other">Заряд %1$d процентов, можно отключать зарядку</item>
     </plurals>
+    <string name="dash_add">Добавить плитку</string>
+    <string name="dash_actions">Действия</string>
+    <string name="dash_readings">Показания</string>
+    <string name="dash_assign">Что переключать</string>
+    <string name="dash_remove">Удалить</string>
+    <string name="dash_done">Готово</string>
+    <string name="dash_edit_tile">Настроить: %1$s</string>
+    <string name="dash_reset_message">Текущую раскладку заменит стандартная.</string>
+    <string name="tile_toggle">Переключатель</string>
+    <string name="tile_energy">Энергия поездки</string>
+    <string name="tile_consumption">Расход</string>
 </resources>

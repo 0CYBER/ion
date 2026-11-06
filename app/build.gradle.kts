@@ -10,8 +10,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 17
-        versionName = "0.8.0-ai"
+        versionCode = 18
+        versionName = "0.9.0-ai"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -25,6 +25,9 @@ android {
         unitTests.all {
             it.systemProperty("roborazzi.test.record", "true")
             it.maxHeapSize = "1g"
+            if (providers.gradleProperty("skipScreenshots").isPresent) {
+                it.filter { excludeTestsMatching("com.freecyber.ion.ScreenshotTest") }
+            }
         }
     }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }

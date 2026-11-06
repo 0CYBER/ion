@@ -10,7 +10,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
-import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,7 +42,7 @@ import kotlin.math.roundToInt
         // Without any readings a wall of dashes helps nobody: only an unfinished session stays visible.
         val visibleRows=if(t!=null) rows else rows.flatten().filter {it.tile==DashTile.TRIP_SESSION && ui.trip.samples>0}.map {listOf(it)}
         if(visibleRows.isEmpty() && t!=null) item(key="dash-empty",contentType="note") {Banner(stringResource(R.string.dash_empty),Icons.Rounded.DashboardCustomize)}
-        items(visibleRows,key={row -> row.joinToString("+") {it.tile.name}},contentType={row -> if(row.size==2) "pair" else "single"}) {row ->
+        items(visibleRows,key={row -> row.joinToString("+") {it.id}},contentType={row -> if(row.size==2) "pair" else "single"}) {row ->
             val env=TileEnv(ui,write,openRideMode,openTrips,finishTrip)
             if(row.size==2) TilePair({m -> DashTileView(row[0],env,m)},{m -> DashTileView(row[1],env,m)})
             else DashTileView(row[0],env,Modifier.fillMaxWidth())
@@ -66,13 +65,14 @@ import kotlin.math.roundToInt
     }
 }
 
-/** Two half tiles side by side with equal height; stacks them when the width or font scale leaves no room. */
-@Composable private fun TilePair(first: @Composable (Modifier)->Unit,second: @Composable (Modifier)->Unit) {
+/** Half tiles grow with their contents; avoid intrinsics because speed uses BoxWithConstraints. */
+@Composable internal fun TilePair(first: @Composable (Modifier)->Unit,second: (@Composable (Modifier)->Unit)?) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if(maxWidth<300.dp || LocalDensity.current.fontScale>1.2f)
+        if(second==null) first(Modifier.fillMaxWidth())
+        else if(maxWidth<300.dp || LocalDensity.current.fontScale>1.2f)
             Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {first(Modifier.fillMaxWidth());second(Modifier.fillMaxWidth())}
-        else Row(Modifier.height(IntrinsicSize.Min),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            first(Modifier.weight(1f).fillMaxHeight());second(Modifier.weight(1f).fillMaxHeight())
+        else Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+            first(Modifier.weight(1f));second(Modifier.weight(1f))
         }
     }
 }
@@ -85,23 +85,20 @@ import kotlin.math.roundToInt
     val ui=env.ui; val t=ui.wheel.telemetry; val s=ui.wheel.settings
     val ion=ionColors()
     val wide=slot.effectiveWide
+    slot.toggleTarget?.let { target ->
+        val value=target.value(t,s)
+        val needsSettings=target!=DashToggle.LOW_BEAM && target!=DashToggle.HIGH_BEAM
+        QuickToggle(stringResource(target.titleRes),value,target.icon,
+            ui.canTier(target.control.tier) && value!=null && (!needsSettings || ui.settingsFresh),modifier) {
+            env.write(target.write(it,t))
+        }
+        return
+    }
     when(slot.tile) {
         DashTile.SPEED -> SpeedInstrument(ui,modifier)
         DashTile.BATTERY -> BatteryTile(t?.battery,modifier)
         DashTile.RANGE -> FigureTile(stringResource(R.string.metric_range),t?.rangeKm?.takeIf {it>0}?.fmt(1) ?: "—",
             stringResource(R.string.unit_km),Icons.Rounded.Navigation,ion.blue,modifier)
-        DashTile.QUICK_LIGHT -> QuickToggle(stringResource(R.string.quick_light),t?.lowBeam,Icons.Rounded.Lightbulb,ui.safeWrite,modifier) {
-            env.write(V12Protocol.Write(V12Protocol.Control.LIGHTS,if(it) 1 else 0,if(t?.highBeam==true) 1 else 0))
-        }
-        DashTile.QUICK_HIGH_BEAM -> QuickToggle(stringResource(R.string.control_high_beam),t?.highBeam,Icons.Rounded.Highlight,ui.safeWrite,modifier) {
-            env.write(V12Protocol.Write(V12Protocol.Control.LIGHTS,if(t?.lowBeam==true) 1 else 0,if(it) 1 else 0))
-        }
-        DashTile.QUICK_MUTE -> QuickToggle(stringResource(R.string.quick_mute),s?.muted,Icons.AutoMirrored.Rounded.VolumeOff,
-            ui.safeWrite && ui.settingsFresh,modifier) {env.write(V12Protocol.Write(V12Protocol.Control.MUTE,if(it) 1 else 0))}
-        DashTile.QUICK_AUTO_LIGHT -> QuickToggle(stringResource(R.string.control_auto_light),s?.autoLight,Icons.Rounded.AutoAwesome,
-            ui.safeWrite && ui.settingsFresh,modifier) {env.write(V12Protocol.Write(V12Protocol.Control.AUTO_LIGHT,if(it) 1 else 0))}
-        DashTile.QUICK_SOUND_WAVE -> QuickToggle(stringResource(R.string.control_sound_wave),s?.soundWave,Icons.Rounded.MusicNote,
-            ui.safeWrite && ui.settingsFresh,modifier) {env.write(V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,if(it) 1 else 0))}
         DashTile.PLAY_SOUND -> ActionTile(stringResource(R.string.tile_play_sound),Icons.Rounded.Campaign,ui.safeWrite,modifier) {
             // The rider picks the horn sound in the editor; 4 is the classic signal on the V12 HT.
             env.write(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,slot.param ?: DashTile.PLAY_SOUND.defaultParam ?: 4))
@@ -118,6 +115,12 @@ import kotlin.math.roundToInt
         DashTile.TILT -> MetricTile(stringResource(R.string.tile_tilt),t?.let {"${it.pitch.fmt(1)} / ${it.roll.fmt(1)}"},stringResource(R.string.unit_degrees),Icons.Rounded.ScreenRotation,wide,modifier)
         DashTile.MODE -> ModeTile(s,modifier,env.openRideMode)
         DashTile.CHART -> ChartTile(ui.chart,modifier)
+        DashTile.TOGGLE, DashTile.QUICK_LIGHT, DashTile.QUICK_HIGH_BEAM, DashTile.QUICK_MUTE,
+        DashTile.QUICK_AUTO_LIGHT, DashTile.QUICK_SOUND_WAVE -> Unit // Rendered through toggleTarget.
+        DashTile.MAX_SPEED -> MetricTile(stringResource(R.string.trip_max),ui.trip.takeIf {it.samples>0}?.maxSpeed?.fmt(1),stringResource(R.string.unit_kmh),Icons.Rounded.Speed,wide,modifier)
+        DashTile.AVG_SPEED -> MetricTile(stringResource(R.string.trip_avg),ui.trip.takeIf {it.samples>0}?.avgMovingSpeed?.fmt(1),stringResource(R.string.unit_kmh),Icons.Rounded.AvTimer,wide,modifier)
+        DashTile.ENERGY -> MetricTile(stringResource(R.string.tile_energy),ui.trip.takeIf {it.samples>0}?.let {(it.energyWh-it.regenWh).fmt(0)},stringResource(R.string.unit_wh),Icons.Rounded.Bolt,wide,modifier)
+        DashTile.CONSUMPTION -> MetricTile(stringResource(R.string.tile_consumption),ui.trip.consumption?.fmt(1),stringResource(R.string.unit_wh_km),Icons.Rounded.Eco,wide,modifier)
     }
 }
 
@@ -200,14 +203,14 @@ import kotlin.math.roundToInt
         if(wide) Row(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary)
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
-            Text("${value ?: "—"} $unit",style=MaterialTheme.typography.titleMedium,fontFamily=IonMono)
+            Text("${value ?: "—"} $unit",style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
         } else Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 Icon(icon,null,Modifier.size(18.dp),tint=MaterialTheme.colorScheme.primary)
                 Text(label,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2)
             }
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                Text(value ?: "—",style=MaterialTheme.typography.headlineSmall,fontFamily=IonMono,maxLines=1)
+                Text(value ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1)
                 Text(unit,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(bottom=3.dp))
             }
         }
@@ -222,7 +225,7 @@ import kotlin.math.roundToInt
         contentColor=if(hot) ion.onWarning else MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(IonShapes.l)) {
         Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.tile_pwm),style=MaterialTheme.typography.labelLarge)
-            Text(load?.let {"${it.roundToInt()}%"} ?: "—",style=MaterialTheme.typography.headlineSmall,fontFamily=IonMono)
+            Text(load?.let {"${it.roundToInt()}%"} ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
             if(load!=null) LinearProgressIndicator(progress={(load/100).toFloat()},modifier=Modifier.fillMaxWidth())
         }
     }
@@ -236,7 +239,7 @@ import kotlin.math.roundToInt
                 Text(stringResource(R.string.tile_trip_session),style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
                 if(gpsPoints>0) Text(stringResource(R.string.trip_gps_points,gpsPoints),style=MaterialTheme.typography.labelMedium,
                     color=MaterialTheme.colorScheme.onSurfaceVariant)
-                trip.startedAt?.let {Text(V12Protocol.formatDuration((trip.movingMs/1000)),style=MaterialTheme.typography.labelLarge,fontFamily=IonMono,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                trip.startedAt?.let {Text(V12Protocol.formatDuration((trip.movingMs/1000)),style=MaterialTheme.typography.labelLarge,fontFamily=IonSans,color=MaterialTheme.colorScheme.onSurfaceVariant)}
             }
             if(trip.samples==0) Text(stringResource(R.string.trip_empty),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
             else {
@@ -267,7 +270,7 @@ import kotlin.math.roundToInt
 @Composable internal fun TripFigure(label: String,value: String,unit: String,modifier: Modifier) {
     Column(modifier,verticalArrangement=Arrangement.spacedBy(2.dp)) {
         Text(label,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1)
-        Text(value,style=MaterialTheme.typography.titleLarge,fontFamily=IonMono,maxLines=1)
+        Text(value,style=MaterialTheme.typography.titleLarge.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1)
         Text(unit,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

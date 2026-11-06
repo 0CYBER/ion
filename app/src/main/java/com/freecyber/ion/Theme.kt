@@ -83,9 +83,10 @@ private val IonTypography=Typography(
 object IonType {
     val page=TextStyle(fontFamily=IonSans,fontSize=48.sp,lineHeight=52.sp,fontWeight=FontWeight.ExtraBold,letterSpacing=(-2).sp)
     val tile=TextStyle(fontFamily=IonSans,fontSize=25.sp,lineHeight=30.sp,fontWeight=FontWeight.Bold,letterSpacing=(-.7).sp)
-    val figure=TextStyle(fontFamily=IonMono,fontSize=40.sp,lineHeight=48.sp,fontWeight=FontWeight.SemiBold,letterSpacing=(-2).sp)
-    val speed=figure.copy(fontSize=80.sp,lineHeight=88.sp,letterSpacing=(-5).sp)
-    val speedCompact=speed.copy(fontSize=56.sp,lineHeight=64.sp,letterSpacing=(-3).sp)
+    val number=TextStyle(fontFamily=IonSans,fontFeatureSettings="tnum")
+    val figure=number.copy(fontSize=40.sp,lineHeight=48.sp,fontWeight=FontWeight.SemiBold,letterSpacing=(-1).sp)
+    val speed=figure.copy(fontSize=80.sp,lineHeight=88.sp,letterSpacing=(-3).sp)
+    val speedCompact=speed.copy(fontSize=56.sp,lineHeight=64.sp,letterSpacing=(-2).sp)
 }
 @Composable internal fun IonTheme(dark: Boolean,content: @Composable ()->Unit) {
     CompositionLocalProvider(LocalIonColors provides if(dark) DarkIon else LightIon) {

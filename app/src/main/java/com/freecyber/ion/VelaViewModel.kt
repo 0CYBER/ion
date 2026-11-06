@@ -6,7 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 
 object SavedWheelFormat {
     fun validAddress(value: String?) = value != null && Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$").matches(value)
@@ -15,7 +14,7 @@ data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? 
     val staleSince: Long? = null, val reconnecting: Boolean = false, val trip: TripStats = TripStats(),
     val chart: List<Sample> = emptyList(), val gpsPoints: Int = 0) {
     val fresh get() = wheel.phase == Phase.CONNECTED && wheel.lastPacketAt?.let { now-it in 0..Timing.FRESH_WINDOW_MS } == true
-    val busy get() = wheel.phase in listOf(Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING)
+    val busy get() = when(wheel.phase) {Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING -> true; else -> false}
     val connected get() = wheel.verifiedHt && wheel.phase == Phase.CONNECTED
     /** Staleness only surfaces after a sustained gap, so brief packet lag never flashes a banner. */
     val staleConfirmed get() = connected && staleSince != null && now-staleSince >= Timing.STALE_BANNER_AFTER_MS
@@ -34,6 +33,14 @@ data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? 
 internal fun wheelUiSnapshot(wheel: WheelState, saved: WheelDevice?, staleSince: Long? = null, clock: () -> Long): VelaUi =
     VelaUi(wheel,saved,clock(),staleSince)
 
+/** A clock tick only reaches the UI when it changes a freshness/permission boundary.
+ * Packet age has its own leaf clock in diagnostics; raw `now` is not presentation identity. */
+internal fun VelaUi.samePresentationAs(other: VelaUi): Boolean =
+    wheel == other.wheel && saved == other.saved && reconnecting == other.reconnecting &&
+        trip == other.trip && chart == other.chart && gpsPoints == other.gpsPoints &&
+        fresh == other.fresh && settingsFresh == other.settingsFresh &&
+        stoppedWrite == other.stoppedWrite && staleConfirmed == other.staleConfirmed
+
 /** Thin presentation adapter over the process-wide [IonGraph]; the BLE session itself outlives this ViewModel. */
 class VelaViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = app.ionGraph
@@ -41,7 +48,9 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
     val prefs get() = graph.prefs
     val dark: StateFlow<Boolean?> get() = graph.prefs.dark
     fun setDark(value: Boolean) = graph.prefs.setDark(value)
-    private val tick=MutableStateFlow(SystemClock.elapsedRealtime())
+    private val tick=flow {
+        while(true) {emit(SystemClock.elapsedRealtime());delay(Timing.POLL_DELAY_MS)}
+    }
     private var staleSince: Long? = null
     val ui: StateFlow<VelaUi> = combine(graph.ble.state,graph.saved,tick,graph.monitor.reconnecting,graph.trips.stats) { wheel,device,_,retry,trip ->
         val now=SystemClock.elapsedRealtime()
@@ -50,8 +59,8 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
         wheelUiSnapshot(wheel,device,staleSince) { now }.copy(reconnecting=retry,trip=trip)
     }.combine(graph.chart) { ui,chart -> ui.copy(chart=chart) }
         .combine(graph.track.count) { ui,gps -> ui.copy(gpsPoints=gps) }
+        .distinctUntilChanged { previous,next -> previous.samePresentationAs(next) }
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5_000),VelaUi(saved=graph.saved.value))
-    init { viewModelScope.launch { while(true) { tick.value=SystemClock.elapsedRealtime(); delay(Timing.POLL_DELAY_MS) } } }
     fun scan()=graph.ble.scan()
     fun connect(device: WheelDevice)=graph.monitor.userConnect(device)
     fun forget()=graph.forget()

@@ -101,7 +101,7 @@ import kotlin.math.roundToInt
     Column(modifier.padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
-            Text(text,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary,fontFamily=IonMono)
+            Text(text,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary,fontFamily=IonSans)
         }
         Slider(value=value,onValueChange=change,enabled=enabled,valueRange=range,
             modifier=Modifier.fillMaxWidth().then(if(sliderTag!=null) Modifier.testTag(sliderTag) else Modifier))
@@ -173,7 +173,7 @@ internal class SliderSpec(val label: String,val value: Int,val range: IntRange,v
                 SettingIcon(icon,open)
                 Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                     Text(title,style=MaterialTheme.typography.titleMedium)
-                    Text(summary,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,fontFamily=IonMono)
+                    Text(summary,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,fontFamily=IonSans)
                 }
                 Icon(Icons.Rounded.ExpandMore,null,Modifier.size(24.dp).graphicsLayer {rotationZ=rotation.value})
             }

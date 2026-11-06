@@ -31,21 +31,26 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
     val ion=ionColors()
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {ScreenHeading(stringResource(R.string.nav_settings),stringResource(R.string.app_title),Icons.Rounded.Settings,app)}
-        item(key="ride-light-sound",contentType="tiles") {
-            MetricPair(first={m -> ToneTile(stringResource(R.string.category_ride),stringResource(R.string.category_ride_hint),Icons.Rounded.Route,
-                IonTone(ion.accent,ion.onAccent),m,minHeight=332.dp) {open(ControlCategory.RIDE)}},second={m ->
-                Column(m,verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                    ToneTile(stringResource(R.string.category_lights),stringResource(R.string.category_lights_hint),Icons.Rounded.Lightbulb,ion.blue,minHeight=160.dp) {open(ControlCategory.LIGHTS)}
-                    ToneTile(stringResource(R.string.category_sound),stringResource(R.string.category_sound_hint),Icons.Rounded.VolumeUp,ion.peach,minHeight=160.dp) {open(ControlCategory.SOUND)}
-                }
-            })
+        item(key="app",contentType="tiles") {
+            ToneTile(stringResource(R.string.app_title),stringResource(R.string.app_hint),Icons.Rounded.Settings,
+                IonTone(ion.hero,ion.onHero),minHeight=140.dp,motif=2,onClick=app)
         }
-        item(key="pedals-service",contentType="tiles") {
-            MetricPair(first={m -> ToneTile(stringResource(R.string.category_pedals),stringResource(R.string.category_pedals_hint),Icons.Rounded.Tune,
-                ion.lilac,m,minHeight=190.dp) {open(ControlCategory.PEDALS)}},second={m -> ToneTile(stringResource(R.string.category_service),stringResource(R.string.category_service_hint),Icons.Rounded.Build,
-                ion.blue,m,minHeight=190.dp) {open(ControlCategory.SERVICE)}})
+        item(key="ride-pedals",contentType="tiles") {
+            TilePair(first={m -> ToneTile(stringResource(R.string.category_ride),stringResource(R.string.category_ride_hint),Icons.Rounded.Route,
+                IonTone(ion.accent,ion.onAccent),m,minHeight=180.dp,motif=0) {open(ControlCategory.RIDE)}},
+                second={m -> ToneTile(stringResource(R.string.category_pedals),stringResource(R.string.category_pedals_hint),Icons.Rounded.Tune,
+                    ion.lilac,m,minHeight=180.dp,motif=1) {open(ControlCategory.PEDALS)}})
         }
-        item(key="app",contentType="link") {ActionRow(stringResource(R.string.app_title),stringResource(R.string.app_hint),Icons.Rounded.Settings,app)}
+        item(key="light-sound",contentType="tiles") {
+            TilePair(first={m -> ToneTile(stringResource(R.string.category_lights),stringResource(R.string.category_lights_hint),Icons.Rounded.Lightbulb,
+                ion.blue,m,minHeight=160.dp,motif=2) {open(ControlCategory.LIGHTS)}},
+                second={m -> ToneTile(stringResource(R.string.category_sound),stringResource(R.string.category_sound_hint),Icons.Rounded.VolumeUp,
+                    ion.peach,m,minHeight=160.dp,motif=0) {open(ControlCategory.SOUND)}})
+        }
+        item(key="service",contentType="tiles") {
+            ToneTile(stringResource(R.string.category_service),stringResource(R.string.category_service_hint),Icons.Rounded.Build,
+                ion.blue,minHeight=140.dp,motif=1) {open(ControlCategory.SERVICE)}
+        }
     }
 }
 

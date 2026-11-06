@@ -48,7 +48,7 @@
     <string name="dash_editor_hint">Order, size and visibility of tiles</string>
     <string name="dash_reset">Reset layout</string>
     <string name="dash_preview">Live preview</string>
-    <string name="dash_tap_hint">Tap a tile to select it — order, size and actions are set below.</string>
+    <string name="dash_tap_hint">Tap a tile to change its size, position or action.</string>
     <string name="dash_available">Available tiles</string>
     <string name="dash_param_sound">Horn sound</string>
     <string name="dash_move_up">Move up: %1$s</string>
@@ -56,7 +56,7 @@
     <string name="dash_hide">Hide: %1$s</string>
     <string name="dash_wide">Wide</string>
     <string name="dash_half">Half</string>
-    <string name="dash_empty">All tiles are hidden. Turn the ones you need back on in screen settings.</string>
+    <string name="dash_empty">Add your first tile using the button below.</string>
     <string name="tile_speed">Speed</string>
     <string name="tile_battery">Battery</string>
     <string name="tile_range">Range</string>
@@ -199,4 +199,15 @@
         <item quantity="one">Charged to %1$d percent, you can unplug</item>
         <item quantity="other">Charged to %1$d percent, you can unplug</item>
     </plurals>
+    <string name="dash_add">Add tile</string>
+    <string name="dash_actions">Actions</string>
+    <string name="dash_readings">Readings</string>
+    <string name="dash_assign">Switch assignment</string>
+    <string name="dash_remove">Remove</string>
+    <string name="dash_done">Done</string>
+    <string name="dash_edit_tile">Edit: %1$s</string>
+    <string name="dash_reset_message">Replace your current layout with the default?</string>
+    <string name="tile_toggle">Switch</string>
+    <string name="tile_energy">Ride energy</string>
+    <string name="tile_consumption">Consumption</string>
 </resources>

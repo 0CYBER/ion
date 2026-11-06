@@ -53,7 +53,7 @@ import java.util.Date
         Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.trips_total),style=MaterialTheme.typography.labelLarge)
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.displayMedium,fontFamily=IonMono)
+                Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.displayMedium,fontFamily=IonSans)
                 Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
             }
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -77,7 +77,7 @@ import java.util.Date
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(date,style=MaterialTheme.typography.titleMedium)
-                    Text(V12Protocol.formatDuration(trip.durationMs/1000),style=MaterialTheme.typography.labelLarge,fontFamily=IonMono,
+                    Text(V12Protocol.formatDuration(trip.durationMs/1000),style=MaterialTheme.typography.labelLarge,fontFamily=IonSans,
                         color=MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick=delete) {Icon(Icons.Rounded.DeleteOutline,stringResource(R.string.trips_delete))}

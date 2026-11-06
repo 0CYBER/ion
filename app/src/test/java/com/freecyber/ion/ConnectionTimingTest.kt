@@ -4,6 +4,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConnectionTimingTest {
+    @Test fun clockOnlyUpdatesAreSuppressedUntilAnActualPresentationBoundary() {
+        val wheel=state(1000)
+        val a=VelaUi(wheel,now=1100)
+        assertTrue(a.samePresentationAs(a.copy(now=1400)))
+        assertTrue(a.samePresentationAs(a.copy(now=2000)))
+        assertFalse(a.samePresentationAs(a.copy(now=4000))) // freshness and stationary guard
+        val stale=VelaUi(wheel,now=5000,staleSince=4000)
+        assertFalse(stale.samePresentationAs(stale.copy(now=6500))) // stale banner
+        assertFalse(stale.samePresentationAs(stale.copy(now=17000))) // settings expiry
+        assertFalse(a.samePresentationAs(a.copy(gpsPoints=1)))
+        assertFalse(a.samePresentationAs(a.copy(chart=listOf(Sample(1100,10f,100f,80f)))))
+    }
+
     private fun state(at: Long) = WheelState(phase=Phase.CONNECTED,verifiedHt=true,lastPacketAt=at,
         settingsAt=at,stationaryPackets=3,
         telemetry=V12Protocol.Telemetry(96.0,0.0,0.0,50.0,30,30,0.0,0.0,false,false,false))

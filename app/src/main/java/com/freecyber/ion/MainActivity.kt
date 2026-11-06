@@ -27,11 +27,12 @@ class MainActivity : ComponentActivity() {
     private val model: VelaViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); enableEdgeToEdge()
+        if(Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced=false
         // The system language may have changed while the process lived on.
         IonFormat.locale = java.util.Locale.forLanguageTag(getString(R.string.format_locale))
         if(savedInstanceState==null) model.autoConnect()
         setContent {
-            val ui by model.ui.collectAsStateWithLifecycle()
+            val ui = model.ui.collectAsStateWithLifecycle()
             val preference by model.dark.collectAsStateWithLifecycle()
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
             val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
@@ -70,14 +71,9 @@ class MainActivity : ComponentActivity() {
             SideEffect { WindowCompat.getInsetsController(window,window.decorView).apply {
                 isAppearanceLightStatusBars=!dark; isAppearanceLightNavigationBars=!dark
             } }
-            val keepOn=background.keepScreenOn && ui.connected
-            DisposableEffect(keepOn) {
-                if(keepOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                onDispose { }
-            }
+            KeepRideScreenOn(ui,background.keepScreenOn)
             IonTheme(dark) {
-                IonApp(ui,dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips,locationAllowed),Actions(scan={permitted(null)},connect={permitted(it)},
+                IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips,locationAllowed),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},permissions={startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
@@ -89,6 +85,14 @@ class MainActivity : ComponentActivity() {
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,
                     tripTrack=model.history::track))
             }
+        }
+    }
+    @Composable private fun KeepRideScreenOn(ui: State<VelaUi>, enabled: Boolean) {
+        val keepOn=enabled && ui.value.connected
+        DisposableEffect(keepOn) {
+            if(keepOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            onDispose { }
         }
     }
     private fun batteryUnrestricted()=getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(packageName)?:true

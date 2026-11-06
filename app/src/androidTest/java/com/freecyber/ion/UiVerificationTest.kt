@@ -76,6 +76,7 @@ class UiVerificationTest {
         nav("Колесо");scroll("Диагностика");rule.onNodeWithText("Диагностика").performClick();rule.waitForIdle()
     }
     private fun shot(name: String) {
+        if(InstrumentationRegistry.getArguments().getString("screenshots")=="false") return
         rule.waitForIdle()
         // uiAutomation reads the rendered window, which can lag Compose's semantic tree.
         android.os.SystemClock.sleep(300)
@@ -91,7 +92,7 @@ class UiVerificationTest {
         rule.onNodeWithText("Найти колесо").assertIsDisplayed()
         rule.onAllNodesWithText("0,0").assertCountEquals(0)
         rule.onAllNodesWithText("Демо",substring=true).assertCountEquals(0)
-        rule.onAllNodes(isToggleable()).onFirst().assertIsNotEnabled()
+        rule.onAllNodes(isToggleable()).assertCountEquals(0)
         shot("offline-ride-light")
     }
     @Test fun connectedRideHasWorkingQuickActionsAndTwoThemes() {
@@ -111,7 +112,7 @@ class UiVerificationTest {
         rule.onAllNodesWithText("Пороги сигнала").assertCountEquals(0)
         shot("lights-light")
         Espresso.pressBack();rule.waitForIdle()
-        rule.onNodeWithText("Оформление").assertExists()
+        rule.onNodeWithText("Приложение").assertExists()
         render(sample(),1);shot("settings-dark")
     }
     @Test fun lightsWriteExactlyOnceAndBrightnessRequiresApply() {
@@ -150,10 +151,20 @@ class UiVerificationTest {
     @Test fun appearanceShowsRealSelectionsAndOnlyRequestsAChangeOnce() {
         var toggles=0
         render(sample(),1,actions=Actions(theme={toggles++}))
+        rule.onNodeWithContentDescription("Приложение").performClick()
         rule.onNodeWithText("Оформление").performClick()
         shot("appearance-dark")
         rule.onNodeWithText("Тёмная").performClick();assertEquals(0,toggles)
         rule.onNodeWithText("Светлая").performClick();assertEquals(1,toggles)
+    }
+    @Test fun appChildrenReturnOneStepWithSystemBack() {
+        render(sample(),1)
+        rule.onNodeWithContentDescription("Приложение").performClick()
+        rule.onNodeWithText("Оформление").performClick()
+        Espresso.pressBack();rule.waitForIdle()
+        rule.onNodeWithText("Экран поездки").assertIsDisplayed()
+        rule.onNodeWithText("Назад").performClick()
+        rule.onNodeWithText("Приложение").assertIsDisplayed()
     }
     @Test fun savedWheelConnectsDirectlyAndForgetRequiresConfirmation() {
         var connects=0;var scans=0;var forgotten=0
