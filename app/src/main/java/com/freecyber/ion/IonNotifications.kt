@@ -70,6 +70,9 @@ object IonNotifications {
         if (connected && t != null) {
             val battery = t.battery.takeIf { it.isFinite() }?.roundToInt()?.coerceIn(0, 100) ?: 0
             b.setProgress(100, battery, false)
+            // Android 16+: promoted ongoing notification shows a status-bar chip (speed while riding, charge at rest).
+            b.setRequestPromotedOngoing(true)
+            b.setShortCriticalText(statusChip(context, t.speed, battery))
             b.setSubText(context.getString(R.string.live_subtext, trip.maxSpeed.fmt(1)))
             b.addAction(0, context.getString(if (t.lowBeam) R.string.action_light_off else R.string.action_light_on),
                 serviceAction(context, WheelService.ACTION_TOGGLE_LIGHT, 2))
@@ -77,6 +80,11 @@ object IonNotifications {
         b.addAction(0, context.getString(R.string.disconnect), serviceAction(context, WheelService.ACTION_DISCONNECT, 1))
         return b.build()
     }
+
+    /** Status-bar chip text: a handful of characters, so only the number that matters right now. */
+    internal fun statusChip(context: Context, speed: Double, battery: Int): String =
+        if (speed.isFinite() && kotlin.math.abs(speed) >= 1.0) context.getString(R.string.widget_speed, kotlin.math.abs(speed).roundToInt().toString())
+        else context.getString(R.string.live_chip_battery, battery)
 
     fun alert(context: Context, alert: Alert) {
         if (!canPost(context)) return

@@ -80,3 +80,9 @@
 - Виджет: устаревшие цифры приглушены (`onSurfaceVariant`), в статусе время/дата (`DateUtils.formatSameDayTime`); при высоте ≥110 dp — полоска заряда (`LinearProgressIndicator`).
 - `previewLayout` (`res/layout/widget_preview.xml`) — в списке виджетов Android 12+ виден настоящий облик вместо заглушки.
 - lint: 0 ошибок; 73 теста зелёные.
+
+## Сессия 1 — чип в статус-баре (Android 16 Live Updates)
+
+- Живое уведомление при связи запрашивает `setRequestPromotedOngoing(true)` и `setShortCriticalText(...)`: на Android 16+ в статус-баре появляется чип — скорость «23 км/ч» в движении (≥1 км/ч), заряд «78%» на стоянке. Добавлено разрешение `POST_PROMOTED_NOTIFICATIONS` (обычное, без диалога). На старых версиях ничего не меняется.
+- `NotificationTest` (Robolectric): заголовок со скоростью, запрос promotion, текст чипа, отсутствие colorized/custom views (иначе система не продвинет), 2 действия в живом режиме / 1 при переподключении. Robolectric SDK 36 в этой сборке не стартует (IllegalAccessException), поэтому `hasPromotableCharacteristics()` проверяется косвенно. 76 тестов зелёные.
+- Риск: targetSdk 35 — проверить на Android 16, показывается ли чип без поднятия targetSdk до 36; пользователь может отключить его в настройках уведомлений приложения.

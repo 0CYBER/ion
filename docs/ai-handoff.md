@@ -15,7 +15,7 @@
 |---|---|---|
 | Фоновая связь (FGS connectedDevice) + wake lock | готово, не проверено на устройстве | `WheelService.kt`, `IonApplication.kt` |
 | Авто-переподключение, подключение при запуске | готово, тест backoff | `WheelMonitor.kt`, `ReconnectPolicy` |
-| Уведомления (live / alerts / link) | готово | `IonNotifications.kt`, `WheelErrors.kt` |
+| Уведомления (live / alerts / link) + чип в статус-баре Android 16 | готово, NotificationTest | `IonNotifications.kt`, `WheelErrors.kt` |
 | Оповещения с гистерезисом + голос (TTS) | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
 | Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
 | Виджет (Glance) | готово | `IonWidget.kt`, `WidgetMapping.kt` |

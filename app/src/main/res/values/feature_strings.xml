@@ -14,6 +14,7 @@
     <string name="live_title_connecting">Подключаюсь к колесу…</string>
     <string name="live_text">%1$d °C · остаток %2$s км · поездка %3$s км</string>
     <string name="live_text_reconnecting">Попытка %1$d</string>
+    <string name="live_chip_battery">%1$d%%</string>
     <string name="live_subtext">макс. %1$s км/ч</string>
     <string name="action_light_on">Включить свет</string>
     <string name="action_light_off">Выключить свет</string>
