@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import kotlin.math.roundToInt
 
 @Composable internal fun Modifier.squashClick(enabled: Boolean=true,onClick: ()->Unit): Modifier {
@@ -95,17 +96,19 @@ import kotlin.math.roundToInt
         }
     }
 }
-@Composable internal fun SettingSlider(label: String,value: Float,text: String,range: ClosedFloatingPointRange<Float>,enabled: Boolean,change: (Float)->Unit) {
-    Column(Modifier.padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+@Composable internal fun SettingSlider(label: String,value: Float,text: String,range: ClosedFloatingPointRange<Float>,enabled: Boolean,change: (Float)->Unit,
+    modifier: Modifier=Modifier,sliderTag: String?=null) {
+    Column(modifier.padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
             Text(text,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary,fontFamily=IonMono)
         }
-        Slider(value=value,onValueChange=change,enabled=enabled,valueRange=range,modifier=Modifier.fillMaxWidth())
+        Slider(value=value,onValueChange=change,enabled=enabled,valueRange=range,
+            modifier=Modifier.fillMaxWidth().then(if(sliderTag!=null) Modifier.testTag(sliderTag) else Modifier))
     }
 }
-@Composable internal fun ApplyButton(label: String,enabled: Boolean,click: ()->Unit) {
-    FilledTonalButton(onClick=click,enabled=enabled,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)) {Text(label)}
+@Composable internal fun ApplyButton(label: String,enabled: Boolean,click: ()->Unit,modifier: Modifier=Modifier) {
+    FilledTonalButton(onClick=click,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=48.dp)) {Text(label)}
 }
 @Composable internal fun MissingSetting(text: String) {
     Text(text,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(vertical=12.dp))
@@ -149,11 +152,11 @@ internal class SliderSpec(val label: String,val value: Int,val range: IntRange,v
             specs.forEachIndexed {index,spec ->
                 val value=drafts[index] ?: spec.value.toFloat()
                 SettingSlider(spec.label,value,spec.text(current[index]),
-                    spec.range.first.toFloat()..spec.range.last.toFloat(),enabled) {drafts=drafts.toMutableList().also {it[index]=value}}
+                    spec.range.first.toFloat()..spec.range.last.toFloat(),enabled,
+                    sliderTag="slider-$index",change={new -> drafts=drafts.toMutableList().also {it[index]=new}})
             }
-            ApplyButton(stringResource(R.string.common_apply),enabled && drafts.any {it!=null}) {
-                onApply(current); sent.value=current
-            }
+            ApplyButton(stringResource(R.string.common_apply),enabled && drafts.any {it!=null},
+                modifier=Modifier.testTag("apply"),click={onApply(current); sent.value=current})
         }
     }
 }
