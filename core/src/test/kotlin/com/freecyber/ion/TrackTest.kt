@@ -54,4 +54,11 @@ class TrackTest {
         assertEquals(1, TrackCodec.decode("0,5500000,3760000,,").size)
         assertTrue(TrackCodec.decode("x,y,z").isEmpty())
     }
+
+    @Test fun gpxCarriesPointsAndEscapesName() {
+        val gpx = TrackCodec.gpx(listOf(TrackPoint(0, 55.75124, 37.61842, 160.0, 3.0)), 1_762_400_000_000, "Ride <A>")
+        assertTrue("ACTUAL:" + gpx, gpx.contains("""<trkpt lat="55.75124" lon="37.61842"><ele>160.0</ele><time>"""))
+        assertTrue(gpx.contains("Ride &lt;A&gt;"))
+        assertTrue(gpx.trim().endsWith("</gpx>"))
+    }
 }

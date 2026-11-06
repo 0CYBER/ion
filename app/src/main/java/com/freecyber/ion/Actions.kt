@@ -13,6 +13,7 @@ internal data class Actions(
     val requestLocation: () -> Unit = {},
     val resetTrip: () -> Unit = {},
     val shareTrips: () -> Unit = {},
+    val shareGpx: (TripSummary) -> Unit = {},
     val deleteTrip: (TripSummary) -> Unit = {},
     val clearTrips: () -> Unit = {},
     /** GPS fixes stored for a finished ride, keyed by its startedAt. */

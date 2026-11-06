@@ -77,4 +77,18 @@ object TrackCodec {
         }
         return out
     }
+
+    /** GPX 1.1 document for sharing; the relative session time maps onto [startWallMs]. */
+    fun gpx(points: List<TrackPoint>, startWallMs: Long, name: String): String = buildString {
+        appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
+        appendLine("""<gpx version="1.1" creator="Ion" xmlns="http://www.topografix.com/GPX/1/1">""")
+        appendLine("  <trk><name>${name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")}</name><trkseg>")
+        points.forEach { p ->
+            val time = java.time.Instant.ofEpochMilli(startWallMs + p.t).toString()
+            val ele = p.alt?.let { "<ele>${"%.1f".format(java.util.Locale.US, it)}</ele>" } ?: ""
+            appendLine("    <trkpt lat=\"${"%.5f".format(java.util.Locale.US, p.lat)}\" lon=\"${"%.5f".format(java.util.Locale.US, p.lon)}\">$ele<time>$time</time></trkpt>")
+        }
+        appendLine("  </trkseg></trk>")
+        appendLine("</gpx>")
+    }
 }

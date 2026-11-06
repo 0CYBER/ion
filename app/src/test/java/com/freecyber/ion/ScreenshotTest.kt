@@ -91,7 +91,7 @@ class ScreenshotTest {
             TrackPoint(i * 2_000L, 55.751 + 0.002 * Math.sin(a), 37.618 + 0.003 * Math.cos(a),
                 160.0 + 10 * Math.sin(a), 6.0 + 2 * Math.sin(a))
         }
-        TripDetailScreen(trips.first(), track, {}, {})
+        TripDetailScreen(trips.first(), track, {}, {}, {})
     }
 }
 

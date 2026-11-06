@@ -29,12 +29,12 @@ import kotlin.math.roundToInt
 @Composable internal fun TripDetailRoute(startedAt: Long?,trips: List<TripSummary>,actions: Actions,onBack: ()->Unit) {
     val trip=startedAt?.let {at -> trips.firstOrNull {it.startedAt==at}}
     if(trip==null) { LaunchedEffect(startedAt) {onBack()}; return }
-    TripDetailScreen(trip,actions.tripTrack(trip.startedAt),{actions.deleteTrip(trip)},onBack)
+    TripDetailScreen(trip,actions.tripTrack(trip.startedAt),{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack)
 }
 
 /** One archived ride: the whole ride's stats, its GPS route with a scrubber showing the stats at
- * any moment of the ride, and delete. */
-@Composable internal fun TripDetailScreen(trip: TripSummary,track: List<TrackPoint>,delete: ()->Unit,onBack: ()->Unit) {
+ * any moment of the ride, GPX export and delete. */
+@Composable internal fun TripDetailScreen(trip: TripSummary,track: List<TrackPoint>,shareGpx: ()->Unit,delete: ()->Unit,onBack: ()->Unit) {
     var confirmDelete by rememberSaveable {mutableStateOf(false)}
     val date=remember(trip.startedAt) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))}
     val cum=remember(track) {Track.cumulativeKm(track)}
@@ -48,6 +48,8 @@ import kotlin.math.roundToInt
             else Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
                 Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.trips_track),style=MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.trips_track_length,Track.distanceKm(track).fmt(2)),
+                        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     TrackCanvas(track,idx,Modifier.fillMaxWidth().height(240.dp))
                     Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat())
                     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -62,9 +64,14 @@ import kotlin.math.roundToInt
                 }
             }
         }
-        item(key="delete",contentType="action") {
-            TextButton(onClick={confirmDelete=true},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)) {
-                Icon(Icons.Rounded.DeleteOutline,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_delete))
+        item(key="actions",contentType="action") {
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick=shareGpx,enabled=track.size>=2,modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
+                    Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_gpx))
+                }
+                TextButton(onClick={confirmDelete=true},modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
+                    Icon(Icons.Rounded.DeleteOutline,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_delete))
+                }
             }
         }
     }

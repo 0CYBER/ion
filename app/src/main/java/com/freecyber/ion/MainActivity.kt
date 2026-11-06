@@ -20,6 +20,8 @@ import androidx.compose.runtime.*
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.text.DateFormat
+import java.util.Date
 
 class MainActivity : ComponentActivity() {
     private val model: VelaViewModel by viewModels()
@@ -83,7 +85,8 @@ class MainActivity : ComponentActivity() {
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
                     requestLocation={ location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
-                    resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},deleteTrip=model.history::delete,clearTrips=model.history::clear,
+                    resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},shareGpx=::shareGpx,
+                    deleteTrip=model.history::delete,clearTrips=model.history::clear,
                     tripTrack=model.history::track))
             }
         }
@@ -103,6 +106,16 @@ class MainActivity : ComponentActivity() {
         val send=Intent(Intent.ACTION_SEND).setType("text/csv")
             .putExtra(Intent.EXTRA_SUBJECT,getString(R.string.trips_export_subject))
             .putExtra(Intent.EXTRA_TEXT,TripSummary.csv(trips))
+        startActivity(Intent.createChooser(send,getString(R.string.trips_export)))
+    }
+    /** The ride's GPS track as GPX 1.1; times are derived from the ride's wall-clock start. */
+    private fun shareGpx(trip: TripSummary) {
+        val points=model.history.track(trip.startedAt)
+        if(points.size<2) return
+        val name=DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))
+        val send=Intent(Intent.ACTION_SEND).setType("application/gpx+xml")
+            .putExtra(Intent.EXTRA_SUBJECT,getString(R.string.trips_export_subject))
+            .putExtra(Intent.EXTRA_TEXT,TrackCodec.gpx(points,trip.startedAt,name))
         startActivity(Intent.createChooser(send,getString(R.string.trips_export)))
     }
     override fun onStop() { super.onStop(); if(!isChangingConfigurations) model.onBackground() }

@@ -135,6 +135,8 @@
     <string name="location_permission_hint">Track recording needs the location permission</string>
     <string name="location_permission">Allow location access</string>
     <string name="trips_track">Route</string>
+    <string name="trips_track_length">Route length: %1$s km</string>
+    <string name="trips_export_gpx">Export GPX</string>
     <string name="trips_track_missing">No GPS track recorded</string>
     <string name="trip_point_time">Time</string>
     <string name="trip_point_speed">Speed</string>
