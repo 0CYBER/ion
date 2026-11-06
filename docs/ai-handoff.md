@@ -1,6 +1,6 @@
 # AI handoff — ветка `ai-experimental` (структурированно)
 
-Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.8.0-ai` (versionCode 17). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
+Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.9.0-ai` (versionCode 18). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
 
 ## Модули
 
@@ -23,18 +23,19 @@
 | Локализация RU/EN + выбор языка приложения (localeConfig) | готово, включая подписи диагностики и ошибок в `:core` (`tr()` в `CoreText.kt`) | `res/values-en/`, `res/xml/locales_config.xml` |
 | Доступность: fontScale 1.5, переносы, FlowRow | готово, скриншоты | `Theme.kt`, `ScreenshotTest.kt` |
 | Quick Settings tile | готово | `IonTileService.kt` |
-| Модульный экран поездки + редактор | готово | `Dashboard.kt`, `RideScreen.kt`, `FeatureScreens.kt` |
+| Модульный экран поездки + редактор | экземпляры с id, нижний лист, каталог, 11 назначений переключателя | `Dashboard.kt`, `RideScreen.kt`, `DashboardEditor.kt` |
 | Ландшафт: боковая навигация + скорость закреплена слева | готово, скриншот `ride_landscape` | `IonApp.kt` (`IonRail`), `RideScreen.kt` |
 | Плитка «График» (скорость/мощность за 6 мин) | готово | `SampleBuffer.kt`, `ChartTile.kt` |
-| Скриншот-тесты (Robolectric + Roborazzi) | 15 снимков (вкл. ландшафт, RU/EN, светлая/тёмная, крупный шрифт) | `ScreenshotTest.kt`, `docs/screenshots/` |
+| Скриншот-тесты (Robolectric + Roborazzi) | архив; владелец просит не запускать и не просматривать снимки | `ScreenshotTest.kt`, `docs/screenshots/` |
 | CI | GitHub Actions | `.github/workflows/android.yml` |
 
 ## Сборка
 
 ```
-./gradlew :core:test :app:testDebugUnitTest assembleDebug
+./gradlew :core:test :app:testDebugUnitTest -PskipScreenshots
+./gradlew lintDebug assembleDebug assembleDebugAndroidTest
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 105 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 98 тестов без ScreenshotTest (58 core + 40 app), также 16/16 инструментальных тестов на emulator-5580 с RU locale и отключёнными снимками. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 
@@ -48,3 +49,12 @@
 ## Бэклог
 
 второй вариант виджета, планшет (двухпанельные настройки), вибро-оповещения, GPX-экспорт трека (сам трек уже пишется), вынос логики `WheelMonitor` в `:core`.
+
+
+## UI и производительность — 2026-11-06
+
+См. сессию 3 в ai-rolling-handoff.md и актуальный блок в ../handoff.md. Раскладка v2 с id, повторяемые переключатели, новые метрики, стек вложенных экранов, компактный док без общей подложки, Onest для цифр. Из UI убраны clock-only инвалидации; проверки свежести и SAFE/STATIONARY сохранены. Новый редактор — DashboardEditor.kt; FeatureScreens.kt хранит общие подписи/иконки каталога и read-only sample.
+
+По инструкции владельца проверять без снимков: `-PskipScreenshots` для JVM, `-e screenshots false` для instrumentation. Старые картинки не отражают эту ревизию. Измерений FPS на реальном устройстве нет.
+
+Код текущей ревизии: `704f5c5`. Инструментальные тесты: выставить app locale ru и запускать с `-e screenshots false`. Все 16 прошли.
