@@ -20,7 +20,7 @@
 | Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
 | Виджет (Glance): последние известные цифры, полоска заряда, превью | готово | `IonWidget.kt`, `WidgetMapping.kt`, `WidgetSnapshot` |
 | Запрос снятия оптимизации батареи (Doze) | готово | `MainActivity.kt`, `BackgroundScreen` |
-| Локализация RU/EN + выбор языка приложения (localeConfig) | готово (кроме подписей диагностики в `:core`) | `res/values-en/`, `res/xml/locales_config.xml` |
+| Локализация RU/EN + выбор языка приложения (localeConfig) | готово, включая подписи диагностики и ошибок в `:core` (`tr()` в `CoreText.kt`) | `res/values-en/`, `res/xml/locales_config.xml` |
 | Доступность: fontScale 1.5, переносы, FlowRow | готово, скриншоты | `Theme.kt`, `ScreenshotTest.kt` |
 | Quick Settings tile | готово | `IonTileService.kt` |
 | Модульный экран поездки + редактор | готово | `Dashboard.kt`, `RideScreen.kt`, `FeatureScreens.kt` |
@@ -33,7 +33,7 @@
 ```
 ./gradlew :core:test :app:testDebugUnitTest assembleDebug
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 82 теста. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ). Lint: 0 ошибок.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 85 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ). Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 
@@ -46,4 +46,4 @@
 
 ## Бэклог
 
-локализация подписей диагностики (`Protocol.kt`, `WheelErrors.kt`), второй вариант виджета, ландшафт/планшет, вибро-оповещения, GPX/трек, вынос логики `WheelMonitor` в `:core`.
+второй вариант виджета, ландшафт/планшет, вибро-оповещения, GPX/трек, вынос логики `WheelMonitor` в `:core`.

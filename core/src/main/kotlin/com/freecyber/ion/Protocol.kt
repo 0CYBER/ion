@@ -22,9 +22,10 @@ object V12Protocol {
         MAIN_VERSION(0x14, 0x01, byteArrayOf()), BATTERY(0x14, 0x05, byteArrayOf()),
         DIAGNOSTIC(0x14, 0x03, byteArrayOf()), STATISTICS(0x14, 0x11, byteArrayOf());
         val label get() = when(this) {
-            MODEL -> "Модель"; TELEMETRY -> "Телеметрия"; SETTINGS -> "Настройки"; SERIAL -> "Серийный номер"
-            VERSIONS -> "Версии модулей"; MAIN_VERSION -> "Основная версия"; BATTERY -> "Батарея / BMS"
-            DIAGNOSTIC -> "Диагностика"; STATISTICS -> "Статистика"
+            MODEL -> tr("Модель","Model"); TELEMETRY -> tr("Телеметрия","Telemetry"); SETTINGS -> tr("Настройки","Settings")
+            SERIAL -> tr("Серийный номер","Serial number"); VERSIONS -> tr("Версии модулей","Module versions")
+            MAIN_VERSION -> tr("Основная версия","Main version"); BATTERY -> tr("Батарея / BMS","Battery / BMS")
+            DIAGNOSTIC -> tr("Диагностика","Diagnostics"); STATISTICS -> tr("Статистика","Statistics")
         }
         fun matches(f: Frame): Boolean = f.response && f.flags == flags && f.command == command &&
             (this !in listOf(MODEL, SERIAL, VERSIONS) || f.payload.firstOrNull() == data.firstOrNull())
@@ -80,7 +81,7 @@ object V12Protocol {
     }
     data class Model(val series: Int, val variant: Int) {
         val isHt get() = series == 7 && variant == 2
-        val label get() = when { isHt -> "INMOTION V12 HT"; series == 7 && variant == 1 -> "V12 HS"; series == 7 && variant == 3 -> "V12 Pro"; else -> "Неизвестная модель ($series/$variant)" }
+        val label get() = when { isHt -> "INMOTION V12 HT"; series == 7 && variant == 1 -> "V12 HS"; series == 7 && variant == 3 -> "V12 Pro"; else -> tr("Неизвестная модель ($series/$variant)","Unknown model ($series/$variant)") }
     }
     fun model(f: Frame): Model? = if (f.flags == 0x11 && f.command == 2 && f.response && f.payload.size >= 7 && f.payload[0].u() == 1)
         Model(f.payload[2].u(), f.payload[3].u()) else null
@@ -205,25 +206,28 @@ object V12Protocol {
             Control.PLAY_SOUND -> null
             else -> Read.SETTINGS
         }
-        val label get() = when(kind) {
-            Control.LIGHTS -> "Свет: ближний ${if(a==1) "вкл" else "выкл"}, дальний ${if(b==1) "вкл" else "выкл"}"
-            Control.BRIGHTNESS -> "Яркость: ближний $a%, дальний $b%"
-            Control.AUTO_LIGHT -> "Автосвет: ${if(a==1) "вкл" else "выкл"}"
-            Control.VOLUME -> "Громкость: $a%"
-            Control.MUTE -> "Без звука: ${if(a==1) "да" else "нет"}"
-            Control.SOUND_WAVE -> "Звук движения: ${if(a==1) "вкл" else "выкл"}"
-            Control.PLAY_SOUND -> "Проиграть звук $a"
-            Control.CLASSIC -> "Бездорожье: ${if(a==1) "вкл" else "выкл"} (выкл = Комфорт)"
-            Control.FANCIER -> "Продвинутый: ${if(a==1) "вкл" else "выкл"} (выкл = Нормальный)"
-            Control.SPLIT_MODE -> "Split mode: ${if(a==1) "вкл" else "выкл"}"
-            Control.SPLIT_ACCEL_BRAKE -> "Split: ускорение $a, торможение $b"
-            Control.PEDAL_SENS -> "Чувствительность педалей: $a"
-            Control.PEDAL_TILT -> "Наклон педалей: ${a/10.0}°"
-            Control.ALARMS -> "Пороги сигнала: ${a} и ${b} км/ч"
-            Control.HANDLE_BUTTON -> "Кнопка ручки: ${if(a==1) "вкл" else "выкл"}"
-            Control.LOCK -> "Блокировка колеса: ${if(a==1) "вкл" else "выкл"}"
-            Control.TRANSPORT -> "Транспортный режим: ${if(a==1) "вкл" else "выкл"}"
-            Control.STANDBY -> "Ожидание: $a мин"
+        val label: String get() {
+            fun on(v: Int) = if(v==1) tr("вкл","on") else tr("выкл","off")
+            return when(kind) {
+                Control.LIGHTS -> tr("Свет: ближний ${on(a)}, дальний ${on(b)}","Lights: low ${on(a)}, high ${on(b)}")
+                Control.BRIGHTNESS -> tr("Яркость: ближний $a%, дальний $b%","Brightness: low $a%, high $b%")
+                Control.AUTO_LIGHT -> tr("Автосвет: ${on(a)}","Auto light: ${on(a)}")
+                Control.VOLUME -> tr("Громкость: $a%","Volume: $a%")
+                Control.MUTE -> if(a==1) tr("Без звука: да","Mute: yes") else tr("Без звука: нет","Mute: no")
+                Control.SOUND_WAVE -> tr("Звук движения: ${on(a)}","Riding sound: ${on(a)}")
+                Control.PLAY_SOUND -> tr("Проиграть звук $a","Play sound $a")
+                Control.CLASSIC -> tr("Бездорожье: ${on(a)} (выкл = Комфорт)","Off-road: ${on(a)} (off = Comfort)")
+                Control.FANCIER -> tr("Продвинутый: ${on(a)} (выкл = Нормальный)","Advanced: ${on(a)} (off = Normal)")
+                Control.SPLIT_MODE -> "Split mode: ${on(a)}"
+                Control.SPLIT_ACCEL_BRAKE -> tr("Split: ускорение $a, торможение $b","Split: acceleration $a, braking $b")
+                Control.PEDAL_SENS -> tr("Чувствительность педалей: $a","Pedal sensitivity: $a")
+                Control.PEDAL_TILT -> tr("Наклон педалей: ${(a/10.0).fmt(1)}°","Pedal tilt: ${(a/10.0).fmt(1)}°")
+                Control.ALARMS -> tr("Пороги сигнала: $a и $b км/ч","Alarm thresholds: $a and $b km/h")
+                Control.HANDLE_BUTTON -> tr("Кнопка ручки: ${on(a)}","Handle button: ${on(a)}")
+                Control.LOCK -> tr("Блокировка колеса: ${on(a)}","Wheel lock: ${on(a)}")
+                Control.TRANSPORT -> tr("Транспортный режим: ${on(a)}","Transport mode: ${on(a)}")
+                Control.STANDBY -> tr("Ожидание: $a мин","Standby: $a min")
+            }
         }
         fun bytes(): ByteArray {
             val payload = when(kind) {
@@ -294,68 +298,68 @@ object V12Protocol {
     fun fields(f: Frame): List<Field> {
         val p = f.payload; val rows = mutableListOf<Field>()
         fun add(key: String, label: String, value: String, note: String = "") { rows += Field(key,label,value,note) }
-        fun n(v: Double, unit: String) = String.format(java.util.Locale.forLanguageTag("ru"), "%.2f %s",v,unit)
-        fun yes(v: Boolean) = if(v) "Да" else "Нет"
+        fun n(v: Double, unit: String) = String.format(IonFormat.locale, "%.2f %s",v,unit)
+        fun yes(v: Boolean) = if(v) tr("Да","Yes") else tr("Нет","No")
         telemetry(f)?.let { t ->
-            add("voltage", "Напряжение", n(t.voltage,"В")); add("current","Ток",n(t.current,"А"))
-            add("speed","Скорость",n(t.speed,"км/ч")); add("torque","Крутящий момент",n(p.s16(6)/100.0,"Н·м"))
+            add("voltage", tr("Напряжение","Voltage"), n(t.voltage,tr("В","V"))); add("current",tr("Ток","Current"),n(t.current,tr("А","A")))
+            add("speed",tr("Скорость","Speed"),n(t.speed,tr("км/ч","km/h"))); add("torque",tr("Крутящий момент","Torque"),n(p.s16(6)/100.0,tr("Н·м","N·m")))
             add("pwm","PWM",n(p.s16(8)/100.0,"%"))
-            add("batteryPower","Мощность батареи", "${p.s16(10)} Вт"); add("motorPower","Мощность мотора","${p.s16(12)} Вт")
-            add("pitch","Наклон",n(t.pitch,"°")); add("pitchAim","Целевой наклон",n(p.s16(18)/100.0,"°")); add("roll","Крен",n(t.roll,"°"))
+            add("batteryPower",tr("Мощность батареи","Battery power"), "${p.s16(10)} ${tr("Вт","W")}"); add("motorPower",tr("Мощность мотора","Motor power"),"${p.s16(12)} ${tr("Вт","W")}")
+            add("pitch",tr("Наклон","Pitch"),n(t.pitch,"°")); add("pitchAim",tr("Целевой наклон","Target pitch"),n(p.s16(18)/100.0,"°")); add("roll",tr("Крен","Roll"),n(t.roll,"°"))
             // u16[22]: distance of the current ride (since power-on), not the odometer — confirmed by the owner on HT.
-            add("trip","Дистанция поездки",n(t.tripKm,"км"))
-            add("battery","Батарея",n(t.battery,"%"))
-            add("range","Остаток пути",n(t.rangeKm,"км"))
-            add("speedLimitDynamic","Динамический лимит скорости",n(p.u16(30)/100.0,"км/ч"))
-            add("currentLimitDynamic","Динамический лимит тока",n(p.u16(32)/100.0,"А"))
+            add("trip",tr("Дистанция поездки","Ride distance"),n(t.tripKm,tr("км","km")))
+            add("battery",tr("Батарея","Battery"),n(t.battery,"%"))
+            add("range",tr("Остаток пути","Range"),n(t.rangeKm,tr("км","km")))
+            add("speedLimitDynamic",tr("Динамический лимит скорости","Dynamic speed limit"),n(p.u16(30)/100.0,tr("км/ч","km/h")))
+            add("currentLimitDynamic",tr("Динамический лимит тока","Dynamic current limit"),n(p.u16(32)/100.0,tr("А","A")))
             // Offsets 42 (battery) and 46 (headlight) are not real sensors on HT and are intentionally not shown.
-            listOf(0 to "MOS",1 to "Мотор",3 to "Плата",4 to "CPU",5 to "IMU").forEach { (i,label) ->
+            listOf(0 to "MOS",1 to tr("Мотор","Motor"),3 to tr("Плата","Board"),4 to "CPU",5 to "IMU").forEach { (i,label) ->
                 val temp=p[40+i].u()-176
-                add("temp$i","Температура · $label",if(temp in -50..180) "$temp °C" else "—")
+                add("temp$i","${tr("Температура","Temperature")} · $label",if(temp in -50..180) "$temp °C" else "—")
             }
             add("pcMode","PC mode",(p[54].u() and 7).toString())
             add("mcMode","MC mode",((p[54].u() ushr 3) and 7).toString())
-            add("motorActive","Мотор активен",yes(t.motorActive)); add("charging","Заряжается",yes(t.charging))
-            add("lowBeam","Ближний свет",yes(t.lowBeam)); add("highBeam","Дальний свет",yes(t.highBeam))
-            add("lifted","Поднято",yes(p[55].u() and 4 != 0)); add("tailLight","Задний свет",((p[55].u() ushr 3) and 3).toString())
-            add("firmwareUpdate","Обновление прошивки",yes(t.firmwareUpdate))
+            add("motorActive",tr("Мотор активен","Motor active"),yes(t.motorActive)); add("charging",tr("Заряжается","Charging"),yes(t.charging))
+            add("lowBeam",tr("Ближний свет","Low beam"),yes(t.lowBeam)); add("highBeam",tr("Дальний свет","High beam"),yes(t.highBeam))
+            add("lifted",tr("Поднято","Lifted"),yes(p[55].u() and 4 != 0)); add("tailLight",tr("Задний свет","Tail light"),((p[55].u() ushr 3) and 3).toString())
+            add("firmwareUpdate",tr("Обновление прошивки","Firmware update"),yes(t.firmwareUpdate))
             val errs = errors(f)
-            if(errs.isNotEmpty()) add("errors","Ошибки",errs.joinToString(" "))
-            if(p.size>59) add("errorsRaw","Байты ошибок [59..]",p.drop(59).joinToString(" ") { "%02X".format(it.u()) })
+            if(errs.isNotEmpty()) add("errors",tr("Ошибки","Errors"),errs.joinToString(" "))
+            if(p.size>59) add("errorsRaw",tr("Байты ошибок [59..]","Error bytes [59..]"),p.drop(59).joinToString(" ") { "%02X".format(it.u()) })
         }
         settings(f)?.let { s ->
-            add("speedLimit","Лимит скорости",n(s.speedLimit,"км/ч")); add("alarm1","Порог сигнала 1",n(s.alarm1,"км/ч")); add("alarm2","Порог сигнала 2",n(s.alarm2,"км/ч"))
-            add("pedalTilt","Наклон педалей",String.format(java.util.Locale.forLanguageTag("ru"),"%.1f °",s.pedalTilt)); add("standby","Ожидание","${s.standbySeconds} с")
-            add("classicMode","Бездорожье",yes(s.classicMode)); add("fancier","Продвинутый",yes(s.fancier))
-            add("comfort","Чувствительность · comfort","${s.comfortable}"); add("classic","Чувствительность · classic","${s.classic}")
-            add("volume","Громкость","${s.volume}%"); add("lowBrightness","Яркость · ближний","${s.lowBrightness}%"); add("highBrightness","Яркость · дальний","${s.highBrightness}%")
-            add("splitAccel","Split · ускорение","${s.splitAccel}"); add("splitBrake","Split · торможение","${s.splitBrake}")
-            add("mute","Без звука",yes(s.muted)); add("handle","Кнопка ручки",yes(s.handleEnabled))
-            add("autoLight","Автосвет",yes(s.autoLight)); add("transport","Транспортный режим",yes(s.transport))
-            add("soundWave","Звук движения",yes(s.soundWave)); add("splitMode","Split mode",yes(s.splitMode))
-            add("locked","Блокировка",yes(s.locked))
+            add("speedLimit",tr("Лимит скорости","Speed limit"),n(s.speedLimit,tr("км/ч","km/h"))); add("alarm1",tr("Порог сигнала 1","Alarm 1"),n(s.alarm1,tr("км/ч","km/h"))); add("alarm2",tr("Порог сигнала 2","Alarm 2"),n(s.alarm2,tr("км/ч","km/h")))
+            add("pedalTilt",tr("Наклон педалей","Pedal tilt"),String.format(IonFormat.locale,"%.1f °",s.pedalTilt)); add("standby",tr("Ожидание","Standby"),"${s.standbySeconds} ${tr("с","s")}")
+            add("classicMode",tr("Бездорожье","Off-road"),yes(s.classicMode)); add("fancier",tr("Продвинутый","Advanced"),yes(s.fancier))
+            add("comfort",tr("Чувствительность · comfort","Sensitivity · comfort"),"${s.comfortable}"); add("classic",tr("Чувствительность · classic","Sensitivity · classic"),"${s.classic}")
+            add("volume",tr("Громкость","Volume"),"${s.volume}%"); add("lowBrightness",tr("Яркость · ближний","Brightness · low"),"${s.lowBrightness}%"); add("highBrightness",tr("Яркость · дальний","Brightness · high"),"${s.highBrightness}%")
+            add("splitAccel",tr("Split · ускорение","Split · acceleration"),"${s.splitAccel}"); add("splitBrake",tr("Split · торможение","Split · braking"),"${s.splitBrake}")
+            add("mute",tr("Без звука","Mute"),yes(s.muted)); add("handle",tr("Кнопка ручки","Handle button"),yes(s.handleEnabled))
+            add("autoLight",tr("Автосвет","Auto light"),yes(s.autoLight)); add("transport",tr("Транспортный режим","Transport mode"),yes(s.transport))
+            add("soundWave",tr("Звук движения","Riding sound"),yes(s.soundWave)); add("splitMode","Split mode",yes(s.splitMode))
+            add("locked",tr("Блокировка","Lock"),yes(s.locked))
         }
-        model(f)?.let { add("model","Модель",it.label); add("series","Серия","${it.series}"); add("variant","Вариант","${it.variant}") }
+        model(f)?.let { add("model",tr("Модель","Model"),it.label); add("series",tr("Серия","Series"),"${it.series}"); add("variant",tr("Вариант","Variant"),"${it.variant}") }
         statistics(f)?.let { st ->
-            add("statsTotal","Одометр",n(st.totalKm,"км"))
-            add("statsDischarged","Энергия отдана",n(st.dischargedKwh,"кВт·ч"))
-            add("statsRecovered","Энергия рекуперации",n(st.recoveredKwh,"кВт·ч"))
-            add("statsRide","Время в поездке",formatDuration(st.rideTimeSec))
-            add("statsPowerOn","Время включения",formatDuration(st.powerOnSec))
+            add("statsTotal",tr("Одометр","Odometer"),n(st.totalKm,tr("км","km")))
+            add("statsDischarged",tr("Энергия отдана","Energy discharged"),n(st.dischargedKwh,tr("кВт·ч","kWh")))
+            add("statsRecovered",tr("Энергия рекуперации","Energy recovered"),n(st.recoveredKwh,tr("кВт·ч","kWh")))
+            add("statsRide",tr("Время в поездке","Riding time"),formatDuration(st.rideTimeSec))
+            add("statsPowerOn",tr("Время включения","Power-on time"),formatDuration(st.powerOnSec))
         }
         battery(f)?.let { b ->
-            add("bat1v","Батарея 1 · напряжение",n(b.bat1Voltage,"В"))
-            add("bat1state","Батарея 1 · состояние","Валидна: ${yes(b.bat1Valid)} · Подключена: ${yes(b.bat1Enabled)} · Статус: ${b.bat1Work}")
-            add("bat2v","Батарея 2 · напряжение",n(b.bat2Voltage,"В"))
-            add("bat2state","Батарея 2 · состояние","Валидна: ${yes(b.bat2Valid)} · Подключена: ${yes(b.bat2Enabled)} · Статус: ${b.bat2Work}")
-            add("chargeV","Зарядное напряжение",n(b.chargeVoltage,"В"))
+            add("bat1v",tr("Батарея 1 · напряжение","Battery 1 · voltage"),n(b.bat1Voltage,tr("В","V")))
+            add("bat1state",tr("Батарея 1 · состояние","Battery 1 · state"),tr("Валидна: ${yes(b.bat1Valid)} · Подключена: ${yes(b.bat1Enabled)} · Статус: ${b.bat1Work}","Valid: ${yes(b.bat1Valid)} · Enabled: ${yes(b.bat1Enabled)} · Status: ${b.bat1Work}"))
+            add("bat2v",tr("Батарея 2 · напряжение","Battery 2 · voltage"),n(b.bat2Voltage,tr("В","V")))
+            add("bat2state",tr("Батарея 2 · состояние","Battery 2 · state"),tr("Валидна: ${yes(b.bat2Valid)} · Подключена: ${yes(b.bat2Enabled)} · Статус: ${b.bat2Work}","Valid: ${yes(b.bat2Valid)} · Enabled: ${yes(b.bat2Enabled)} · Status: ${b.bat2Work}"))
+            add("chargeV",tr("Зарядное напряжение","Charge voltage"),n(b.chargeVoltage,tr("В","V")))
         }
-        serial(f)?.let { add("serial","Серийный номер",it) }
+        serial(f)?.let { add("serial",tr("Серийный номер","Serial number"),it) }
         versions(f)?.let { v ->
             add("verMain","Main board",v.main); add("verDrv","Driver board",v.driver); add("verBle","BLE",v.ble)
         }
         if (f.flags == 0x14 && f.command == 0x03 && f.response && f.payload.isNotEmpty())
-            add("diag","Диагностика", if (f.payload.all { it.u() == 0 }) "Без ошибок" else "Есть ненулевые байты")
+            add("diag",tr("Диагностика","Diagnostics"), if (f.payload.all { it.u() == 0 }) tr("Без ошибок","No errors") else tr("Есть ненулевые байты","Non-zero bytes present"))
         return rows
     }
     fun formatDuration(sec: Long): String { val h=sec/3600; val m=(sec/60)%60; val s=sec%60; return "%d:%02d:%02d".format(h,m,s) }
