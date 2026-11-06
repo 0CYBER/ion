@@ -1,5 +1,7 @@
 package com.freecyber.ion
 
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -58,12 +60,14 @@ private fun variableFamily(resource: Int)=FontFamily(listOf(400,500,600,700,800)
     Font(resource,weight=FontWeight(weight),variationSettings=FontVariation.Settings(FontVariation.weight(weight)))})
 val IonSans=variableFamily(R.font.onest_variable)
 val IonMono=variableFamily(R.font.jetbrains_mono_variable)
+/** Long Russian words ("Автопереподключение") must hyphenate instead of breaking at an arbitrary letter on large fonts. */
+private fun TextStyle.ion()=copy(fontFamily=IonSans,hyphens=Hyphens.Auto,lineBreak=LineBreak.Paragraph)
 private val BaseType=Typography().let {t -> t.copy(
     displayLarge=t.displayLarge.copy(fontFamily=IonSans),displayMedium=t.displayMedium.copy(fontFamily=IonSans),displaySmall=t.displaySmall.copy(fontFamily=IonSans),
-    headlineLarge=t.headlineLarge.copy(fontFamily=IonSans),headlineMedium=t.headlineMedium.copy(fontFamily=IonSans),headlineSmall=t.headlineSmall.copy(fontFamily=IonSans),
-    titleLarge=t.titleLarge.copy(fontFamily=IonSans),titleMedium=t.titleMedium.copy(fontFamily=IonSans),titleSmall=t.titleSmall.copy(fontFamily=IonSans),
-    bodyLarge=t.bodyLarge.copy(fontFamily=IonSans),bodyMedium=t.bodyMedium.copy(fontFamily=IonSans),bodySmall=t.bodySmall.copy(fontFamily=IonSans),
-    labelLarge=t.labelLarge.copy(fontFamily=IonSans),labelMedium=t.labelMedium.copy(fontFamily=IonSans),labelSmall=t.labelSmall.copy(fontFamily=IonSans))}
+    headlineLarge=t.headlineLarge.ion(),headlineMedium=t.headlineMedium.ion(),headlineSmall=t.headlineSmall.ion(),
+    titleLarge=t.titleLarge.ion(),titleMedium=t.titleMedium.ion(),titleSmall=t.titleSmall.ion(),
+    bodyLarge=t.bodyLarge.ion(),bodyMedium=t.bodyMedium.ion(),bodySmall=t.bodySmall.ion(),
+    labelLarge=t.labelLarge.ion(),labelMedium=t.labelMedium.ion(),labelSmall=t.labelSmall.ion())}
 private val IonTypography=Typography(
     displayLarge=BaseType.displayLarge.copy(fontWeight=FontWeight.Bold,letterSpacing=(-2).sp),
     displayMedium=BaseType.displayMedium.copy(fontWeight=FontWeight.Bold,letterSpacing=(-1.5).sp),

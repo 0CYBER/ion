@@ -95,7 +95,7 @@
     <string name="bg_section">Работа в фоне</string>
     <string name="bg_keep_alive">Держать связь в фоне</string>
     <string name="bg_keep_alive_hint">Колесо остаётся на связи при выключенном экране</string>
-    <string name="bg_reconnect">Автопереподключение</string>
+    <string name="bg_reconnect">Авто­пере­подклю­чение</string>
     <string name="bg_reconnect_hint">Восстанавливать связь, если она оборвалась</string>
     <string name="bg_live">Живое уведомление</string>
     <string name="bg_live_hint">Скорость, заряд и температура в шторке</string>

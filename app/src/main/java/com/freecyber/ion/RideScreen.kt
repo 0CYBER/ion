@@ -234,7 +234,8 @@ import kotlin.math.roundToInt
                     TripFigure(stringResource(R.string.trip_battery_used),trip.batteryUsed?.fmt(0) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
                 }
             }
-            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            // FlowRow: at large font sizes the second button moves to its own line instead of being squeezed letter by letter.
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 FilledTonalButton(onClick=openTrips,modifier=Modifier.heightIn(min=48.dp)) {
                     Icon(Icons.Rounded.History,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_title))
                 }

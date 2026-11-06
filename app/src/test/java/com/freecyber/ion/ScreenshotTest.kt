@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -25,10 +28,13 @@ import org.robolectric.annotation.GraphicsMode
 class ScreenshotTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun shot(name: String, dark: Boolean = false, content: @Composable () -> Unit) {
+    private fun shot(name: String, dark: Boolean = false, fontScale: Float = 1f, content: @Composable () -> Unit) {
         rule.setContent {
-            IonTheme(dark) {
-                Surface(color = MaterialTheme.colorScheme.background) { Box(Modifier.fillMaxSize()) { content() } }
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                IonTheme(dark) {
+                    Surface(color = MaterialTheme.colorScheme.background) { Box(Modifier.fillMaxSize()) { content() } }
+                }
             }
         }
         rule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
@@ -54,6 +60,11 @@ class ScreenshotTest {
     @Test fun rideChart() = shot("ride_chart", dark = true) {
         RideScreen(Samples.live(), DashboardLayout.DEFAULT.move(DashTile.CHART, -100).move(DashTile.SPEED, -100), {}, {}, {}, {}, {}, {})
     }
+    /** Accessibility: the largest common system font size must not clip tile labels or values. */
+    @Test fun rideLargeFont() = shot("ride_large_font", fontScale = 1.5f) {
+        RideScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}, {}, {}, {}, {})
+    }
+    @Test fun settingsLargeFont() = shot("settings_large_font", dark = true, fontScale = 1.5f) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
     @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(DashboardLayout.DEFAULT, {}, {}) }
     @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
     @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}) }
