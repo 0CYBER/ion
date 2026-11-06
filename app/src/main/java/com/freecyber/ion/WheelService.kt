@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -27,6 +28,8 @@ class WheelService : Service() {
         const val UPDATE_INTERVAL_MS = 1_000L
         /** Grace period before the service stops once the link is idle, so a quick reconnect keeps the card. */
         const val IDLE_STOP_MS = 4_000L
+        /** Each renewal extends the lock this far; if the app dies the lock expires on its own. */
+        const val WAKE_LOCK_MS = 120_000L
         @Volatile var running = false; private set
 
         fun ensureRunning(context: Context) { if (!running) start(context, ACTION_START) }
@@ -37,6 +40,11 @@ class WheelService : Service() {
     }
 
     private var observer: Job? = null
+    /** The wheel is polled, not streaming: if the CPU suspends between polls the session silently stalls.
+     * A non-counted partial wake lock, renewed while the link is active, keeps polling and alerts alive in a pocket. */
+    private val wakeLock by lazy {
+        (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ion:wheel-link").apply { setReferenceCounted(false) }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -74,7 +82,7 @@ class WheelService : Service() {
             if (!active || !snap.background.keepAlive) {
                 idleSince = idleSince ?: now
                 if (now - idleSince!! >= IDLE_STOP_MS || !snap.background.keepAlive) { shutdown(); return@collect }
-            } else idleSince = null
+            } else { idleSince = null; holdWakeLock() }
             if (snap.background.liveNotification || !active) refresh(graph, snap)
             delay(UPDATE_INTERVAL_MS)
         }
@@ -86,14 +94,19 @@ class WheelService : Service() {
         try { NotificationManagerCompat.from(this).notify(IonNotifications.LIVE_ID, n) } catch (_: SecurityException) { }
     }
 
+    private fun holdWakeLock() { runCatching { wakeLock.acquire(WAKE_LOCK_MS) } }
+    private fun releaseWakeLock() { runCatching { if (wakeLock.isHeld) wakeLock.release() } }
+
     private fun shutdown() {
         observer?.cancel(); observer = null
+        releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     override fun onDestroy() {
         observer?.cancel(); observer = null
+        releaseWakeLock()
         running = false
         super.onDestroy()
     }

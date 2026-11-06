@@ -4,7 +4,7 @@ package com.freecyber.ion
  * Never persist, print, or reuse the returned encrypted data between transactions.
  * Echo is an experimentally observed identity, not a universal security algorithm.
  */
-internal object LockSecurity {
+object LockSecurity {
     fun keyRequest(): ByteArray = V12Protocol.frame(0x13, 0x02, byteArrayOf(0, 0, 0x02))
     fun keyFrom(f: V12Protocol.Frame): ByteArray? =
         if (f.flags == 0x12 && f.commandByte == 0x02 && f.payload.size == 18 &&

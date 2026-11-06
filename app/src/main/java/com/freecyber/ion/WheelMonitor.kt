@@ -8,14 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Backoff for automatic reconnects: 2, 4, 8, 16, 32, then 60 s; bounded attempts so a wheel left
- * switched off does not keep the radio busy forever. */
-object ReconnectPolicy {
-    const val MAX_ATTEMPTS = 40
-    fun delayFor(attempt: Int): Long = (2_000L shl attempt.coerceIn(0, 5)).coerceAtMost(60_000L)
-    fun shouldRetry(attempt: Int) = attempt < MAX_ATTEMPTS
-}
-
 /** Session coordinator living in the process scope: feeds the trip recorder, evaluates alerts, keeps the
  * foreground service in step with the link and restores a link that dropped without the user asking. */
 class WheelMonitor(private val graph: IonGraph) {

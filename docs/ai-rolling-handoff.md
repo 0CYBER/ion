@@ -56,3 +56,9 @@
 
 - Добавлены Robolectric 4.17 + Roborazzi 1.77 (`ScreenshotTest`, `Samples.live()`): 9 экранов рендерятся без устройства в `app/build/outputs/roborazzi/*.png` при обычном `testDebugUnitTest` (SDK 35, 411×1400 dp, тема light/dark). Копии — в `docs/screenshots/`. Тесты используют обычный `Application`, чтобы не поднимать BLE-граф.
 - По скриншотам исправлено: парные плитки теперь равной высоты (`TilePair` с `IntrinsicSize.Min`); подписи «Средняя»/«Потрачено» больше не обрезаются; без телеметрии экран поездки не показывает стену прочерков (остаётся только незавершённая сессия); добавлена ссылка «История поездок»; в редакторе размер переключается чипом под названием (3 кнопки вместо 4 — названия не рвутся посреди слова); слайдеры порогов получили фон группы.
+
+## Сессия 1 — wake lock и модуль `:core`
+
+- `WheelService` держит несчётный `PARTIAL_WAKE_LOCK` (продлевается на 2 мин при каждом обновлении, пока связь активна; снимается при остановке). Причина: колесо опрашивается запросами, а не стримит — если CPU засыпает между опросами в кармане, телеметрия и оповещения замирают. Добавлено разрешение `WAKE_LOCK`.
+- Новый чисто-Kotlin модуль `:core` (JVM, без Android): `Protocol`, `LockSecurity`, `Formatters`, `AlertEngine`, `Config` (AlertConfig/BackgroundConfig), `Dashboard`, `TripRecorder`, `TripSummary`/`TripTotals`, `BatteryStepper`, `ReconnectPolicy`, `WheelErrors`, `WidgetSnapshot` (данные). Android-сторона (`WidgetMapping.kt`: `WidgetSnapshot.from(WheelState…)`) осталась в `:app`. Пакет прежний (`com.freecyber.ion`), импорты не менялись; `internal` → public для `frame`, `LockSecurity`, `fmt`.
+- Тесты логики переехали в `core/src/test` (вместе с `v12-fixtures.txt`), `ControlsTest`/`ConnectionTimingTest`/`ScreenshotTest` — в `:app`. Команда: `./gradlew :core:test :app:testDebugUnitTest assembleDebug`. Всего 70 тестов, зелёные. CI обновлён.

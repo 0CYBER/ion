@@ -30,7 +30,7 @@ object V12Protocol {
             (this !in listOf(MODEL, SERIAL, VERSIONS) || f.payload.firstOrNull() == data.firstOrNull())
     }
     fun request(read: Read): ByteArray = frame(read.flags, read.command, read.data)
-    internal fun frame(flags: Int, command: Int, data: ByteArray): ByteArray {
+    fun frame(flags: Int, command: Int, data: ByteArray): ByteArray {
         require(flags in 0..255 && command in 0..255 && data.size <= 254)
         val body = byteArrayOf(flags.toByte(), (data.size + 1).toByte(), command.toByte()) + data
         val out = mutableListOf(0xaa.toByte(), 0xaa.toByte())
