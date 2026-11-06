@@ -16,7 +16,7 @@
 | Фоновая связь (FGS connectedDevice) + wake lock | готово, не проверено на устройстве | `WheelService.kt`, `IonApplication.kt` |
 | Авто-переподключение, подключение при запуске | готово, тесты backoff и `ReconnectPolicy.decide` | `WheelMonitor.kt`, `ReconnectPolicy` |
 | Уведомления (live / alerts / link) + чип в статус-баре Android 16 | готово, NotificationTest | `IonNotifications.kt`, `WheelErrors.kt` |
-| Оповещения с гистерезисом + голос (TTS) | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
+| Оповещения с гистерезисом + голос (TTS), вкл. «цель зарядки» | готово | `AlertEngine.kt`, `VoiceAnnouncer.kt`, `BatteryStepper` |
 | Статистика и история поездок, CSV, checkpoint при смерти процесса | готово | `TripRecorder.kt`, `TripHistory.kt`, `TripsScreen.kt` |
 | Виджет (Glance): последние известные цифры, полоска заряда, превью | готово | `IonWidget.kt`, `WidgetMapping.kt`, `WidgetSnapshot` |
 | Запрос снятия оптимизации батареи (Doze) | готово | `MainActivity.kt`, `BackgroundScreen` |
@@ -34,7 +34,7 @@
 ```
 ./gradlew :core:test :app:testDebugUnitTest assembleDebug
 ```
-На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 89 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ). Lint: 0 ошибок.
+На машине с 4 ГБ RAM нужен `~/.gradle/gradle.properties` с `org.gradle.jvmargs=-Xmx1800m` и `kotlin.compiler.execution.strategy=in-process`. Скриншоты появляются в `app/build/outputs/roborazzi/`. 90 тестов. `lintDebug` запускать **отдельно** от Robolectric-тестов (иначе OOM на 4 ГБ); при длинной сессии Gradle-демон растёт до 2,2 ГБ — перед тестами помогает `./gradlew --stop`, в `~/.gradle/gradle.properties`: `-Xmx1600m -XX:+UseSerialGC`, `org.gradle.workers.max=1`. Lint: 0 ошибок.
 
 ## Риски / что проверить на телефоне
 

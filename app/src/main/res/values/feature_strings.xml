@@ -180,4 +180,14 @@
         <item quantity="many">Заряд %1$d процентов</item>
         <item quantity="other">Заряд %1$d процентов</item>
     </plurals>
+    <string name="alert_charge_title">Зарядка дошла до цели</string>
+    <string name="alert_charge_text">Заряд %1$d%%. Можно отключать зарядку.</string>
+    <string name="alert_setting_charge">Цель зарядки</string>
+    <string name="alert_at_percent">при %1$d%%</string>
+    <plurals name="voice_charge">
+        <item quantity="one">Заряд %1$d процент, можно отключать зарядку</item>
+        <item quantity="few">Заряд %1$d процента, можно отключать зарядку</item>
+        <item quantity="many">Заряд %1$d процентов, можно отключать зарядку</item>
+        <item quantity="other">Заряд %1$d процентов, можно отключать зарядку</item>
+    </plurals>
 </resources>

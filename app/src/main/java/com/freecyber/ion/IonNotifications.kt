@@ -112,5 +112,6 @@ object IonNotifications {
         AlertKind.LINK_LOST -> context.getString(R.string.alert_link_title) to context.getString(R.string.alert_link_text)
         AlertKind.LINK_RESTORED -> context.getString(R.string.alert_link_restored) to ""
         AlertKind.WHEEL_ERROR -> context.getString(R.string.alert_error_title) to alert.detail.joinToString(", ") { WheelErrors.label(it) }
+        AlertKind.CHARGE_TARGET -> context.getString(R.string.alert_charge_title) to context.getString(R.string.alert_charge_text, alert.value)
     }
 }

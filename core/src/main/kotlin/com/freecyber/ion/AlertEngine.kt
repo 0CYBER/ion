@@ -12,7 +12,7 @@ data class AlertInput(
     val errors: Set<String> = emptySet(),
 )
 
-enum class AlertKind { BATTERY_LOW, BATTERY_CRITICAL, TEMPERATURE_HIGH, SPEED_HIGH, LINK_LOST, LINK_RESTORED, WHEEL_ERROR }
+enum class AlertKind { BATTERY_LOW, BATTERY_CRITICAL, TEMPERATURE_HIGH, SPEED_HIGH, LINK_LOST, LINK_RESTORED, WHEEL_ERROR, CHARGE_TARGET }
 
 /** One fired alert. [value] carries the triggering figure (percent, °C, km/h); [detail] the error names. */
 data class Alert(val kind: AlertKind, val value: Int = 0, val detail: List<String> = emptyList())
@@ -32,13 +32,14 @@ class AlertEngine {
     private var criticalArmed = true
     private var temperatureArmed = true
     private var speedArmed = true
+    private var chargeArmed = true
     private var lastSpeedAlertAt = Long.MIN_VALUE / 2
     private var wasConnected = false
     private var lostNotified = false
     private var knownErrors = emptySet<String>()
 
     fun reset() {
-        batteryArmed = true; criticalArmed = true; temperatureArmed = true; speedArmed = true
+        batteryArmed = true; criticalArmed = true; temperatureArmed = true; speedArmed = true; chargeArmed = true
         lastSpeedAlertAt = Long.MIN_VALUE / 2; wasConnected = false; lostNotified = false; knownErrors = emptySet()
     }
 
@@ -64,6 +65,11 @@ class AlertEngine {
                     if (batteryArmed && battery <= limit) { out += Alert(AlertKind.BATTERY_LOW, battery.toInt()); batteryArmed = false }
                     else if (battery >= limit + BATTERY_REARM) batteryArmed = true
                 }
+            }
+            val target = config.chargeTargetPercent
+            if (target > 0) {
+                if (chargeArmed && input.charging && battery >= target) { out += Alert(AlertKind.CHARGE_TARGET, battery.toInt()); chargeArmed = false }
+                else if (battery <= target - BATTERY_REARM) chargeArmed = true
             }
         }
 

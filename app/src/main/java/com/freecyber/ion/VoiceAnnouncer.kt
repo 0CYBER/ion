@@ -43,6 +43,7 @@ class VoiceAnnouncer(private val context: Context) : TextToSpeech.OnInitListener
             AlertKind.LINK_LOST -> context.getString(R.string.voice_link_lost)
             AlertKind.LINK_RESTORED -> context.getString(R.string.voice_link_restored)
             AlertKind.WHEEL_ERROR -> context.getString(R.string.voice_error)
+            AlertKind.CHARGE_TARGET -> context.resources.getQuantityString(R.plurals.voice_charge, alert.value, alert.value)
         }
     }
 }

@@ -8,6 +8,21 @@ class AlertEngineTest {
         lost: Boolean = false, charging: Boolean = false, errors: Set<String> = emptySet()) =
         AlertInput(connected, lost, battery, charging, temp, temp, speed, errors)
 
+    @Test fun chargeTargetFiresOnceWhileCharging() {
+        val e = AlertEngine(); val c = AlertConfig(chargeTargetPercent = 90)
+        assertTrue(e.evaluate(input(battery = 92.0, charging = false), c, 0).none { it.kind == AlertKind.CHARGE_TARGET })
+        assertTrue(e.evaluate(input(battery = 85.0, charging = true), c, 1).isEmpty())
+        assertEquals(listOf(Alert(AlertKind.CHARGE_TARGET, 90)), e.evaluate(input(battery = 90.0, charging = true), c, 2))
+        assertTrue(e.evaluate(input(battery = 95.0, charging = true), c, 3).isEmpty())
+        // Unplugging at the target and plugging back a moment later does not repeat the alert...
+        assertTrue(e.evaluate(input(battery = 89.0, charging = true), c, 4).isEmpty())
+        assertTrue(e.evaluate(input(battery = 91.0, charging = true), c, 5).isEmpty())
+        // ...a real discharge re-arms it.
+        e.evaluate(input(battery = 80.0, charging = false), c, 6)
+        assertEquals(AlertKind.CHARGE_TARGET, e.evaluate(input(battery = 90.0, charging = true), c, 7).single().kind)
+        assertTrue(AlertEngine().evaluate(input(battery = 100.0, charging = true), AlertConfig(), 0).isEmpty())
+    }
+
     @Test fun batteryFiresOnceAndRearmsWithHysteresis() {
         val e = AlertEngine(); val c = AlertConfig(batteryLowPercent = 20)
         assertTrue(e.evaluate(input(25.0), c, 0).isEmpty())

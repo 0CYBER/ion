@@ -157,6 +157,8 @@ internal val DashTile.icon: ImageVector get() = when(this) {
                     {stringResource(R.string.alert_above_c,it)}) {actions.setAlerts(al.copy(temperatureHighC=it))}
                 ThresholdSlider(stringResource(R.string.alert_setting_speed),al.speedHighKmh,AlertConfig.SPEED_RANGE,
                     {stringResource(R.string.alert_above_kmh,it)}) {actions.setAlerts(al.copy(speedHighKmh=it))}
+                ThresholdSlider(stringResource(R.string.alert_setting_charge),al.chargeTargetPercent,AlertConfig.CHARGE_RANGE,
+                    {stringResource(R.string.alert_at_percent,it)},AlertConfig.CHARGE_RANGE.last/AlertConfig.CHARGE_STEP-1) {actions.setAlerts(al.copy(chargeTargetPercent=it))}
                 SwitchRow(Icons.Rounded.LinkOff,stringResource(R.string.alert_setting_disconnect),al.disconnect,stringResource(R.string.alert_setting_disconnect_hint),true) {
                     actions.setAlerts(al.copy(disconnect=it))}
                 SwitchRow(Icons.Rounded.ReportProblem,stringResource(R.string.alert_setting_errors),al.wheelErrors,stringResource(R.string.alert_setting_errors_hint),true) {
@@ -171,7 +173,7 @@ internal val DashTile.icon: ImageVector get() = when(this) {
 }
 
 /** Slider that only commits on release, so dragging never spams preference writes. */
-@Composable private fun ThresholdSlider(label: String,value: Int,range: IntRange,describe: @Composable (Int)->String,commit: (Int)->Unit) {
+@Composable private fun ThresholdSlider(label: String,value: Int,range: IntRange,describe: @Composable (Int)->String,steps: Int=0,commit: (Int)->Unit) {
     var draft by remember(value) {mutableFloatStateOf(value.toFloat())}
     val shown=draft.roundToInt()
     Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xs)) {
@@ -182,7 +184,7 @@ internal val DashTile.icon: ImageVector get() = when(this) {
                 color=MaterialTheme.colorScheme.primary)
         }
         Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
-            valueRange=range.first.toFloat()..range.last.toFloat())
+            valueRange=range.first.toFloat()..range.last.toFloat(),steps=steps)
     }
     }
 }

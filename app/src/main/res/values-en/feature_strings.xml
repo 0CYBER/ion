@@ -172,4 +172,12 @@
         <item quantity="one">Battery %1$d percent</item>
         <item quantity="other">Battery %1$d percent</item>
     </plurals>
+    <string name="alert_charge_title">Charge target reached</string>
+    <string name="alert_charge_text">Battery at %1$d%%. You can unplug the charger.</string>
+    <string name="alert_setting_charge">Charge target</string>
+    <string name="alert_at_percent">at %1$d%%</string>
+    <plurals name="voice_charge">
+        <item quantity="one">Charged to %1$d percent, you can unplug</item>
+        <item quantity="other">Charged to %1$d percent, you can unplug</item>
+    </plurals>
 </resources>
