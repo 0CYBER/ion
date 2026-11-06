@@ -103,19 +103,19 @@ class WheelMonitor(private val graph: IonGraph) {
     private fun onLinkFailed(previous: Phase) {
         val bg = graph.prefs.background.value
         val device = graph.saved.value
-        val wasLive = previous == Phase.CONNECTED
-        val retrying = reconnectingState.value
-        if (userStopped || device == null || !bg.autoReconnect || !bg.keepAlive) { cancelReconnect(); return }
-        // A failure while the user is still setting up a link is shown, not retried behind their back.
-        if (!wasLive && !retrying) return
-        val attempt = attemptState.value
-        if (!ReconnectPolicy.shouldRetry(attempt)) { cancelReconnect(); return }
-        reconnectingState.value = true
-        reconnectJob?.cancel()
-        reconnectJob = graph.scope.launch {
-            delay(ReconnectPolicy.delayFor(attempt))
-            attemptState.value = attempt + 1
-            graph.ble.connect(device)
+        when (val d = ReconnectPolicy.decide(userStopped, device != null, bg.autoReconnect, bg.keepAlive,
+            wasLive = previous == Phase.CONNECTED, retrying = reconnectingState.value, attempt = attemptState.value)) {
+            ReconnectPolicy.Decision.Cancel -> cancelReconnect()
+            ReconnectPolicy.Decision.Show -> Unit
+            is ReconnectPolicy.Decision.Retry -> {
+                reconnectingState.value = true
+                reconnectJob?.cancel()
+                reconnectJob = graph.scope.launch {
+                    delay(d.delayMs)
+                    attemptState.value = d.attempt + 1
+                    device?.let(graph.ble::connect)
+                }
+            }
         }
     }
 }

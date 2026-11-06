@@ -193,6 +193,27 @@ class ReconnectPolicyTest {
         assertTrue(ReconnectPolicy.shouldRetry(0))
         assertFalse(ReconnectPolicy.shouldRetry(ReconnectPolicy.MAX_ATTEMPTS))
     }
+
+    private fun decide(userStopped: Boolean = false, hasDevice: Boolean = true, auto: Boolean = true, keepAlive: Boolean = true,
+                       wasLive: Boolean = true, retrying: Boolean = false, attempt: Int = 0) =
+        ReconnectPolicy.decide(userStopped, hasDevice, auto, keepAlive, wasLive, retrying, attempt)
+
+    @Test fun droppedRideLinkIsRetriedWithBackoff() {
+        assertEquals(ReconnectPolicy.Decision.Retry(0, 2_000L), decide())
+        assertEquals(ReconnectPolicy.Decision.Retry(3, 16_000L), decide(wasLive = false, retrying = true, attempt = 3))
+    }
+
+    @Test fun userIntentAndSettingsStopRetries() {
+        assertEquals(ReconnectPolicy.Decision.Cancel, decide(userStopped = true))
+        assertEquals(ReconnectPolicy.Decision.Cancel, decide(hasDevice = false))
+        assertEquals(ReconnectPolicy.Decision.Cancel, decide(auto = false))
+        assertEquals(ReconnectPolicy.Decision.Cancel, decide(keepAlive = false))
+        assertEquals(ReconnectPolicy.Decision.Cancel, decide(retrying = true, attempt = ReconnectPolicy.MAX_ATTEMPTS))
+    }
+
+    @Test fun setupFailureIsShownNotRetried() {
+        assertEquals(ReconnectPolicy.Decision.Show, decide(wasLive = false, retrying = false))
+    }
 }
 
 class WheelErrorsTest {
