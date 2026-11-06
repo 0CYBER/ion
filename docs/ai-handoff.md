@@ -1,4 +1,4 @@
-# AI handoff — ветка `ai-experimental` (структурированно)
+# AI handoff — ветка `main` (структурированно)
 
 Актуальное состояние; хронология — `docs/ai-rolling-handoff.md`. Версия `0.9.2-ai` (versionCode 20). Автор коммитов — `0CYBER <heyartemka@gmail.com>` (локальный `git config` репозитория).
 
@@ -66,3 +66,5 @@
 ## Критическое исправление release 0.9.2
 
 v19 optimized не запускается из-за удалённого R8 no-arg конструктора WorkDatabase_Impl. Исправлено точечными keepclassmembers (также InputMerger). v20 release реально установлен и дважды холодно запущен на emulator-5580, UI отрисован; без скриншотов. Перед передачей будущих APK обязателен tools/Test-ApkStartup.ps1, проверяющий pid/resumed Activity/logcat самого артефакта. Сборка, подпись, JVM-тесты и lint сами по себе недостаточны. APK: app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk. История и доказательство red/green — в конце ai-rolling-handoff.md.
+
+2026-11-06: все 35 коммитов ai-experimental до b13af2a перенесены в main fast-forward по запросу владельца. Продолжать на main; экспериментальная ветка сохранена.
