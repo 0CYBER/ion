@@ -20,16 +20,19 @@ class WheelMonitor(private val graph: IonGraph) {
     val attempt: StateFlow<Int> = attemptState.asStateFlow()
     private var reconnectJob: Job? = null
     private var lastPhase = Phase.OFFLINE
-    private var lastPackets = 0
     private var userStopped = true
     private var lastWidgetAt = 0L
     private var lastWidgetPhase: Phase? = null
     private var lastCheckpointAt = 0L
-    private companion object { const val CHECKPOINT_MS = 30_000L }
+    private var sessionStart: Long? = null
+    private var sessionWall: Long? = null
+    private companion object { const val CHECKPOINT_MS = 5_000L }
 
     fun start() {
         graph.history.recoverPending()
+        graph.ble.telemetrySink = ::onTelemetry
         graph.scope.launch { graph.ble.state.collect { onState(it) } }
+        graph.scope.launch { graph.prefs.background.collect { refreshRecording() } }
     }
 
     /** The user asked for a link: a fresh trip unless this continues a dropped session. */
@@ -50,11 +53,12 @@ class WheelMonitor(private val graph: IonGraph) {
 
     /** Archives the running session (if it was a real ride) and starts a fresh one. */
     fun finishTrip() {
-        val summary = TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), SystemClock.elapsedRealtime())
+        val summary = summary(SystemClock.elapsedRealtime())
         if (summary != null) {
             graph.history.add(summary)
-            graph.history.saveTrack(summary.startedAt, graph.track.stop())
-        } else graph.track.stop()
+        } else sessionWall?.let(graph.journal::delete)
+        graph.track.stop()
+        sessionStart = null; sessionWall = null
         graph.history.checkpoint(null); lastCheckpointAt = 0L
         graph.trips.reset()
         graph.samples.clear(); graph.chartState.value = emptyList()
@@ -68,16 +72,9 @@ class WheelMonitor(private val graph: IonGraph) {
     private fun onState(s: WheelState) {
         val now = SystemClock.elapsedRealtime()
         val connected = s.verifiedHt && s.phase == Phase.CONNECTED
-        if (s.packets > lastPackets && connected) s.telemetry?.let {
-            graph.trips.feed(it, now)
-            // Re-checked per packet: permission granted mid-session still starts the recorder.
-            if (!graph.track.listening) graph.track.start()
-            if (graph.samples.add(it, now)) graph.chartState.value = graph.samples.snapshot()
-        }
-        lastPackets = s.packets
         if (connected && now - lastCheckpointAt >= CHECKPOINT_MS) {
             lastCheckpointAt = now
-            TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), now)?.let(graph.history::checkpoint)
+            summary(now)?.let(graph.history::checkpoint)
         }
 
         if (connected && reconnectingState.value) { reconnectingState.value = false; attemptState.value = 0 }
@@ -104,6 +101,32 @@ class WheelMonitor(private val graph: IonGraph) {
             IonWidgetUpdater.push(graph.context, s, graph.trips.stats.value, reconnectingState.value)
         }
         lastPhase = s.phase
+    }
+
+    private fun summary(now: Long): TripSummary? {
+        val wall = sessionWall ?: return null
+        return TripSummary.from(graph.trips.stats.value, System.currentTimeMillis(), now)?.copy(startedAt = wall)
+    }
+
+    /** Called directly for each decoded telemetry packet: StateFlow can conflate packets in a burst. */
+    private fun onTelemetry(t: V12Protocol.Telemetry, now: Long) {
+        if (sessionStart == null) { sessionStart = now; sessionWall = System.currentTimeMillis() }
+        graph.trips.feed(t, now)
+        refreshRecording(false)
+        graph.journal.telemetry(sessionWall!!, TripCsv.row(sessionWall!!, now - sessionStart!!,
+            t, graph.trips.stats.value.distanceKm, graph.track.lastPoint))
+        if (graph.samples.add(t, now)) graph.chartState.value = graph.samples.snapshot()
+    }
+
+    fun recordPoint(point: TrackPoint) { sessionWall?.let { graph.journal.point(it, point) } }
+
+    /** Also called from the resumed Activity after a permission change, before it goes into the pocket. */
+    fun refreshRecording(refreshService: Boolean = true) {
+        val s = graph.ble.state.value
+        if (s.phase !in listOf(Phase.OFFLINE, Phase.ERROR, Phase.SCANNING) && graph.prefs.background.value.keepAlive)
+            if (refreshService) WheelService.start(graph.context, WheelService.ACTION_START)
+            else WheelService.ensureRunning(graph.context)
+        sessionStart?.let(graph.track::start)
     }
 
     private fun onLinkFailed(previous: Phase) {

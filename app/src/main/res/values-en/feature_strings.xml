@@ -132,7 +132,7 @@
     <string name="trips_title">Ride history</string>
     <string name="bg_gps">GPS track recording</string>
     <string name="bg_gps_hint">Each ride\'s route is saved with its stats</string>
-    <string name="location_permission_hint">Track recording needs the location permission</string>
+    <string name="location_permission_hint">Allow precise location to record the route. Approximate location is insufficient.</string>
     <string name="location_permission">Allow location access</string>
     <string name="trips_track">Route</string>
     <string name="trips_track_length">Route length: %1$s km</string>

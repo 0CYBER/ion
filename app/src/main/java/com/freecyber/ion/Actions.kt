@@ -12,12 +12,13 @@ internal data class Actions(
     val requestBatteryUnrestricted: () -> Unit = {},
     val requestLocation: () -> Unit = {},
     val resetTrip: () -> Unit = {},
-    val shareTrips: () -> Unit = {},
+    val shareCsv: (TripSummary) -> Unit = {},
     val shareGpx: (TripSummary) -> Unit = {},
     val deleteTrip: (TripSummary) -> Unit = {},
     val clearTrips: () -> Unit = {},
     /** GPS fixes stored for a finished ride, keyed by its startedAt. */
     val tripTrack: (Long) -> List<TrackPoint> = { emptyList() },
+    val tripHasTelemetry: (Long) -> Boolean = { false },
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */

@@ -55,6 +55,8 @@ data class WheelState(
  */
 @SuppressLint("MissingPermission")
 class BleController(private val context: Context, private val scope: CoroutineScope, private val onConnected: (WheelDevice) -> Unit = {}) {
+    /** Lossless main-thread session input; presentation StateFlow may conflate packet bursts. */
+    internal var telemetrySink: ((V12Protocol.Telemetry, Long) -> Unit)? = null
     /** UI-facing status texts come from resources so they follow the app language. */
     private fun str(id: Int, vararg args: Any): String = context.getString(id, *args)
     private val mutable = MutableStateFlow(WheelState(message = context.getString(R.string.ble_offline)))
@@ -119,8 +121,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
 
     fun hasPermissions(): Boolean = permissions().all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
     /** Location permission for the GPS track; separate from the Bluetooth set and never auto-requested. */
-    fun grantedLocation(): Boolean = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        .any { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+    fun grantedLocation(): Boolean = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     fun permissions(): Array<String> = if (Build.VERSION.SDK_INT >= 31)
         arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
     else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -223,7 +224,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                         phase = Phase.CONNECTED, message = str(R.string.ble_live), lastPacketAt = SystemClock.elapsedRealtime(), packets = s.packets + 1,
                         firmwareUpdateStreak = streak,
                         movingStreak = movingStreak,
-                        stationaryPackets = if(!t.firmwareUpdate) stationary else 0) } }
+                        stationaryPackets = if(!t.firmwareUpdate) stationary else 0) }
+                        telemetrySink?.invoke(t, SystemClock.elapsedRealtime()) }
                     V12Protocol.settings(f)?.let { v -> mutable.update { it.copy(settings = v, settingsAt = SystemClock.elapsedRealtime()) } }
                 }
                 responses.trySend(f)

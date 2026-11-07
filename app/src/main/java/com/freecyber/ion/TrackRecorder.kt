@@ -12,82 +12,84 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/**
- * Collects GPS fixes while a ride session runs and hands them over when the trip is archived.
- * Platform [LocationManager] only (no Play Services); silently idle without the location
- * permission or while the rider turns track recording off. One session spans reconnects,
- * like [TripRecorder]; fixes are deduplicated so standing still does not fill the track.
- */
-class TrackRecorder(private val context: Context, private val enabled: () -> Boolean) {
-    private companion object {
-        const val MIN_TIME_MS = 1000L
-        const val MIN_DISTANCE_M = 3f
-        /** A fix less accurate than this is discarded: too jumpy to draw. */
-        const val MAX_ACCURACY_M = 30f
-        /** Skip fixes that barely move within the window, so stops do not bloat the track. */
-        const val SKIP_METRES = 4.0
-        const val SKIP_MS = 3_000L
-    }
+enum class GpsStatus { OFF, PRECISE_REQUIRED, DISABLED, WAITING, RECORDING, ERROR }
 
-    private var startedAt = 0L
+/** Subscriptions can restart without clearing the ride or changing the telemetry/GPS time origin. */
+class TrackRecorder(
+    private val context: Context,
+    private val enabled: () -> Boolean,
+    private val onPoint: (TrackPoint) -> Unit = {},
+) {
+    private var startedAt: Long? = null
     private var listener: Listener? = null
-    private val points = mutableListOf<TrackPoint>()
-
-    /** Fixes collected in the running session; lets the UI show that GPS is actually working. */
+    private var latest: TrackPoint? = null
     private val countState = MutableStateFlow(0)
-    val count: StateFlow<Int> = countState.asStateFlow()
+    val count = countState.asStateFlow()
+    private val statusState = MutableStateFlow(GpsStatus.OFF)
+    val status = statusState.asStateFlow()
     val listening: Boolean get() = listener != null
+    val lastPoint: TrackPoint? get() = latest
 
-    fun granted(): Boolean = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        .any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+    fun granted(): Boolean = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-    /** Starts a session; safe to call repeatedly while connected. */
     @SuppressLint("MissingPermission")
-    fun start() {
-        if (listener != null || !granted() || !enabled()) return
-        val lm = context.getSystemService(LocationManager::class.java) ?: return
-        startedAt = SystemClock.elapsedRealtime()
-        points.clear(); countState.value = 0
-        val l = Listener()
-        listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER).forEach { provider ->
-            runCatching { if (lm.isProviderEnabled(provider)) lm.requestLocationUpdates(provider, MIN_TIME_MS, MIN_DISTANCE_M, l, Looper.getMainLooper()) }
+    fun start(sessionStart: Long) {
+        startedAt = startedAt ?: sessionStart
+        if (!enabled() || !granted()) {
+            pause()
+            statusState.value = if (!enabled()) GpsStatus.OFF else GpsStatus.PRECISE_REQUIRED
+            return
         }
-        listener = l
+        val lm = context.getSystemService(LocationManager::class.java) ?: return
+        if (listener != null) {
+            if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) statusState.value = GpsStatus.DISABLED
+            else if (latest == null || SystemClock.elapsedRealtime() - sessionStart - latest!!.t > 15_000) statusState.value = GpsStatus.WAITING
+            return
+        }
+        val l = Listener()
+        // Register even while the provider is disabled: Android resumes this request when GPS is enabled.
+        try {
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1_000L, 0f, l, Looper.getMainLooper())
+            listener = l
+            statusState.value = if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) GpsStatus.WAITING else GpsStatus.DISABLED
+        } catch (_: SecurityException) { statusState.value = GpsStatus.PRECISE_REQUIRED }
+        catch (_: IllegalArgumentException) { statusState.value = GpsStatus.ERROR }
     }
 
-    /** Stops listening and returns the collected points. */
-    fun stop(): List<TrackPoint> {
+    fun pause() {
         val lm = context.getSystemService(LocationManager::class.java)
-        listener?.let { runCatching { lm?.removeUpdates(it) } }
+        listener?.let { lm?.removeUpdates(it) }
         listener = null
-        countState.value = 0
-        return points.toList().also { points.clear() }
+        statusState.value = GpsStatus.OFF
+    }
+
+    fun stop() {
+        pause()
+        startedAt = null; latest = null; countState.value = 0
     }
 
     private inner class Listener : LocationListener {
         override fun onLocationChanged(location: Location) {
-            if (location.accuracy > MAX_ACCURACY_M) return
-            val t = SystemClock.elapsedRealtime() - startedAt
-            val fix = TrackPoint(t, location.latitude, location.longitude,
-                if (location.hasAltitude()) location.altitude else null,
-                if (location.hasSpeed()) location.speed.toDouble() else null)
-            val last = points.lastOrNull()
-            if (last != null && t - last.t < SKIP_MS && Track.metres(last, fix) < SKIP_METRES) return
-            points += fix
-            countState.value = points.size
-            // Long rides are decimated in place, never truncated.
-            if (points.size >= Track.MAX_POINTS * 2) {
-                val thinned = Track.thin(points.toList())
-                points.clear(); points.addAll(thinned)
-            }
+            if (listener !== this || !enabled() || !granted()) return
+            val start = startedAt ?: return
+            val fixElapsed = location.elapsedRealtimeNanos / 1_000_000
+            val now = SystemClock.elapsedRealtime()
+            if (!location.hasAccuracy() || !GpsFix.valid(location.latitude, location.longitude,
+                    location.accuracy.toDouble(), fixElapsed, now, start)) return
+            val fix = TrackPoint(fixElapsed - start, location.latitude, location.longitude,
+                location.altitude.takeIf { location.hasAltitude() && it.isFinite() },
+                location.speed.toDouble().takeIf { location.hasSpeed() && it.isFinite() && it >= 0 })
+            if (!GpsFix.follows(latest, fix)) return
+            latest = fix
+            countState.value++
+            statusState.value = GpsStatus.RECORDING
+            onPoint(fix)
         }
-
         @Deprecated("Deprecated in Java")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {}
+        override fun onProviderEnabled(provider: String) { statusState.value = GpsStatus.WAITING }
+        override fun onProviderDisabled(provider: String) { statusState.value = GpsStatus.DISABLED }
     }
 }

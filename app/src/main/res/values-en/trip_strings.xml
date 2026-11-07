@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trip_max_power">Max power</string>
+    <string name="trip_avg_power">Average power</string>
+    <string name="trip_max_pwm">Max PWM</string>
+    <string name="trip_max_current">Max current</string>
+    <string name="trip_min_voltage">Min voltage</string>
+    <string name="trip_regen">Regeneration</string>
+    <string name="trip_stopped">Stopped time</string>
+    <string name="trip_power_hint">Battery power (V × A). Average draw is time-weighted over measured intervals, including stops; regeneration is separate.</string>
+    <string name="trip_export_help">CSV contains every wheel sample with time and GPS. GPX contains the route, elevation and timestamps for maps and navigation.</string>
+    <string name="trip_csv_missing">Detailed samples were not saved for this older ride. CSV is available for newly recorded rides.</string>
+    <string name="trip_export_failed">Could not export the ride file. Check free storage and try again.</string>
+    <string name="trip_load_failed">Could not read the ride</string>
+    <string name="trip_retry">Retry</string>
+    <string name="trip_map_start">Start</string>
+    <string name="trip_map_end">Finish</string>
+    <string name="trip_map_position">Selected point</string>
+    <string name="trip_map_hint">Pinch to zoom and drag to pan. Internet is needed to load the map; previously viewed tiles are cached.</string>
+    <string name="gps_off">GPS recording is off</string>
+    <string name="gps_precise">GPS: allow precise location</string>
+    <string name="gps_disabled">GPS: enable phone location</string>
+    <string name="gps_waiting">GPS: waiting for satellites</string>
+    <string name="gps_recording">GPS: recording</string>
+    <string name="gps_error">GPS: could not start recording</string>
+    <string name="trip_record_failed">Ride storage failed. Check free storage.</string>
+</resources>

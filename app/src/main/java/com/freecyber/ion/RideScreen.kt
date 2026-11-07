@@ -105,7 +105,7 @@ import kotlin.math.roundToInt
             // The rider picks the horn sound in the editor; 4 is the classic signal on the V12 HT.
             env.write(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,slot.param ?: DashTile.PLAY_SOUND.defaultParam ?: 4))
         }
-        DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,ui.gpsPoints,modifier,env.openTrips,env.finishTrip)
+        DashTile.TRIP_SESSION -> TripSessionCard(ui.trip,ui.gpsPoints,modifier,env.openTrips,env.finishTrip,ui.gpsStatus,ui.recordingFailed)
         DashTile.TRIP -> MetricTile(stringResource(R.string.tile_trip),t?.tripKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Route,wide,modifier)
         DashTile.ODOMETER -> MetricTile(stringResource(R.string.metric_odometer),ui.odometerKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Timeline,wide,modifier)
         DashTile.VOLTAGE -> MetricTile(stringResource(R.string.metric_voltage),t?.voltage?.fmt(1),stringResource(R.string.unit_volts),Icons.Rounded.ElectricBolt,wide,modifier)
@@ -238,7 +238,8 @@ import kotlin.math.roundToInt
     }
 }
 
-@Composable private fun TripSessionCard(trip: TripStats,gpsPoints: Int,modifier: Modifier,openTrips: ()->Unit,finishTrip: ()->Unit) {
+@Composable private fun TripSessionCard(trip: TripStats,gpsPoints: Int,modifier: Modifier,openTrips: ()->Unit,finishTrip: ()->Unit,
+    gpsStatus: GpsStatus = GpsStatus.OFF,recordingFailed: Boolean = false) {
     Surface(modifier,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
@@ -248,6 +249,15 @@ import kotlin.math.roundToInt
                     color=MaterialTheme.colorScheme.onSurfaceVariant)
                 trip.startedAt?.let {Text(V12Protocol.formatDuration((trip.movingMs/1000)),style=MaterialTheme.typography.labelLarge,fontFamily=IonSans,color=MaterialTheme.colorScheme.onSurfaceVariant)}
             }
+            if(trip.samples>0) Text(stringResource(when(gpsStatus) {
+                GpsStatus.OFF -> R.string.gps_off
+                GpsStatus.PRECISE_REQUIRED -> R.string.gps_precise
+                GpsStatus.DISABLED -> R.string.gps_disabled
+                GpsStatus.WAITING -> R.string.gps_waiting
+                GpsStatus.RECORDING -> R.string.gps_recording
+                GpsStatus.ERROR -> R.string.gps_error
+            }),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(recordingFailed) Banner(stringResource(R.string.trip_record_failed),Icons.Rounded.ErrorOutline,warning=true)
             if(trip.samples==0) Text(stringResource(R.string.trip_empty),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
             else {
                 Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -275,10 +285,11 @@ import kotlin.math.roundToInt
 }
 
 @Composable internal fun TripFigure(label: String,value: String,unit: String,modifier: Modifier) {
+    val secondary=LocalContentColor.current.copy(alpha=0.78f)
     Column(modifier,verticalArrangement=Arrangement.spacedBy(2.dp)) {
-        Text(label,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1)
+        Text(label,style=MaterialTheme.typography.labelMedium,color=secondary,maxLines=1)
         Text(value,style=MaterialTheme.typography.titleLarge.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1)
-        Text(unit,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(unit,style=MaterialTheme.typography.labelSmall,color=secondary)
     }
 }
 

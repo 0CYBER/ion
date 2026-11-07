@@ -1,7 +1,6 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,29 +11,47 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
-import kotlin.math.cos
-import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 
 /** Opens the detail for a trip id; leaves the screen when the trip was deleted while open. */
 @Composable internal fun TripDetailRoute(startedAt: Long?,trips: List<TripSummary>,actions: Actions,onBack: ()->Unit) {
     val trip=startedAt?.let {at -> trips.firstOrNull {it.startedAt==at}}
     if(trip==null) { LaunchedEffect(startedAt) {onBack()}; return }
-    TripDetailScreen(trip,actions.tripTrack(trip.startedAt),{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack)
+    var retry by remember {mutableIntStateOf(0)}
+    var track by remember(startedAt) {mutableStateOf<List<TrackPoint>?>(null)}
+    var failed by remember(startedAt) {mutableStateOf(false)}
+    var hasCsv by remember(startedAt) {mutableStateOf(false)}
+    LaunchedEffect(startedAt,retry) {
+        failed=false
+        try {
+            val loaded=withContext(Dispatchers.IO) { actions.tripTrack(trip.startedAt) to actions.tripHasTelemetry(trip.startedAt) }
+            track=loaded.first; hasCsv=loaded.second
+        } catch(e: CancellationException) {throw e}
+        catch(_: java.io.IOException) {failed=true}
+    }
+    if(track==null) {
+        Column(Modifier.fillMaxSize().padding(PagePadding),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            DetailHeading(stringResource(R.string.trips_title),"",onBack)
+            if(failed) {
+                Banner(stringResource(R.string.trip_load_failed),Icons.Rounded.ErrorOutline,warning=true)
+                TextButton(onClick={retry++}) {Text(stringResource(R.string.trip_retry))}
+            } else CircularProgressIndicator()
+        }
+    } else TripDetailScreen(trip,track!!,{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack,
+        shareCsv={actions.shareCsv(trip)},hasCsv=hasCsv)
 }
 
 /** One archived ride: the whole ride's stats, its GPS route with a scrubber showing the stats at
  * any moment of the ride, GPX export and delete. */
-@Composable internal fun TripDetailScreen(trip: TripSummary,track: List<TrackPoint>,shareGpx: ()->Unit,delete: ()->Unit,onBack: ()->Unit) {
+@Composable internal fun TripDetailScreen(trip: TripSummary,track: List<TrackPoint>,shareGpx: ()->Unit,delete: ()->Unit,onBack: ()->Unit,
+    shareCsv: ()->Unit = {},hasCsv: Boolean = false) {
     var confirmDelete by rememberSaveable {mutableStateOf(false)}
     val date=remember(trip.startedAt) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))}
     val cum=remember(track) {Track.cumulativeKm(track)}
@@ -50,7 +67,7 @@ import kotlin.math.roundToInt
                     Text(stringResource(R.string.trips_track),style=MaterialTheme.typography.titleMedium)
                     Text(stringResource(R.string.trips_track_length,Track.distanceKm(track).fmt(2)),
                         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    TrackCanvas(track,idx,Modifier.fillMaxWidth().height(240.dp))
+                    TripMap(track,idx,Modifier.fillMaxWidth().height(300.dp))
                     Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat())
                     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                         TripFigure(stringResource(R.string.trip_point_time),V12Protocol.formatDuration(track[idx].t/1000),"",Modifier.weight(1f))
@@ -65,11 +82,18 @@ import kotlin.math.roundToInt
             }
         }
         item(key="actions",contentType="action") {
-            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+              Text(stringResource(R.string.trip_export_help),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+              if(!hasCsv) Text(stringResource(R.string.trip_csv_missing),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+              Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick=shareCsv,enabled=hasCsv,modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
+                    Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export))
+                }
                 FilledTonalButton(onClick=shareGpx,enabled=track.size>=2,modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
                     Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_gpx))
                 }
-                TextButton(onClick={confirmDelete=true},modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
+              }
+                TextButton(onClick={confirmDelete=true},modifier=Modifier.heightIn(min=48.dp)) {
                     Icon(Icons.Rounded.DeleteOutline,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_delete))
                 }
             }
@@ -100,36 +124,21 @@ import kotlin.math.roundToInt
                 TripFigure(stringResource(R.string.trip_consumption),trip.consumption?.fmt(1) ?: "—",stringResource(R.string.unit_wh_km),Modifier.weight(1f))
                 TripFigure(stringResource(R.string.trip_battery_used),trip.batteryUsed?.fmt(0) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
             }
+            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                TripFigure(stringResource(R.string.trip_max_power),trip.maxPower?.fmt(0) ?: "—",stringResource(R.string.unit_watts),Modifier.weight(1f))
+                TripFigure(stringResource(R.string.trip_avg_power),trip.avgPower?.fmt(0) ?: "—",stringResource(R.string.unit_watts),Modifier.weight(1f))
+                TripFigure(stringResource(R.string.trip_max_pwm),trip.maxPwm?.fmt(1) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
+            }
+            Text(stringResource(R.string.trip_power_hint),style=MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                TripFigure(stringResource(R.string.trip_max_current),trip.maxCurrent?.fmt(1) ?: "—",stringResource(R.string.unit_amps),Modifier.weight(1f))
+                TripFigure(stringResource(R.string.trip_min_voltage),trip.minVoltage?.fmt(1) ?: "—",stringResource(R.string.unit_volts),Modifier.weight(1f))
+                TripFigure(stringResource(R.string.trip_max_temp),trip.maxTemp?.toString() ?: "—",stringResource(R.string.unit_celsius),Modifier.weight(1f))
+            }
+            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                TripFigure(stringResource(R.string.trip_regen),trip.regenWh.fmt(1),stringResource(R.string.unit_wh),Modifier.weight(1f))
+                TripFigure(stringResource(R.string.trip_stopped),V12Protocol.formatDuration((trip.durationMs-trip.movingMs).coerceAtLeast(0)/1000),"",Modifier.weight(1f))
+            }
         }
-    }
-}
-
-/** The route drawn to scale (metre projection at the track's mid latitude) with start and scrubber dots. */
-@Composable private fun TrackCanvas(track: List<TrackPoint>,marker: Int,modifier: Modifier) {
-    val line=MaterialTheme.colorScheme.primary
-    val start=MaterialTheme.colorScheme.tertiary
-    val dot=MaterialTheme.colorScheme.onSurface
-    val minLat=track.minOf {it.lat}; val maxLat=track.maxOf {it.lat}
-    val minLon=track.minOf {it.lon}; val maxLon=track.maxOf {it.lon}
-    val mPerLon=111_320.0*cos(Math.toRadians((minLat+maxLat)/2))
-    val widthM=((maxLon-minLon)*mPerLon).coerceAtLeast(1.0)
-    val heightM=((maxLat-minLat)*111_320.0).coerceAtLeast(1.0)
-    Canvas(modifier) {
-        val pad=min(size.width,size.height)*0.08f
-        val availW=(size.width-2*pad).coerceAtLeast(1f); val availH=(size.height-2*pad).coerceAtLeast(1f)
-        val scale=min((availW/widthM).toFloat(),(availH/heightM).toFloat())
-        fun xy(p: TrackPoint): Offset {
-            val x=pad+((p.lon-minLon)*mPerLon*scale).toFloat()+(availW-(widthM*scale).toFloat())/2
-            val y=pad+((maxLat-p.lat)*111_320.0*scale).toFloat()+(availH-(heightM*scale).toFloat())/2
-            return Offset(x,y)
-        }
-        val path=Path()
-        track.forEachIndexed {i,p ->
-            val o=xy(p); if(i==0) path.moveTo(o.x,o.y) else path.lineTo(o.x,o.y)
-        }
-        drawPath(path,line,style=Stroke(width=6f,cap=StrokeCap.Round,join=StrokeJoin.Round))
-        drawCircle(start,9f,xy(track.first()))
-        drawCircle(dot,11f,xy(track[marker.coerceIn(0,track.lastIndex)]))
-        drawCircle(line,6f,xy(track[marker.coerceIn(0,track.lastIndex)]))
     }
 }

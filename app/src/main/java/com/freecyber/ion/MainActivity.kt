@@ -20,6 +20,12 @@ import androidx.compose.runtime.*
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
@@ -46,6 +52,7 @@ class MainActivity : ComponentActivity() {
             LifecycleResumeEffect(Unit) {
                 notificationsAllowed=IonNotifications.canPost(this@MainActivity); batteryUnrestricted=batteryUnrestricted()
                 locationAllowed=model.ble.grantedLocation()
+                model.refreshRecording()
                 onPauseOrDispose { }
             }
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
@@ -55,6 +62,7 @@ class MainActivity : ComponentActivity() {
             fun askNotifications() { if(Build.VERSION.SDK_INT >= 33 && !IonNotifications.canPost(this)) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) }
             val location=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                 locationAllowed=model.ble.grantedLocation()
+                model.refreshRecording()
             }
             val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
                 if(result.values.all { it } && model.ble.hasPermissions()) {
@@ -81,9 +89,9 @@ class MainActivity : ComponentActivity() {
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
                     requestLocation={ location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
-                    resetTrip=model::resetTrip,shareTrips={shareTrips(trips)},shareGpx=::shareGpx,
+                    resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,
-                    tripTrack=model.history::track))
+                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry))
             }
         }
     }
@@ -105,22 +113,27 @@ class MainActivity : ComponentActivity() {
             runCatching { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
         }
     }
-    private fun shareTrips(trips: List<TripSummary>) {
-        if(trips.isEmpty()) return
-        val send=Intent(Intent.ACTION_SEND).setType("text/csv")
-            .putExtra(Intent.EXTRA_SUBJECT,getString(R.string.trips_export_subject))
-            .putExtra(Intent.EXTRA_TEXT,TripSummary.csv(trips))
-        startActivity(Intent.createChooser(send,getString(R.string.trips_export)))
-    }
-    /** The ride's GPS track as GPX 1.1; times are derived from the ride's wall-clock start. */
-    private fun shareGpx(trip: TripSummary) {
-        val points=model.history.track(trip.startedAt)
-        if(points.size<2) return
-        val name=DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))
-        val send=Intent(Intent.ACTION_SEND).setType("application/gpx+xml")
-            .putExtra(Intent.EXTRA_SUBJECT,getString(R.string.trips_export_subject))
-            .putExtra(Intent.EXTRA_TEXT,TrackCodec.gpx(points,trip.startedAt,name))
-        startActivity(Intent.createChooser(send,getString(R.string.trips_export)))
+    private fun exportTrip(trip: TripSummary, gpx: Boolean) {
+        lifecycleScope.launch {
+            try {
+                model.journal.awaitWrites()
+                val file = withContext(Dispatchers.IO) {
+                    val directory = File(cacheDir,"trip_exports").apply { mkdirs() }
+                    directory.listFiles()?.filter { System.currentTimeMillis()-it.lastModified()>7*86_400_000L }?.forEach { it.delete() }
+                    val target = File(directory,"Ion_${trip.startedAt}.${if(gpx) "gpx" else "csv"}")
+                    if(gpx) {
+                        val points=model.history.track(trip.startedAt)
+                        check(points.size>=2)
+                        val name=DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))
+                        target.writeText(TrackCodec.gpx(points,trip.startedAt,name))
+                    } else model.journal.csv(trip.startedAt).copyTo(target,overwrite=true)
+                    target
+                }
+                startActivity(Intent.createChooser(TripExport.intent(this@MainActivity,file,
+                    if(gpx) "application/gpx+xml" else "text/csv"),getString(R.string.trips_export_subject)))
+            } catch(e: CancellationException) { throw e }
+            catch(_: Exception) { android.widget.Toast.makeText(this@MainActivity,R.string.trip_export_failed,android.widget.Toast.LENGTH_LONG).show() }
+        }
     }
     override fun onStop() { super.onStop(); if(!isChangingConfigurations) model.onBackground() }
 }

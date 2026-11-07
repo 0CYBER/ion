@@ -12,7 +12,8 @@ object SavedWheelFormat {
 }
 data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? = null, val now: Long = 0,
     val staleSince: Long? = null, val reconnecting: Boolean = false, val trip: TripStats = TripStats(),
-    val chart: List<Sample> = emptyList(), val gpsPoints: Int = 0) {
+    val chart: List<Sample> = emptyList(), val gpsPoints: Int = 0,
+    val gpsStatus: GpsStatus = GpsStatus.OFF, val recordingFailed: Boolean = false) {
     val fresh get() = wheel.phase == Phase.CONNECTED && wheel.lastPacketAt?.let { now-it in 0..Timing.FRESH_WINDOW_MS } == true
     val busy get() = when(wheel.phase) {Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING -> true; else -> false}
     val connected get() = wheel.verifiedHt && wheel.phase == Phase.CONNECTED
@@ -37,7 +38,7 @@ internal fun wheelUiSnapshot(wheel: WheelState, saved: WheelDevice?, staleSince:
  * Packet age has its own leaf clock in diagnostics; raw `now` is not presentation identity. */
 internal fun VelaUi.samePresentationAs(other: VelaUi): Boolean =
     wheel == other.wheel && saved == other.saved && reconnecting == other.reconnecting &&
-        trip == other.trip && chart == other.chart && gpsPoints == other.gpsPoints &&
+        trip == other.trip && chart == other.chart && gpsPoints == other.gpsPoints && gpsStatus == other.gpsStatus && recordingFailed == other.recordingFailed &&
         fresh == other.fresh && settingsFresh == other.settingsFresh &&
         stoppedWrite == other.stoppedWrite && staleConfirmed == other.staleConfirmed
 
@@ -59,6 +60,8 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
         wheelUiSnapshot(wheel,device,staleSince) { now }.copy(reconnecting=retry,trip=trip)
     }.combine(graph.chart) { ui,chart -> ui.copy(chart=chart) }
         .combine(graph.track.count) { ui,gps -> ui.copy(gpsPoints=gps) }
+        .combine(graph.track.status) { ui,status -> ui.copy(gpsStatus=status) }
+        .combine(graph.journal.failed) { ui,failed -> ui.copy(recordingFailed=failed) }
         .distinctUntilChanged { previous,next -> previous.samePresentationAs(next) }
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5_000),VelaUi(saved=graph.saved.value))
     fun scan()=graph.ble.scan()
@@ -67,6 +70,8 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
     fun disconnect()=graph.monitor.userDisconnect()
     fun resetTrip()=graph.monitor.finishTrip()
     val history get() = graph.history
+    val journal get() = graph.journal
+    fun refreshRecording() = graph.monitor.refreshRecording()
     /** Cold start: pick the saved wheel back up if the rider wants that and nothing else is running. */
     fun autoConnect() {
         val saved=graph.saved.value ?: return

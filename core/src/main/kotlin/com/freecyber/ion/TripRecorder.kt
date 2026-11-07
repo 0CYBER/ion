@@ -19,7 +19,13 @@ data class TripStats(
     val lastBattery: Double? = null,
     val maxTemp: Int? = null,
     val maxPower: Double = 0.0,
+    val maxPwm: Double = 0.0,
+    val maxCurrent: Double = 0.0,
+    val minVoltage: Double? = null,
+    val measuredMs: Long = 0,
 ) {
+    /** Mean pack draw over measured intervals, including stops; regeneration is reported separately. */
+    val avgPower: Double? get() = if (measuredMs > 0) energyWh * 3_600_000 / measuredMs else null
     /** Average over time actually spent moving, so stops at traffic lights do not drag it down. */
     val avgMovingSpeed: Double get() = if (movingMs < 1000) 0.0 else distanceKm / (movingMs / 3_600_000.0)
     val batteryUsed: Double? get() = startBattery?.let { s -> lastBattery?.let { (s - it).coerceAtLeast(0.0) } }
@@ -38,18 +44,27 @@ class TripRecorder {
     val stats: StateFlow<TripStats> = mutable.asStateFlow()
     private var lastAt: Long? = null
     private var lastTripKm: Double? = null
+    /** Provisional speed distance since the last wheel-counter increment (the counter is quantised). */
+    private var provisionalKm = 0.0
 
-    fun reset() { mutable.value = TripStats(); lastAt = null; lastTripKm = null }
+    fun reset() { mutable.value = TripStats(); lastAt = null; lastTripKm = null; provisionalKm = 0.0 }
 
     fun feed(t: V12Protocol.Telemetry, now: Long) {
         val s = mutable.value
         val dt = lastAt?.let { now - it }?.takeIf { it in 1..MAX_GAP_MS } ?: 0L
-        // Prefer the wheel's own trip counter (exact); fall back to speed integration if it resets or jumps.
+        // A frozen/quantised counter must not suppress speed distance. Reconcile its next increment
+        // against provisional distance so we never add both the speed estimate and the counter delta.
         val counterDelta = lastTripKm?.let { t.tripKm - it }
+        val speedDelta = kotlin.math.abs(t.speed) * dt / 3_600_000.0
         val distanceDelta = when {
-            counterDelta != null && counterDelta >= 0 && counterDelta < 0.5 -> counterDelta
-            dt > 0 -> kotlin.math.abs(t.speed) * dt / 3_600_000.0
-            else -> 0.0
+            counterDelta != null && counterDelta > 0 && counterDelta < 0.5 ->
+                // A counter resuming with a tiny increment after a long freeze is still stale;
+                // it must not erase a kilometre already measured from speed. Allow two 10 m ticks
+                // of quantisation error when reconciling an otherwise consistent counter.
+                (if (provisionalKm <= counterDelta + 0.02) counterDelta - provisionalKm else speedDelta)
+                    .also { provisionalKm = 0.0 }
+            counterDelta == 0.0 -> speedDelta.also { provisionalKm += it }
+            else -> speedDelta.also { provisionalKm = 0.0 }
         }
         val power = t.voltage * t.current
         val hours = dt / 3_600_000.0
@@ -59,7 +74,7 @@ class TripRecorder {
             startedAt = s.startedAt ?: now,
             lastAt = now,
             samples = s.samples + 1,
-            distanceKm = s.distanceKm + distanceDelta,
+            distanceKm = (s.distanceKm + distanceDelta).coerceAtLeast(0.0),
             maxSpeed = maxOf(s.maxSpeed, kotlin.math.abs(t.speed)),
             movingMs = s.movingMs + if (kotlin.math.abs(t.speed) >= MOVING_KMH) dt else 0L,
             energyWh = s.energyWh + if (power > 0) power * hours else 0.0,
@@ -68,6 +83,10 @@ class TripRecorder {
             lastBattery = battery ?: s.lastBattery,
             maxTemp = listOfNotNull(s.maxTemp, temp).maxOrNull(),
             maxPower = maxOf(s.maxPower, power),
+            maxPwm = maxOf(s.maxPwm, kotlin.math.abs(t.pwm)),
+            maxCurrent = maxOf(s.maxCurrent, t.current),
+            minVoltage = listOfNotNull(s.minVoltage, t.voltage.takeIf { it.isFinite() && it > 0 }).minOrNull(),
+            measuredMs = s.measuredMs + dt,
         )
         lastAt = now
         lastTripKm = t.tripKm

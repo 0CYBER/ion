@@ -67,9 +67,23 @@ class WheelService : Service() {
     private fun promote(graph: IonGraph): Boolean = try {
         val n = IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
             graph.monitor.reconnecting.value, graph.monitor.attempt.value)
-        val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
+        // Keep the location type while waiting for GPS as well, so enabling the provider later
+        // does not require a while-in-use type upgrade from a locked/background Activity.
+        val location = graph.prefs.background.value.gpsTrack && graph.track.granted()
+        val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or
+            (if (location) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0) else 0
         ServiceCompat.startForeground(this, IonNotifications.LIVE_ID, n, type)
         true
+    } catch (_: SecurityException) {
+        // A location upgrade initiated in the background can be rejected. Keep BLE alive;
+        // the resumed Activity retries with while-in-use access.
+        try {
+            ServiceCompat.startForeground(this, IonNotifications.LIVE_ID,
+                IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
+                    graph.monitor.reconnecting.value, graph.monitor.attempt.value),
+                if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0)
+            true
+        } catch (_: Exception) { false }
     } catch (_: Exception) { false }
 
     private suspend fun observe(graph: IonGraph) {
