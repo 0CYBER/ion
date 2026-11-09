@@ -195,7 +195,9 @@ import kotlin.math.roundToInt
     val ion=ionColors()
     val valid=battery?.takeIf {it.isFinite() && it in 0.0..100.0}
     val progress=animateFloatAsState((valid?.toFloat() ?: 0f)/100f,ProgressIndicatorDefaults.ProgressAnimationSpec,label="battery-level")
-    Surface(modifier.semantics(mergeDescendants=true) {},color=if(valid!=null) ion.accent else MaterialTheme.colorScheme.surfaceContainerLow,
+    // Without a reading TalkBack read "Battery, dash, No data"; say it once.
+    val missing=if(valid==null) "${stringResource(R.string.metric_battery)}, ${stringResource(R.string.no_data)}" else null
+    Surface(modifier.semantics(mergeDescendants=true) {missing?.let {contentDescription=it}},color=if(valid!=null) ion.accent else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor=if(valid!=null) ion.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,shape=IonShapes.discovery) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
@@ -251,7 +253,8 @@ import kotlin.math.roundToInt
     val ion=ionColors()
     val load=pwm?.takeIf {it.isFinite()}?.let {kotlin.math.abs(it).coerceIn(0.0,100.0)}
     val hot=load!=null && load>=80
-    Surface(modifier.semantics(mergeDescendants=true) {},color=if(hot) ion.warning else MaterialTheme.colorScheme.surfaceContainerLow,
+    val spoken="${stringResource(R.string.tile_pwm)}, ${load?.let {"${it.roundToInt()}%"} ?: stringResource(R.string.no_data)}"
+    Surface(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},color=if(hot) ion.warning else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor=if(hot) ion.onWarning else MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(IonShapes.l)) {
         Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.tile_pwm),style=MaterialTheme.typography.labelLarge)
