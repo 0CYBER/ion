@@ -98,7 +98,7 @@ import java.util.Date
                     Text(V12Protocol.formatDuration(trip.durationMs/1000),style=MaterialTheme.typography.labelLarge,fontFamily=IonSans,
                         color=MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                IconButton(onClick=delete) {Icon(Icons.Rounded.DeleteOutline,stringResource(R.string.trips_delete))}
+                IconButton(onClick=delete) {Icon(Icons.Rounded.DeleteOutline,stringResource(R.string.trips_delete_one,date))}
             }
             Row(Modifier.padding(end=12.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 TripFigure(stringResource(R.string.trip_distance),trip.distanceKm.fmt(2),stringResource(R.string.unit_km),Modifier.weight(1f))

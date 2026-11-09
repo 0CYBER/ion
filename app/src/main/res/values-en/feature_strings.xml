@@ -155,6 +155,7 @@
     <string name="trips_clear_title">Delete the whole history?</string>
     <string name="trips_clear_message">All saved rides will be removed from this phone.</string>
     <string name="trips_delete">Delete ride</string>
+    <string name="trips_delete_one">Delete ride %1$s</string>
     <string name="trips_month">%1$s · %2$s km</string>
     <string name="trips_total">Total</string>
     <string name="trips_count">Rides</string>

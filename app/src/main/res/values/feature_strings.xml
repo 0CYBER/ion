@@ -155,6 +155,7 @@
     <string name="trips_clear_title">Удалить всю историю?</string>
     <string name="trips_clear_message">Все сохранённые поездки будут удалены с телефона.</string>
     <string name="trips_delete">Удалить поездку</string>
+    <string name="trips_delete_one">Удалить поездку %1$s</string>
     <string name="trips_month">%1$s · %2$s км</string>
     <string name="trips_total">Всего</string>
     <string name="trips_count">Поездок</string>
