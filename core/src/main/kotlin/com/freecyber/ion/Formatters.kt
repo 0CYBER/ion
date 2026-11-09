@@ -8,4 +8,4 @@ object IonFormat {
     @Volatile var locale: Locale = Locale.forLanguageTag("ru")
 }
 
-fun Double.fmt(digits: Int)=String.format(IonFormat.locale,"%.${digits}f",this)
+fun Double.fmt(digits: Int)=if(isFinite()) String.format(IonFormat.locale,"%.${digits}f",this) else "—"
