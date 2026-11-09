@@ -12,7 +12,7 @@ Native Kotlin / Jetpack Compose / Material 3 Expressive personal app for one INM
 - BLE (Nordic UART) link to a verified V12 HT (series 7 / variant 2); the wheel is remembered after the first valid telemetry.
 - Ride: speed, battery, voltage, trip distance (telemetry u16[22], distance since power-on), odometer (statistics), remaining range, current, MOS/motor temperature.
 - Data: decoded fields and full raw payloads for nine read requests, plus JSON export of raw frames for before/after diffs.
-- Trips: ride log grouped by month (with monthly distance), trip detail with map, timeline scrubber and GPX export; CSV of all rides with distance, speeds, energy, battery, temperature, power, PWM, current and minimum voltage.
+- Trips: ride log grouped by month (with monthly distance), trip detail with map, timeline scrubber and GPX/CSV export with dated file names; "All rides to CSV" on the trips screen (one row per ride: distance, speeds, energy, battery, temperature, power, PWM, current, minimum voltage, UTC start time).
 - Voice alerts: danger alerts (critical battery, overheating, wheel error, speed) are spoken first and cut any queued phrase.
 - Controls: lights, auto-light, brightness, mute, sound wave, volume, play sound, ride modes (Off-road / Advanced), split mode and split accel/brake, pedal sensitivity and tilt, alarm thresholds, handle button, transport mode, wheel lock, standby timer.
 
