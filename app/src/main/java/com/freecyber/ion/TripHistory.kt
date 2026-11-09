@@ -32,7 +32,7 @@ class TripHistory(context: Context, private val journal: TripJournal? = null) {
         if (pending != null && state.value.none { it.startedAt == pending.startedAt }) add(pending)
         checkpoint(null)
     }
-    fun delete(trip: TripSummary) { deleteTrack(trip.startedAt); journal?.delete(trip.startedAt); save(state.value - trip) }
+    fun delete(trip: TripSummary) { deleteTrack(trip.startedAt); journal?.delete(trip.startedAt); save(state.value.filterNot { it.startedAt == trip.startedAt }) }
     fun clear() { state.value.forEach { journal?.delete(it.startedAt) }; save(emptyList()); trackKeys().forEach { deleteTrack(it) } }
 
     private fun save(list: List<TripSummary>) {
