@@ -23,7 +23,7 @@ class VoiceAnnouncer(private val context: Context) : TextToSpeech.OnInitListener
     override fun onInit(status: Int) {
         val engine = tts ?: return
         ready = status == TextToSpeech.SUCCESS
-        if (!ready) { pending.clear(); return }
+        if (!ready) { pending.clear(); engine.shutdown(); if (tts === engine) tts = null; return }
         // Speak in the language the phrases are written in (the app's resolved UI language).
         val voice = Locale.forLanguageTag(context.getString(R.string.voice_locale))
         if (engine.isLanguageAvailable(voice) >= TextToSpeech.LANG_AVAILABLE) engine.language = voice
