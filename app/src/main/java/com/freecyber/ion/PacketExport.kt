@@ -11,7 +11,7 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
     var first=true
     for((read,rec) in records) {
         if(!first) sb.append(','); first=false
-        sb.append("{\"read\":\"").append(read.name).append("\",\"status\":\"").append(rec.status.replace("\"","'"))
+        sb.append("{\"read\":\"").append(read.name).append("\",\"status\":\"").append(jsonEscape(rec.status))
             .append("\",\"at\":").append(rec.at ?: -1)
         val f=rec.frame
         if(f==null) { sb.append(",\"frame\":null}"); continue }
@@ -20,7 +20,15 @@ internal fun exportRecords(context: android.content.Context,records: Map<V12Prot
             .append("\",\"payloadHex\":\"").append(V12Protocol.hex(f.payload).replace(" ","")).append("\"}}")
     }
     sb.append("]}")
-    file.writeText(sb.toString())
-    return file
+    return runCatching { file.writeText(sb.toString()); file }.getOrNull()
+}
+
+private fun jsonEscape(text: String): String = buildString {
+    for(c in text) when {
+        c=='"' -> append("\\\"")
+        c=='\\' -> append("\\\\")
+        c<' ' -> append("\\u%04x".format(c.code))
+        else -> append(c)
+    }
 }
 
