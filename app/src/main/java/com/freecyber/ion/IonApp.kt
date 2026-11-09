@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
     val savedPages=rememberSaveableStateHolder()
     val motion=MaterialTheme.motionScheme
     BackHandler(detail!=null) {back()}
+    // Back on the Settings or Wheel tab returns to Ride first, the usual pattern for bottom navigation.
+    BackHandler(detail==null && tab!=0) {tab=0}
     // Pass writes straight through: BleController.apply guards the tier itself and reports a refusal
     // through writeMessage. The old silent drop left taps with no feedback at all.
     fun write(command: V12Protocol.Write) {actions.write(command)}
