@@ -306,7 +306,8 @@ import kotlin.math.roundToInt
 
 @Composable internal fun TripFigure(label: String,value: String,unit: String,modifier: Modifier) {
     val secondary=LocalContentColor.current.copy(alpha=0.78f)
-    Column(modifier,verticalArrangement=Arrangement.spacedBy(2.dp)) {
+    // One TalkBack stop per figure ("Max, 42.1, km/h"), as for the ride tiles.
+    Column(modifier.semantics(mergeDescendants=true) {},verticalArrangement=Arrangement.spacedBy(2.dp)) {
         Text(label,style=MaterialTheme.typography.labelMedium,color=secondary,maxLines=1)
         Text(value,style=MaterialTheme.typography.titleLarge.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1)
         Text(unit,style=MaterialTheme.typography.labelSmall,color=secondary)
