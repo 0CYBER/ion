@@ -2,7 +2,8 @@ name: Android CI
 
 on:
   push:
-    branches: [ main, ai-experimental ]
+    # Every branch gets a signed release APK; tags are left out on purpose.
+    branches: [ '**' ]
   pull_request:
 
 permissions:
