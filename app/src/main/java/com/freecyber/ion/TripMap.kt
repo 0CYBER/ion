@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.doOnLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -37,13 +38,15 @@ import org.osmdroid.views.overlay.Polyline
     val endTitle=stringResource(R.string.trip_map_end)
     val positionTitle=stringResource(R.string.trip_map_position)
     val route = remember(track) { Track.thin(track).map { GeoPoint(it.lat,it.lon) } }
-    val map = remember(context,track,startTitle,endTitle) {
+    val map = remember(context,owner,track,startTitle,endTitle) {
         Configuration.getInstance().apply {
             userAgentValue = "Ion/com.freecyber.ion"
             osmdroidBasePath = File(context.cacheDir,"osm")
             osmdroidTileCache = File(context.cacheDir,"osm/tiles")
         }
         MapView(context).apply {
+            // The lazy item can temporarily detach. AndroidView owns the final release.
+            setDestroyMode(false)
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             minZoomLevel=2.0; maxZoomLevel=19.0
@@ -57,7 +60,15 @@ import org.osmdroid.views.overlay.Polyline
                 view.parent?.requestDisallowInterceptTouchEvent(event.actionMasked != MotionEvent.ACTION_UP && event.actionMasked != MotionEvent.ACTION_CANCEL)
                 false
             }
-            post { zoomToBoundingBox(BoundingBox.fromGeoPoints(route),false,48,18.0,null) }
+            // A posted task can run before this lazy item is laid out. osmdroid can loop
+            // indefinitely if it computes the projection with non-positive content dimensions.
+            doOnLayout { view ->
+                val shortestSide = minOf(view.width, view.height)
+                if (shortestSide > 0) {
+                    val padding = (shortestSide / 8).coerceAtMost(48)
+                    zoomToBoundingBox(BoundingBox.fromGeoPoints(route), false, padding, 18.0, null)
+                }
+            }
         }
     }
     val marker=remember(map) { Marker(map).apply {
@@ -66,22 +77,30 @@ import org.osmdroid.views.overlay.Polyline
         title=positionTitle
         map.overlays.add(this)
     } }
-    DisposableEffect(map,owner) {
-        val observer=LifecycleEventObserver { _,event ->
+    val observer = remember(map) {
+        LifecycleEventObserver { _,event ->
             when(event) { Lifecycle.Event.ON_RESUME -> map.onResume(); Lifecycle.Event.ON_PAUSE -> map.onPause(); else -> Unit }
         }
-        owner.lifecycle.addObserver(observer)
-        if(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) map.onResume()
-        onDispose { owner.lifecycle.removeObserver(observer); map.onPause() }
     }
     Column {
-        AndroidView(factory={map},modifier=modifier.clipToBounds(),onRelease={it.onDetach()},update={
-            (it.overlays.first() as Polyline).outlinePaint.color=color
-            marker.title=positionTitle
-            val point=track[index.coerceIn(0,track.lastIndex)]
-            marker.position=GeoPoint(point.lat,point.lon)
-            it.invalidate()
-        })
+        key(map) {
+            AndroidView(
+                factory = { map.also { owner.lifecycle.addObserver(observer) } },
+                modifier = modifier.clipToBounds(),
+                onRelease = {
+                    owner.lifecycle.removeObserver(observer)
+                    it.onPause()
+                    it.onDetach()
+                },
+                update = {
+                    (it.overlays.first() as Polyline).outlinePaint.color = color
+                    marker.title = positionTitle
+                    val point = track[index.coerceIn(0, track.lastIndex)]
+                    marker.position = GeoPoint(point.lat, point.lon)
+                    it.invalidate()
+                },
+            )
+        }
         Text("© OpenStreetMap contributors",style=MaterialTheme.typography.labelSmall,
             modifier=Modifier.clickable { uriHandler.openUri("https://www.openstreetmap.org/copyright") })
         Text(stringResource(R.string.trip_map_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)

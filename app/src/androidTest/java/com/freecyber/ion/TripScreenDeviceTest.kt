@@ -13,11 +13,22 @@ import android.graphics.Bitmap
 import java.io.File
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @RunWith(AndroidJUnit4::class)
 class TripScreenDeviceTest {
     @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+
+    @Test fun mapFitsEvenWhenTheViewportIsNarrowerThanTheOriginalPadding() {
+        val track=listOf(TrackPoint(0,52.23,21.01),TrackPoint(1000,52.24,21.02))
+        rule.runOnUiThread { rule.activity.setContent { IonTheme(false) {
+            TripMap(track,1,Modifier.width(20.dp).height(300.dp))
+        } } }
+        rule.onNodeWithText("© OpenStreetMap contributors").assertIsDisplayed()
+    }
 
     @Test fun detailRendersNativeMapAndExportsBelongToTheRide() {
         val trip=TripSummary(1700000000000,2400000,2100000,14.2,38.4,24.3,410.0,35.0,18.0,52,

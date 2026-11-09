@@ -65,7 +65,7 @@ import kotlinx.coroutines.CancellationException
             else Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
                 Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.trips_track),style=MaterialTheme.typography.titleMedium)
-                    Text(stringResource(R.string.trips_track_length,Track.distanceKm(track).fmt(2)),
+                    Text(stringResource(R.string.trips_track_length,(cum.lastOrNull() ?: 0.0).fmt(2)),
                         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     TripMap(track,idx,Modifier.fillMaxWidth().height(300.dp))
                     Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat())
