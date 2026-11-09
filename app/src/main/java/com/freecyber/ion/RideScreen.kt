@@ -158,7 +158,7 @@ import kotlin.math.roundToInt
                 Icon(if(ui.fresh) Icons.Rounded.Sensors else Icons.Rounded.Update,null,Modifier.size(24.dp))
             }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val value=ui.wheel.telemetry?.speed?.fmt(1) ?: "—"
+                val value=ui.wheel.telemetry?.speed?.let {kotlin.math.abs(it)}?.fmt(1) ?: "—"
                 val style=if(maxWidth<300.dp || LocalDensity.current.fontScale>1.2f) IonType.speedCompact else IonType.speed
                 val fit=minOf(style.fontSize.value,maxWidth.value/(value.length*.65f*LocalDensity.current.fontScale)).sp
                 Column {

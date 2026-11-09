@@ -66,7 +66,7 @@ class IonTileService : TileService() {
         val subtitle = when {
             live -> s.telemetry?.let { t ->
                 val battery = t.battery.takeIf { it.isFinite() && it in 0.0..100.0 }?.roundToInt()
-                if (battery != null) getString(R.string.qs_live, battery, t.speed.fmt(0)) else getString(R.string.status_connected_short)
+                if (battery != null) getString(R.string.qs_live, battery, kotlin.math.abs(t.speed).fmt(0)) else getString(R.string.status_connected_short)
             } ?: getString(R.string.status_connected_short)
             reconnecting -> getString(R.string.status_reconnecting)
             connecting -> getString(R.string.qs_connecting)

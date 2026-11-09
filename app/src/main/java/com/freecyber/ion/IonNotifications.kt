@@ -49,7 +49,7 @@ object IonNotifications {
         val t = s.telemetry
         val connected = s.verifiedHt && s.phase == Phase.CONNECTED
         val title = when {
-            connected && t != null -> context.getString(R.string.live_title_speed, t.speed.fmt(1), t.battery.roundToInt())
+            connected && t != null -> context.getString(R.string.live_title_speed, kotlin.math.abs(t.speed).fmt(1), t.battery.roundToInt())
             reconnecting -> context.getString(R.string.live_title_reconnecting)
             s.phase == Phase.ERROR -> context.getString(R.string.live_title_lost)
             else -> context.getString(R.string.live_title_connecting)
