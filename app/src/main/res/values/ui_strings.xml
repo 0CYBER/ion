@@ -91,4 +91,6 @@
     <string name="data_no_export">Нечего экспортировать</string>
     <string name="data_refresh">Перечитать %1$s</string>
     <string name="data_age"> · %1$d с назад</string>
+    <string name="data_expanded">Развёрнуто</string>
+    <string name="data_collapsed">Свёрнуто</string>
 </resources>

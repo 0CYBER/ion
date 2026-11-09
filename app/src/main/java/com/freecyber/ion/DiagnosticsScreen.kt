@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import androidx.compose.animation.*
@@ -88,15 +90,17 @@ import androidx.compose.ui.text.style.TextAlign
 @Composable private fun PacketCard(read: V12Protocol.Read,record: PacketRecord?,now: Long,fields: List<V12Protocol.Field>,rawMode: Boolean,enabled: Boolean,refresh: ()->Unit) {
     var expanded by rememberSaveable(read) { mutableStateOf(read in listOf(V12Protocol.Read.TELEMETRY,V12Protocol.Read.SETTINGS)) }
     var raw by rememberSaveable(read) { mutableStateOf(false) }
+    val expandState=stringResource(if(expanded) R.string.data_expanded else R.string.data_collapsed)
     Surface(shape=RoundedCornerShape(IonShapes.xl),color=MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.fillMaxWidth().animateContentSize()) {
-            Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode,role=androidx.compose.ui.semantics.Role.Button) {expanded=!expanded}.padding(start=18.dp,top=10.dp,bottom=10.dp,end=6.dp),verticalAlignment=Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode,role=androidx.compose.ui.semantics.Role.Button) {expanded=!expanded}
+                .then(if(rawMode) Modifier else Modifier.semantics {stateDescription=expandState}).padding(start=18.dp,top=10.dp,bottom=10.dp,end=6.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(read.label,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Medium)
                     PacketAge(record,now)
                 }
                 IconButton(onClick=refresh,enabled=enabled) { Icon(Icons.Rounded.Refresh,stringResource(R.string.data_refresh,read.label)) }
-                if(!rawMode) Icon(if(expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,stringResource(R.string.data_expand),Modifier.size(24.dp))
+                if(!rawMode) Icon(if(expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,null,Modifier.size(24.dp))
                 Spacer(Modifier.width(10.dp))
             }
             AnimatedVisibility(expanded || rawMode) {
