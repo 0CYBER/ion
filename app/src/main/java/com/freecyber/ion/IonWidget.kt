@@ -113,8 +113,12 @@ object IonWidgetUpdater {
                     color = if (snap.isStale) colors.outline else colors.primary, backgroundColor = colors.surfaceVariant)
             }
             Spacer(GlanceModifier.height(4.dp))
-            Text(context.getString(R.string.widget_figures, snap.rangeKm?.fmt(1) ?: "—", snap.tripKm?.fmt(1) ?: "—",
-                snap.temperature?.toString() ?: "—"), style = TextStyle(color = colors.onSurfaceVariant, fontSize = 12.sp), maxLines = 2)
+            val figures = context.getString(R.string.widget_figures, snap.rangeKm?.fmt(1) ?: "—", snap.tripKm?.fmt(1) ?: "—",
+                snap.temperature?.toString() ?: "—")
+            // TalkBack reads each missing figure as "no data", not as a dash.
+            val spokenFigures = figures.replace("—", context.getString(R.string.no_data))
+            Text(figures, modifier = if (spokenFigures != figures) GlanceModifier.semantics { contentDescription = spokenFigures } else GlanceModifier,
+                style = TextStyle(color = colors.onSurfaceVariant, fontSize = 12.sp), maxLines = 2)
         }
         if (size.height >= 110.dp && snap.hasSavedWheel) {
             Spacer(GlanceModifier.height(8.dp))
