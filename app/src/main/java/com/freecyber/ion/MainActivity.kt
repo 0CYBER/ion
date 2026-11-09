@@ -84,7 +84,7 @@ class MainActivity : ComponentActivity() {
                 IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips,locationAllowed,themeFollowsSystem=preference==null),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
-                    theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))},
+                    theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}},
                     setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
