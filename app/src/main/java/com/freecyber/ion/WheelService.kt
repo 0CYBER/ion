@@ -56,7 +56,7 @@ class WheelService : Service() {
         when (intent?.action) {
             ACTION_DISCONNECT -> graph.monitor.userDisconnect()
             ACTION_CONNECT -> graph.saved.value?.let { if (graph.ble.hasPermissions()) graph.monitor.userConnect(it) }
-            ACTION_TOGGLE_LIGHT -> graph.ble.state.value.telemetry?.let { t ->
+            ACTION_TOGGLE_LIGHT -> graph.ble.state.value.takeIf { it.verifiedHt && it.phase == Phase.CONNECTED }?.telemetry?.let { t ->
                 graph.ble.apply(V12Protocol.Write(V12Protocol.Control.LIGHTS, if (t.lowBeam) 0 else 1, if (t.highBeam) 1 else 0))
             }
         }
