@@ -230,6 +230,10 @@ Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:asse
 - В README добавлены ритмы вибрации и тема «Как в системе».
 - Проверка предупреждений: старые логи сборок содержали уже исправленные AutoMirrored-иконки; актуальные остатки — `Slider` (Ui.kt, FeatureScreens, TripDetail), `rememberModalBottomSheetState`/`ListItem` в DashboardEditor и BLE API для minSdk 26.
 
+## Цикл 12 — ползунок маршрута для TalkBack (`87e9e40`)
+
+- Ползунок точки маршрута в `TripDetail` объявляет «Маршрут» и состояние «время · дистанция км» вместо голого процента от числа точек.
+
 ## Следующие циклы (план)
 
 1. ~~Аудит тёмной темы~~ (захардкоженных цветов вне Theme.kt нет). ~~Вибро-оповещения~~ — цикл 4.
