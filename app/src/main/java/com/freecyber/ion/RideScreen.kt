@@ -166,9 +166,28 @@ import kotlin.math.roundToInt
                     Text(stringResource(R.string.speed_unit),style=MaterialTheme.typography.titleLarge)
                 }
             }
-            if(!ui.fresh) Text(stringResource(R.string.last_readings),style=MaterialTheme.typography.bodySmall)
+            if(!ui.fresh) ReadingAgeText(ui.wheel.lastPacketAt,ui.now)
         }
     }
+}
+
+/** "Last readings · 12 s ago": only this caption observes the age clock, the speed figure itself does not tick. */
+@Composable private fun ReadingAgeText(lastPacketAt: Long?,snapshotAt: Long) {
+    val now by produceState(snapshotAt,snapshotAt,lastPacketAt) {
+        if(lastPacketAt==null) return@produceState
+        val anchor=android.os.SystemClock.elapsedRealtime()
+        while(true) {
+            value=snapshotAt+android.os.SystemClock.elapsedRealtime()-anchor
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    val text=when(val age=ReadingAge.of(lastPacketAt?.let {now-it})) {
+        null -> stringResource(R.string.last_readings)
+        is ReadingAge.Seconds -> stringResource(R.string.last_readings_seconds,age.amount)
+        is ReadingAge.Minutes -> stringResource(R.string.last_readings_minutes,age.amount)
+        is ReadingAge.Hours -> stringResource(R.string.last_readings_hours,age.amount)
+    }
+    Text(text,style=MaterialTheme.typography.bodySmall)
 }
 
 @Composable private fun BatteryTile(battery: Double?,charging: Boolean,modifier: Modifier) {
