@@ -213,7 +213,8 @@ import kotlin.math.roundToInt
 }
 
 @Composable private fun FigureTile(label: String,value: String,unit: String,icon: ImageVector,tone: IonTone,modifier: Modifier) {
-    Surface(modifier.semantics(mergeDescendants=true) {},color=tone.container,contentColor=tone.content,shape=IonShapes.hero) {
+    val spoken=if(value=="—") "$label, ${stringResource(R.string.no_data)}" else "$label, $value $unit"
+    Surface(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},color=tone.container,contentColor=tone.content,shape=IonShapes.hero) {
         Column(Modifier.fillMaxWidth().heightIn(min=156.dp).padding(20.dp),verticalArrangement=Arrangement.SpaceBetween) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text(label,style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
