@@ -17,3 +17,13 @@ class FormattersTest {
         } finally { IonFormat.locale = before }
     }
 }
+
+class DurationFormatTest {
+    @Test fun formatsHoursMinutesSeconds() {
+        org.junit.Assert.assertEquals("1:02:03", V12Protocol.formatDuration(3723))
+        org.junit.Assert.assertEquals("0:00:00", V12Protocol.formatDuration(0))
+    }
+    @Test fun negativeSpanIsZero() {
+        org.junit.Assert.assertEquals("0:00:00", V12Protocol.formatDuration(-65))
+    }
+}

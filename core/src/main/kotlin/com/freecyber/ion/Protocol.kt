@@ -362,7 +362,8 @@ object V12Protocol {
             add("diag",tr("Диагностика","Diagnostics"), if (f.payload.all { it.u() == 0 }) tr("Без ошибок","No errors") else tr("Есть ненулевые байты","Non-zero bytes present"))
         return rows
     }
-    fun formatDuration(sec: Long): String { val h=sec/3600; val m=(sec/60)%60; val s=sec%60; return "%d:%02d:%02d".format(h,m,s) }
+    /** A negative span (clock moved back) reads as 0:00:00, not "-0:-1:-5". */
+    fun formatDuration(sec: Long): String { val t=sec.coerceAtLeast(0); val h=t/3600; val m=(t/60)%60; val s=t%60; return "%d:%02d:%02d".format(h,m,s) }
     fun hex(bytes: ByteArray): String = bytes.joinToString(" ") { "%02X".format(it.u()) }
     fun raw(f: Frame): String = "flags=%02X command=%02X payload=%d B\n".format(f.flags,f.commandByte,f.payload.size) +
         f.payload.toList().chunked(8).mapIndexed { i, bytes -> "%03d: ".format(i*8) + hex(bytes.toByteArray()) }.joinToString("\n")
