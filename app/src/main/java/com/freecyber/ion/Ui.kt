@@ -128,7 +128,10 @@ import kotlin.math.roundToInt
     }
 }
 /** One slider inside an [ExpandSliders] editor: the wheel's current value plus how to show it. */
-internal class SliderSpec(val label: String,val value: Int,val range: IntRange,val text: @Composable (Int)->String)
+internal class SliderSpec(val label: String,value: Int,val range: IntRange,val text: @Composable (Int)->String) {
+    // An odd wheel reading (e.g. standby 0 min) must not ride along with Apply outside the slider's range.
+    val value: Int=value.coerceIn(range)
+}
 
 /**
  * Expandable slider editor whose drafts survive settings read-backs. A slider the rider never touched
