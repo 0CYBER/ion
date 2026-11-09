@@ -5,7 +5,8 @@ Native Kotlin / Jetpack Compose / Material 3 Expressive personal app for one INM
 - Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
 - Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode.
 - Background: foreground service (`connectedDevice|location`) keeps the link, auto-reconnects, records trips with GPS tracks; live notification, home-screen widget and Quick Settings tile. Internet is used only for trip map tiles.
-- Customisable ride dashboard (repeatable tiles, universal toggle), alerts with voice, RU/EN.
+- Customisable ride dashboard (repeatable tiles, universal toggle), alerts with voice and optional vibration rhythms (danger / speed / warning / info are told apart in a pocket), RU/EN.
+- Appearance: light, dark or "Match system" (follows the phone's dark mode).
 
 ## What it does
 - BLE (Nordic UART) link to a verified V12 HT (series 7 / variant 2); the wheel is remembered after the first valid telemetry.
