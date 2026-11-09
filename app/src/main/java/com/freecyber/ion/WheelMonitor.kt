@@ -26,7 +26,7 @@ class WheelMonitor(private val graph: IonGraph) {
     private var lastCheckpointAt = 0L
     private var sessionStart: Long? = null
     private var sessionWall: Long? = null
-    private companion object { const val CHECKPOINT_MS = 5_000L }
+    private companion object { const val CHECKPOINT_MS = 5_000L; const val VIBRATE_AFTER_MS = 700L }
 
     fun start() {
         graph.history.recoverPending()
@@ -85,9 +85,14 @@ class WheelMonitor(private val graph: IonGraph) {
             battery = s.telemetry?.battery, charging = s.telemetry?.charging ?: false,
             mosTemp = s.telemetry?.mosTemp, motorTemp = s.telemetry?.motorTemp, speed = s.telemetry?.speed, errors = errors)
         val config = graph.prefs.alerts.value
-        engine.evaluate(input, config, now).forEach {
+        val fired = engine.evaluate(input, config, now)
+        fired.forEach {
             IonNotifications.alert(graph.context, it)
             if (config.voice) graph.voice.speak(VoiceAnnouncer.phrase(graph.context, it))
+        }
+        // One rhythm per evaluation (the most severe), played after the channel's own buzz so it is not cut off.
+        if (config.vibrate) fired.maxByOrNull { AlertHaptics.pattern(it.kind).size }?.let { alert ->
+            graph.scope.launch { delay(VIBRATE_AFTER_MS); graph.vibrator.play(alert.kind) }
         }
         if (connected && config.voiceBattery) stepper.next(s.telemetry?.battery, s.telemetry?.charging ?: false)
             ?.let { graph.voice.speak(graph.context.resources.getQuantityString(R.plurals.voice_battery_step, it, it)) }

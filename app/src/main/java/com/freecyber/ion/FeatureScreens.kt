@@ -158,6 +158,11 @@ internal object EditorSample {
                     actions.setAlerts(al.copy(voice=it))}
                 SwitchRow(Icons.Rounded.BatteryChargingFull,stringResource(R.string.alert_setting_voice_battery),al.voiceBattery,stringResource(R.string.alert_setting_voice_battery_hint),true) {
                     actions.setAlerts(al.copy(voiceBattery=it))}
+                val context=androidx.compose.ui.platform.LocalContext.current
+                SwitchRow(Icons.Rounded.Vibration,stringResource(R.string.alert_setting_vibrate),al.vibrate,stringResource(R.string.alert_setting_vibrate_hint),true) {
+                    actions.setAlerts(al.copy(vibrate=it))
+                    // Let the rider feel the rhythm right away instead of waiting for a real alert.
+                    if(it) AlertVibrator(context).play(AlertKind.SPEED_HIGH)}
             }
         }
     }

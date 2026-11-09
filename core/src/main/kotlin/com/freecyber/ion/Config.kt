@@ -13,6 +13,8 @@ data class AlertConfig(
     val voiceBattery: Boolean = false,
     /** Tell the rider when charging reaches this level (0 = off); many riders stop at 80-90 % to spare the pack. */
     val chargeTargetPercent: Int = 0,
+    /** Distinct vibration pattern per alert kind, readable through a pocket without looking at the phone. */
+    val vibrate: Boolean = false,
 ) {
     companion object {
         val CHARGE_RANGE = 0..100

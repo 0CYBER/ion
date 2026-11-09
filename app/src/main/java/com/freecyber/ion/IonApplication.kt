@@ -35,6 +35,7 @@ class IonGraph(val context: Context) {
     /** GPS fixes of the running ride; written by the monitor, archived with the trip. */
     val track = TrackRecorder(context, { prefs.background.value.gpsTrack }) { point -> monitor.recordPoint(point) }
     val voice = VoiceAnnouncer(context)
+    val vibrator = AlertVibrator(context)
     /** Recent telemetry for the live chart; written by the monitor, read by the UI. */
     val samples = SampleBuffer()
     internal val chartState = MutableStateFlow<List<Sample>>(emptyList())

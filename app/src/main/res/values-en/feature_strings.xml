@@ -166,6 +166,8 @@
     <string name="alert_setting_voice_hint">Speak warnings out loud — handy with headphones</string>
     <string name="alert_setting_voice_battery">Announce battery</string>
     <string name="alert_setting_voice_battery_hint">Every 10 % used</string>
+    <string name="alert_setting_vibrate">Vibration</string>
+    <string name="alert_setting_vibrate_hint">Distinct rhythm: three long — danger, two short — speed, one — link and battery</string>
     <string name="voice_speed">Speed %1$d</string>
     <string name="voice_link_lost">Lost connection to the wheel</string>
     <string name="voice_link_restored">Connection restored</string>

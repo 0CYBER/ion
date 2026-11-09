@@ -26,14 +26,14 @@ class AppPrefs(context: Context) {
         prefs.getBoolean("alert_disconnect", true),
         prefs.getBoolean("alert_errors", true),
         prefs.getBoolean("alert_voice", false), prefs.getBoolean("alert_voice_battery", false),
-        prefs.getInt("alert_charge", 0).coerceIn(AlertConfig.CHARGE_RANGE))
+        prefs.getInt("alert_charge", 0).coerceIn(AlertConfig.CHARGE_RANGE), prefs.getBoolean("alert_vibrate", false))
     fun setAlerts(value: AlertConfig) {
         alertState.value = value
         prefs.edit { putInt("alert_battery", value.batteryLowPercent).putInt("alert_temperature", value.temperatureHighC)
             .putInt("alert_speed", value.speedHighKmh).putBoolean("alert_disconnect", value.disconnect)
             .putBoolean("alert_errors", value.wheelErrors)
             .putBoolean("alert_voice", value.voice).putBoolean("alert_voice_battery", value.voiceBattery)
-            .putInt("alert_charge", value.chargeTargetPercent) }
+            .putInt("alert_charge", value.chargeTargetPercent).putBoolean("alert_vibrate", value.vibrate) }
     }
 
     private val backgroundState = MutableStateFlow(loadBackground())

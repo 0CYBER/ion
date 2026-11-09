@@ -166,6 +166,8 @@
     <string name="alert_setting_voice_hint">Произносить предупреждения вслух — удобно в наушниках</string>
     <string name="alert_setting_voice_battery">Озвучивать заряд</string>
     <string name="alert_setting_voice_battery_hint">Каждые потраченные 10 %</string>
+    <string name="alert_setting_vibrate">Вибрация</string>
+    <string name="alert_setting_vibrate_hint">Разный ритм: три длинных — опасно, два коротких — скорость, один — связь и заряд</string>
     <string name="voice_speed">Скорость %1$d</string>
     <string name="voice_link_lost">Связь с колесом потеряна</string>
     <string name="voice_link_restored">Связь восстановлена</string>
