@@ -220,6 +220,16 @@ Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:asse
 
 - Корзина в списке поездок удаляла поездку с маршрутом одним касанием, хотя строки `trips_delete_title`/`trips_delete_message` уже были (их использовал только экран деталей). Теперь тот же диалог и в списке; ожидающее удаление хранится по `startedAt` в `rememberSaveable` и переживает поворот.
 
+## Цикл 10 — TalkBack читает плитку целиком (`af063aa`)
+
+- `SpeedInstrument`, `FigureTile`, `MetricTile`, `PwmTile` получили `semantics(mergeDescendants=true)`: экранный диктор читает «Скорость 23,4 км/ч» одной остановкой, а не тремя фрагментами.
+- `BatteryTile` сознательно не тронут: `RidePresentationTest` ищет вложенные теги `battery-charge-wave` / `battery-level-wave` в объединённом дереве; при слиянии их нужно искать с `useUnmergedTree=true`.
+
+## Цикл 11 — README (`7a97bde`)
+
+- В README добавлены ритмы вибрации и тема «Как в системе».
+- Проверка предупреждений: старые логи сборок содержали уже исправленные AutoMirrored-иконки; актуальные остатки — `Slider` (Ui.kt, FeatureScreens, TripDetail), `rememberModalBottomSheetState`/`ListItem` в DashboardEditor и BLE API для minSdk 26.
+
 ## Следующие циклы (план)
 
 1. ~~Аудит тёмной темы~~ (захардкоженных цветов вне Theme.kt нет). ~~Вибро-оповещения~~ — цикл 4.

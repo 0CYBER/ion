@@ -4,7 +4,7 @@
 
 ## Статус
 
-- Текущая работа — ветка **ai-upgrader** (rebase на main `7d7dbde`, не запушена): непрерывные улучшения, журнал и план — «Часть III» в `docs/rolling-handoff.md`. Сделано: заголовки страниц `onBackground` в обеих темах (корневой `Scaffold` задаёт contentColor); AutoMirrored-иконки; README актуализирован; вибро-оповещения с разными ритмами; тема «Как в системе»; a11y-роли; `LocalContentColor` в `IonTheme`; подтверждение удаления поездки в списке.
+- Текущая работа — ветка **ai-upgrader** (rebase на main `7d7dbde`, не запушена): непрерывные улучшения, журнал и план — «Часть III» в `docs/rolling-handoff.md`. Сделано: заголовки страниц `onBackground` в обеих темах (корневой `Scaffold` задаёт contentColor); AutoMirrored-иконки; README актуализирован; вибро-оповещения с разными ритмами; тема «Как в системе»; a11y-роли; `LocalContentColor` в `IonTheme`; подтверждение удаления поездки в списке; плитки поездки читаются TalkBack целиком.
 - Ветка **main** (35 коммитов ai-experimental перенесены fast-forward до b13af2a; экспериментальная ветка сохранена). Remote: https://github.com/0CYBER/ion.
 - Версия **0.9.3-ai / versionCode 21**. Релизный APK: `app/build/outputs/apk/release/app-release.apk`. Начиная с v21, локальные и CI-релизы используют один постоянный ключ Ion. Для перехода со старого APK, подписанного debug-ключом, потребуется новая установка.
 - Приложение: персональный компаньон INMOTION V12 HT (Kotlin + Compose, Material 3 Expressive), `applicationId`/`namespace` = `com.freecyber.ion`. Вкладки: Поездка / Настройки / Колесо.
