@@ -279,8 +279,11 @@ class TripSummaryTest {
     @Test fun csvHasHeaderAndDotDecimals() {
         val lines = TripSummary.csv(listOf(sample)).trim().lines()
         assertEquals(TripSummary.CSV_HEADER, lines[0])
-        assertEquals("1700000000000,600,540,4.321,31.2,28.8,120.0,12.5,7.0,55", lines[1])
-        assertEquals(10, lines[0].split(',').size)
+        assertEquals("1700000000000,600,540,4.321,31.2,28.8,120.0,12.5,7.0,55,,,,,", lines[1])
+        assertEquals(15, lines[0].split(',').size)
+        val full = TripSummary.csv(listOf(sample.copy(maxPower = 2450.4, avgPower = 610.6, maxPwm = 71.25, maxCurrent = 32.04, minVoltage = 79.876))).trim().lines()[1]
+        assertTrue(full, full.endsWith(",55,2450,611,71.3,32.0,79.88"))
+        assertEquals(15, full.split(',').size)
     }
 
     @Test fun totals() {
