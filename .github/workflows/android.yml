@@ -5,6 +5,9 @@ on:
     branches: [ main, ai-experimental ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,11 +22,31 @@ jobs:
         with:
           packages: "platforms;android-37.0 build-tools;36.0.0 platform-tools"
       - uses: gradle/actions/setup-gradle@v4
-      - name: Unit tests and optimized release APK
+      - name: Unit tests and lint
         run: >-
           ./gradlew --no-configuration-cache -PskipScreenshots
           :core:test :app:testDebugUnitTest :app:lintRelease
-          :app:assembleRelease :app:compileDebugAndroidTestKotlin
+          :app:compileDebugAndroidTestKotlin
+      - name: Assemble unsigned pull request APK
+        if: github.event_name == 'pull_request'
+        run: ./gradlew --no-configuration-cache :app:assembleRelease
+      - name: Assemble signed release APK
+        if: github.event_name == 'push'
+        env:
+          ION_RELEASE_KEYSTORE_BASE64: ${{ secrets.ION_RELEASE_KEYSTORE_BASE64 }}
+          ION_RELEASE_STORE_PASSWORD: ${{ secrets.ION_RELEASE_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ION_RELEASE_KEYSTORE_BASE64:?Missing release keystore secret}"
+          : "${ION_RELEASE_STORE_PASSWORD:?Missing release password secret}"
+          umask 077
+          keystore="$(mktemp "${RUNNER_TEMP}/ion-release.XXXXXX")"
+          trap 'rm -f -- "$keystore" keystore.properties' EXIT
+          printf '%s' "$ION_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          printf 'storeFile=%s\nstorePassword=%s\n' "$keystore" "$ION_RELEASE_STORE_PASSWORD" > keystore.properties
+          unset ION_RELEASE_KEYSTORE_BASE64 ION_RELEASE_STORE_PASSWORD
+          ./gradlew --no-configuration-cache :app:assembleRelease
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -35,6 +58,7 @@ jobs:
             core/build/test-results
             app/build/outputs/mapping/release
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
         with:
           name: app-release
           path: app/build/outputs/apk/release/app-release.apk

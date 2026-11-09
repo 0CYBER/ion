@@ -8,6 +8,7 @@ local.properties
 .serena/
 *.jks
 *.keystore
+*.p12
 keystore.properties
 .zcode/
 __pycache__/

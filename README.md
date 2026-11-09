@@ -29,6 +29,22 @@ JDK 21, Android SDK 37, AGP 9.3.1, Gradle 9.7.1. Min API 26, target API 35.
 
 APK: `app/build/outputs/apk/debug/app-debug.apk` (debug-signed personal build).
 
+## Signed release
+
+Place the existing Ion PKCS#12 keystore on the build machine and create an ignored
+`keystore.properties` in the repository root. Set `storeFile` to the keystore path
+(use forward slashes on Windows) and `storePassword` to its password. The key alias
+is `ion-release`, and the key and store use the same password.
+
+```powershell
+.\gradlew.bat --no-configuration-cache :app:assembleRelease
+```
+
+The signed APK is `app/build/outputs/apk/release/app-release.apk`. GitHub Actions
+uses the same keystore through `ION_RELEASE_KEYSTORE_BASE64` and
+`ION_RELEASE_STORE_PASSWORD`. Pull requests build an unsigned APK without signing
+credentials. Keep a secure backup of the keystore and password for future updates.
+
 ## Docs
 - `docs/design-system.md` — Material 3 Expressive design code: visual direction, tokens, components, motion, states and implementation rules. Redesign based on commit `3b82cd3` (0.4.0).
 - `handoff.md` — current implementation: status, verified lock protocol, modules, build, CI.

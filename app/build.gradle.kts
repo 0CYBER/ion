@@ -1,7 +1,13 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val releaseCredentials = providers.fileContents(rootProject.layout.projectDirectory.file("keystore.properties"))
+    .asText.orNull?.let { contents -> Properties().apply { contents.reader().use(::load) } }
+
 android {
     namespace = "com.freecyber.ion"
     compileSdk = 37
@@ -10,15 +16,30 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 20
-        versionName = "0.9.2-ai"
+        versionCode = 21
+        versionName = "0.9.3-ai"
+    }
+    signingConfigs {
+        if (releaseCredentials != null) {
+            create("ionRelease") {
+                storeFile = rootProject.file(requireNotNull(releaseCredentials.getProperty("storeFile")) {
+                    "keystore.properties must contain storeFile"
+                })
+                storePassword = requireNotNull(releaseCredentials.getProperty("storePassword")) {
+                    "keystore.properties must contain storePassword"
+                }
+                keyAlias = "ion-release"
+                keyPassword = storePassword
+                storeType = "PKCS12"
+            }
+        }
     }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            // Personal distributable: same signing key as installed debug builds, without debugging overhead.
-            signingConfig = signingConfigs.getByName("debug")
+            // Checkouts without credentials can build an unsigned APK, including pull requests.
+            signingConfig = signingConfigs.findByName("ionRelease")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

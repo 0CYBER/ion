@@ -5,7 +5,7 @@
 ## Статус
 
 - Ветка **main** (35 коммитов ai-experimental перенесены fast-forward до b13af2a; экспериментальная ветка сохранена). Remote: https://github.com/0CYBER/ion.
-- Версия **0.9.2-ai / versionCode 20**. Рекомендуемый артефакт: `app/build/outputs/apk/release/Ion-0.9.2-ai-v20-optimized.apk`. **0.9.1 / v19 не использовать** — R8 удалял reflection-конструктор WorkDatabase_Impl, падала при запуске.
+- Версия **0.9.3-ai / versionCode 21**. Релизный APK: `app/build/outputs/apk/release/app-release.apk`. Начиная с v21, локальные и CI-релизы используют один постоянный ключ Ion. Для перехода со старого APK, подписанного debug-ключом, потребуется новая установка.
 - Приложение: персональный компаньон INMOTION V12 HT (Kotlin + Compose, Material 3 Expressive), `applicationId`/`namespace` = `com.freecyber.ion`. Вкладки: Поездка / Настройки / Колесо.
 - Исследование: lock/unlock работает на V12 HT владельца, подтверждено аппаратно (обе операции + read-back match).
 
@@ -64,7 +64,7 @@ Instrumentation (изолированный эмулятор, отдельный
 
 ## CI
 
-`.github/workflows/android.yml`: JDK 21 + SDK 37, `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:assembleRelease`, `:app:compileDebugAndroidTestKotlin` (-PskipScreenshots). Артефакт `app-release` + mapping в reports. **По прямому указанию владельца проверку эмулятором в CI не добавлять** (Test-ApkStartup — только для ручной передачи). Подпись CI — debug signingConfig раннера; обновление поверх локального APK требует общего ключа.
+`.github/workflows/android.yml`: JDK 21 + SDK 37, `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:assembleRelease`, `:app:compileDebugAndroidTestKotlin` (-PskipScreenshots). Push-сборки публикуют подписанный `app-release` с ключом из секретов репозитория. Pull request собирает APK без подписи. Mapping хранится в `reports`. **По прямому указанию владельца проверку эмулятором в CI не добавлять** (Test-ApkStartup — только для ручной передачи).
 
 ## Инструкция владельца (постоянно действующие)
 
