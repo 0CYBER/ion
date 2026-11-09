@@ -174,7 +174,10 @@ internal class SliderSpec(val label: String,val value: Int,val range: IntRange,v
                 SettingIcon(icon,open)
                 Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                     Text(title,style=MaterialTheme.typography.titleMedium)
-                    Text(summary,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,fontFamily=IonSans)
+                    // Before settings arrive the summary is a dash; TalkBack says "no data" instead.
+                    val noData=stringResource(R.string.no_data)
+                    Text(summary,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,fontFamily=IonSans,
+                        modifier=if(summary=="—") Modifier.semantics {contentDescription=noData} else Modifier)
                 }
                 Icon(Icons.Rounded.ExpandMore,null,Modifier.size(24.dp).graphicsLayer {rotationZ=rotation.value})
             }
