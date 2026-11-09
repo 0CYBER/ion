@@ -81,7 +81,12 @@ import androidx.compose.ui.text.style.TextAlign
     val emptyMessage=stringResource(R.string.data_no_export)
     OutlinedButton(onClick={
         val file=exportRecords(ctx,ui.wheel.records)
-        android.widget.Toast.makeText(ctx,if(file!=null) savedMessage.format(file.name) else emptyMessage,android.widget.Toast.LENGTH_LONG).show()
+        // The share icon promised a share sheet; the file used to land in a folder the rider cannot open.
+        val shared=file!=null && runCatching {
+            ctx.startActivity(android.content.Intent.createChooser(TripExport.intent(ctx,file,"application/json"),file.name)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.isSuccess
+        if(!shared) android.widget.Toast.makeText(ctx,if(file!=null) savedMessage.format(file.name) else emptyMessage,android.widget.Toast.LENGTH_LONG).show()
     },enabled=ui.wheel.records.isNotEmpty(),modifier=modifier.heightIn(min=48.dp)) {
         Icon(Icons.Rounded.IosShare,null,Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_export),style=MaterialTheme.typography.bodyMedium)
     }

@@ -3,7 +3,8 @@ package com.freecyber.ion
 /** Raw frame snapshot for offline diffing (e.g. finding the lock-state byte via before/after exports). */
 internal fun exportRecords(context: android.content.Context,records: Map<V12Protocol.Read,PacketRecord>): java.io.File? {
     if(records.isEmpty()) return null
-    val dir=context.getExternalFilesDir(null) ?: return null
+    // The shared cache folder is what the FileProvider exposes; Android/data is out of reach on modern phones.
+    val dir=java.io.File(context.cacheDir,"trip_exports").apply { mkdirs() }
     val stamp=java.text.SimpleDateFormat("yyyyMMdd-HHmmss",java.util.Locale.US).format(java.util.Date())
     val file=java.io.File(dir,"frames-$stamp.json")
     val sb=StringBuilder()
