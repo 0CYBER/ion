@@ -111,7 +111,7 @@ import kotlin.math.roundToInt
         DashTile.ODOMETER -> MetricTile(stringResource(R.string.metric_odometer),ui.odometerKm?.fmt(1),stringResource(R.string.unit_km),Icons.Rounded.Timeline,wide,modifier)
         DashTile.VOLTAGE -> MetricTile(stringResource(R.string.metric_voltage),t?.voltage?.fmt(1),stringResource(R.string.unit_volts),Icons.Rounded.ElectricBolt,wide,modifier)
         DashTile.CURRENT -> MetricTile(stringResource(R.string.metric_current),t?.current?.fmt(1),stringResource(R.string.unit_amps),Icons.Rounded.Waves,wide,modifier)
-        DashTile.POWER -> MetricTile(stringResource(R.string.tile_power),t?.power?.roundToInt()?.toString(),stringResource(R.string.unit_watts),Icons.Rounded.Bolt,wide,modifier)
+        DashTile.POWER -> MetricTile(stringResource(R.string.tile_power),t?.power?.takeIf {it.isFinite()}?.roundToInt()?.toString(),stringResource(R.string.unit_watts),Icons.Rounded.Bolt,wide,modifier)
         DashTile.MOTOR_TEMP -> MetricTile(stringResource(R.string.temperature_motor),t?.motorTemp?.takeIf {it in -50..180}?.toString(),stringResource(R.string.unit_celsius),Icons.Rounded.Thermostat,wide,modifier)
         DashTile.MOS_TEMP -> MetricTile(stringResource(R.string.temperature_mos),t?.mosTemp?.takeIf {it in -50..180}?.toString(),stringResource(R.string.unit_celsius),Icons.Rounded.Memory,wide,modifier)
         DashTile.PWM -> PwmTile(t?.pwm,modifier)
