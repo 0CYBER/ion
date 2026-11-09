@@ -50,8 +50,11 @@ import kotlin.math.roundToInt
                 SoundButtons(safe) {n -> request(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,n))}
             } }
         }
+        // Ride, pedal and service writes all need a stopped wheel; say why they are greyed out instead of leaving dead controls.
+        if(category in STATIONARY_CATEGORIES && ui.connected && !settingsStopped) item(key="stationary-notice",contentType="banner") {
+            Banner(stringResource(R.string.stationary_controls_hint),Icons.Rounded.Lock,warning=true)
+        }
         if(category==ControlCategory.RIDE) {
-            if(ui.connected && !settingsStopped) item(key="stationary-notice",contentType="banner") {Banner(stringResource(R.string.stationary_controls_hint),Icons.Rounded.Lock,warning=true)}
             item(key="modes",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.Rounded.Terrain,stringResource(R.string.control_off_road),s?.classicMode,hint=stringResource(R.string.control_classic_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.Spa,stringResource(R.string.control_advanced),s?.fancier,hint=stringResource(R.string.control_advanced_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
@@ -92,3 +95,6 @@ import kotlin.math.roundToInt
     }
 }
 
+
+/** Categories whose writes are only allowed with the wheel standing still (see VelaUi.stoppedWrite). */
+private val STATIONARY_CATEGORIES=setOf(ControlCategory.RIDE,ControlCategory.PEDALS,ControlCategory.SERVICE)
