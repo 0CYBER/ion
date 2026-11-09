@@ -89,7 +89,8 @@ class TrackRecorder(
         }
         @Deprecated("Deprecated in Java")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-        override fun onProviderEnabled(provider: String) { statusState.value = GpsStatus.WAITING }
-        override fun onProviderDisabled(provider: String) { statusState.value = GpsStatus.DISABLED }
+        // A callback already posted for a removed listener must not overwrite the paused (OFF) status.
+        override fun onProviderEnabled(provider: String) { if (listener === this) statusState.value = GpsStatus.WAITING }
+        override fun onProviderDisabled(provider: String) { if (listener === this) statusState.value = GpsStatus.DISABLED }
     }
 }
