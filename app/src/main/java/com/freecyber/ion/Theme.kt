@@ -93,8 +93,10 @@ object IonType {
         MaterialExpressiveTheme(colorScheme=if(dark) DarkScheme else LightScheme,
             typography=IonTypography,motionScheme=MotionScheme.expressive(),
             shapes=Shapes(extraSmall=RoundedCornerShape(IonShapes.xs),small=RoundedCornerShape(IonShapes.s),
-                medium=RoundedCornerShape(IonShapes.m),large=RoundedCornerShape(IonShapes.l),extraLarge=RoundedCornerShape(IonShapes.xl)),
-            content=content)
+                medium=RoundedCornerShape(IonShapes.m),large=RoundedCornerShape(IonShapes.l),extraLarge=RoundedCornerShape(IonShapes.xl))) {
+            // Safety net: text drawn straight on the background (outside any Surface) must not fall back to black.
+            CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides androidx.compose.material3.MaterialTheme.colorScheme.onBackground,content=content)
+        }
     }
 }
 @Composable internal fun ionColors(): IonColors=LocalIonColors.current
