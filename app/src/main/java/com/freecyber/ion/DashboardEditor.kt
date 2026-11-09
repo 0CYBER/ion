@@ -121,7 +121,9 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                         OutlinedButton(onClick={change(layout.moveVisible(slot.id,-1))},enabled=index>0,modifier=Modifier.weight(1f)) {
                             Icon(Icons.Rounded.ArrowUpward,stringResource(R.string.dash_move_up,stringResource(slot.titleRes)))
                         }
-                        Text("${index+1} / ${layout.visible.size}",style=MaterialTheme.typography.labelLarge)
+                        val position=stringResource(R.string.dash_position,index+1,layout.visible.size)
+                        Text("${index+1} / ${layout.visible.size}",style=MaterialTheme.typography.labelLarge,
+                            modifier=Modifier.clearAndSetSemantics {contentDescription=position})
                         OutlinedButton(onClick={change(layout.moveVisible(slot.id,1))},enabled=index<layout.visible.lastIndex,modifier=Modifier.weight(1f)) {
                             Icon(Icons.Rounded.ArrowDownward,stringResource(R.string.dash_move_down,stringResource(slot.titleRes)))
                         }

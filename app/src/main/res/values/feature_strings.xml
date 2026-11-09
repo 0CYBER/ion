@@ -51,6 +51,7 @@
     <string name="dash_tap_hint">Нажми на плитку — настрой её размер, порядок и действие.</string>
     <string name="dash_available">Доступные плитки</string>
     <string name="dash_param_sound">Звук сигнала</string>
+    <string name="dash_position">Позиция %1$d из %2$d</string>
     <string name="dash_move_up">Переместить выше: %1$s</string>
     <string name="dash_move_down">Переместить ниже: %1$s</string>
     <string name="dash_hide">Скрыть: %1$s</string>
