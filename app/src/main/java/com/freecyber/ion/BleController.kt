@@ -146,7 +146,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             if (a == null || !a.isEnabled) { error(str(R.string.ble_turn_on)); return }
             mutable.value = WheelState(phase = Phase.SCANNING, message = str(R.string.ble_scanning))
             scanning = true
-            val scanner = a.bluetoothLeScanner ?: throw IllegalStateException(str(R.string.ble_scan_unavailable))
+            // Show the specific reason; a thrown exception fell into the generic "check Bluetooth" branch below.
+            val scanner = a.bluetoothLeScanner ?: run { scanning = false; error(str(R.string.ble_scan_unavailable)); return }
             scanner.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), scanCallback)
             scanTimeout = scope.launch { delay(12_000); stopScan() }
         } catch (_: SecurityException) { error(str(R.string.ble_permission_revoked)) }
