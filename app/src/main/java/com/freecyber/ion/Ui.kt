@@ -103,7 +103,7 @@ import kotlin.math.roundToInt
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
             Text(text,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary,fontFamily=IonSans)
         }
-        Slider(value=value,onValueChange=change,enabled=enabled,valueRange=range,
+        Slider(state=rememberSliderState(value,trackRange=range),onValueChange=change,enabled=enabled,
             modifier=Modifier.fillMaxWidth().then(if(sliderTag!=null) Modifier.testTag(sliderTag) else Modifier))
     }
 }

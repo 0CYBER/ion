@@ -179,8 +179,8 @@ internal object EditorSample {
             Text(if(shown==0) stringResource(R.string.alert_off) else describe(shown),style=MaterialTheme.typography.labelLarge,
                 color=MaterialTheme.colorScheme.primary)
         }
-        Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
-            valueRange=range.first.toFloat()..range.last.toFloat(),steps=steps)
+        Slider(state=rememberSliderState(draft,steps,trackRange=range.first.toFloat()..range.last.toFloat()),
+            onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())})
     }
     }
 }

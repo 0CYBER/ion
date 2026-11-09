@@ -94,7 +94,7 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                 }
             }
         }
-        if(catalog || slot!=null) ModalBottomSheet(onDismissRequest={catalog=false;selected=null}, sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
+        if(catalog || slot!=null) ModalBottomSheet(onDismissRequest={catalog=false;selected=null}, sheetState=rememberBottomSheetState(initialValue=SheetValue.Hidden,enabledValues=setOf(SheetValue.Hidden,SheetValue.Expanded))) {
             Column(Modifier.fillMaxWidth().heightIn(max=sheetHeight).padding(horizontal=20.dp)) {
                 if(catalog) {
                     Text(stringResource(R.string.dash_add),style=MaterialTheme.typography.headlineSmall,modifier=Modifier.padding(bottom=16.dp))
@@ -106,7 +106,7 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                         groups.forEach { (title,tiles) ->
                             item(key=title,contentType="heading") { SectionHeader(stringResource(title)) }
                             items(tiles,key={it.name},contentType={"catalog"}) { tile ->
-                                ListItem(headlineContent={Text(stringResource(tile.titleRes))},leadingContent={Icon(tile.icon,null)},
+                                ListItem(content={Text(stringResource(tile.titleRes))},leadingContent={Icon(tile.icon,null)},
                                     trailingContent={Icon(Icons.Rounded.Add,null)}, modifier=Modifier.testTag("catalog-${tile.name}").clickable(role=Role.Button) {
                                         val next=layout.add(tile)
                                         change(next); selected=next.visible.last().id; reveal=selected; catalog=false
