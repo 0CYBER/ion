@@ -18,7 +18,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable internal fun WheelScreen(ui: VelaUi,actions: Actions,select: (WheelDevice)->Unit,forget: ()->Unit,diagnostics: ()->Unit) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(16.dp)) {
-        item(key="intro",contentType="intro") {ScreenHeading(stringResource(R.string.nav_wheel),stringResource(R.string.search_start),Icons.Rounded.Add,actions.scan,enabled=!ui.busy && !ui.connected)}
+        item(key="intro",contentType="intro") {ScreenHeading(stringResource(R.string.nav_wheel),stringResource(R.string.search_start),Icons.Rounded.Add,actions.scan,
+            enabled=!ui.busy && !ui.connected && ui.wheel.phase!=Phase.SCANNING)}
         item(key="status",contentType="status") {Status(ui)}
         if(ui.wheel.phase==Phase.ERROR) item(key="error",contentType="banner") {Banner(ui.wheel.message,error=true)}
         ui.saved?.let {device ->
