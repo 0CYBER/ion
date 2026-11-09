@@ -201,9 +201,18 @@ Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:asse
 - `AppPrefs.setDark(null)` уже умел следовать системе, но UI позволял только светлую/тёмную. Добавлен переключатель «Как в системе» в Оформлении (`Actions.followSystemTheme`, `PrefsUi.themeFollowsSystem`). Выбор карточки темы, как и раньше, вызывает `actions.theme` один раз — androidTest `appearanceShowsRealSelectionsAndOnlyRequestsAChangeOnce` не меняется; явный выбор фиксирует тему.
 - Lint: `:app:lintAnalyzeDebug` висел >20 мин на 4 ГБ RAM — остановлен (`./gradlew --stop`). Lint гонять только отдельно и после остановки демона. Не используйте `pkill -f lint` внутри команды, где есть слово lint, — убивает свою же оболочку.
 
+## Цикл 6 — доступность (`5f2142b`)
+
+- `Role.Button` у кликабельных строк без роли: раскрытие записи в Диагностике, пункт каталога плиток в редакторе дашборда, ссылка атрибуции OSM; у атрибуции зона касания ≥ 48 dp.
+- `DetailHeading`: заголовок явно `onBackground` (как `ScreenHeading`).
+
+## Цикл 7 — страховка цвета текста в теме
+
+- `IonTheme` задаёт `LocalContentColor = colorScheme.onBackground` под `MaterialExpressiveTheme`: любой текст прямо на фоне (вне `Surface`) больше не может откатиться к чёрному в тёмной теме — корень бага из цикла 1 закрыт на уровне темы, а не точечно.
+
 ## Следующие циклы (план)
 
 1. ~~Аудит тёмной темы~~ (захардкоженных цветов вне Theme.kt нет). ~~Вибро-оповещения~~ — цикл 4.
-2. a11y: contentDescription/роли у плиток и графиков, размеры касаний.
+2. ~~a11y: роли и размеры касаний~~ — цикл 6; дальше: описания графиков для TalkBack.
 3. Вынос логики `WheelMonitor` в `:core` с тестами; миграция устаревших Slider/BottomSheet API.
 4. Планшет: двухпанельные настройки; второй вариант виджета.
