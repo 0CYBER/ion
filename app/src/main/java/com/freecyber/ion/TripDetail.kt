@@ -12,6 +12,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
@@ -68,7 +71,11 @@ import kotlinx.coroutines.CancellationException
                     Text(stringResource(R.string.trips_track_length,(cum.lastOrNull() ?: 0.0).fmt(2)),
                         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     TripMap(track,idx,Modifier.fillMaxWidth().height(300.dp))
-                    Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat())
+                    // TalkBack: "Route, 12:30 · 3.25 km" instead of a bare percentage of track points.
+                    val sliderLabel=stringResource(R.string.trips_track)
+                    val sliderState=V12Protocol.formatDuration(track[idx].t/1000)+" · "+cum[idx].fmt(2)+" "+stringResource(R.string.unit_km)
+                    Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat(),
+                        modifier=Modifier.semantics {contentDescription=sliderLabel;stateDescription=sliderState})
                     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                         TripFigure(stringResource(R.string.trip_point_time),V12Protocol.formatDuration(track[idx].t/1000),"",Modifier.weight(1f))
                         TripFigure(stringResource(R.string.trip_point_speed),track[idx].speed?.let {(it*3.6).fmt(1)} ?: "—",
