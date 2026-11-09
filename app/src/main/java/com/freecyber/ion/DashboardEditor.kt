@@ -107,7 +107,7 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                             item(key=title,contentType="heading") { SectionHeader(stringResource(title)) }
                             items(tiles,key={it.name},contentType={"catalog"}) { tile ->
                                 ListItem(headlineContent={Text(stringResource(tile.titleRes))},leadingContent={Icon(tile.icon,null)},
-                                    trailingContent={Icon(Icons.Rounded.Add,null)}, modifier=Modifier.testTag("catalog-${tile.name}").clickable {
+                                    trailingContent={Icon(Icons.Rounded.Add,null)}, modifier=Modifier.testTag("catalog-${tile.name}").clickable(role=Role.Button) {
                                         val next=layout.add(tile)
                                         change(next); selected=next.visible.last().id; reveal=selected; catalog=false
                                     })

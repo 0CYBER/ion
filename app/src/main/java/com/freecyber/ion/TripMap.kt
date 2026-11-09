@@ -2,6 +2,9 @@ package com.freecyber.ion
 
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -102,7 +105,7 @@ import org.osmdroid.views.overlay.Polyline
             )
         }
         Text("© OpenStreetMap contributors",style=MaterialTheme.typography.labelSmall,
-            modifier=Modifier.clickable { uriHandler.openUri("https://www.openstreetmap.org/copyright") })
+            modifier=Modifier.heightIn(min=48.dp).wrapContentHeight().clickable(role=androidx.compose.ui.semantics.Role.Button) { uriHandler.openUri("https://www.openstreetmap.org/copyright") })
         Text(stringResource(R.string.trip_map_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

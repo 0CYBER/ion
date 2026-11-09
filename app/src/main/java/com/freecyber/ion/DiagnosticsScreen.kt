@@ -90,7 +90,7 @@ import androidx.compose.ui.text.style.TextAlign
     var raw by rememberSaveable(read) { mutableStateOf(false) }
     Surface(shape=RoundedCornerShape(IonShapes.xl),color=MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.fillMaxWidth().animateContentSize()) {
-            Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode) {expanded=!expanded}.padding(start=18.dp,top=10.dp,bottom=10.dp,end=6.dp),verticalAlignment=Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode,role=androidx.compose.ui.semantics.Role.Button) {expanded=!expanded}.padding(start=18.dp,top=10.dp,bottom=10.dp,end=6.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(read.label,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Medium)
                     PacketAge(record,now)

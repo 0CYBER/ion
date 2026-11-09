@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val style=if(maxWidth<360.dp) MaterialTheme.typography.headlineLarge else IonType.page
-            Text(title,style=style,modifier=Modifier.padding(top=8.dp).semantics {heading()})
+            Text(title,style=style,color=MaterialTheme.colorScheme.onBackground,modifier=Modifier.padding(top=8.dp).semantics {heading()})
         }
         Text(subtitle,style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(bottom=12.dp))
     }
