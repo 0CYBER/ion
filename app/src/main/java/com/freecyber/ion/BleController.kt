@@ -247,24 +247,24 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 negotiatedMtu = 23
                 decoder = V12Protocol.Decoder()
                 val link = adapter?.getRemoteDevice(device.address)?.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
-                    ?: throw IllegalStateException(str(R.string.ble_unavailable))
+                    ?: throw LinkFailure(str(R.string.ble_unavailable))
                 owned = link
                 gatt = link
                 waitEvent("connected", 12_000)
                 mutable.update { it.copy(phase = Phase.DISCOVERING, message = str(R.string.ble_discovering)) }
                 check(link.discoverServices()) { str(R.string.ble_discover_failed) }
                 waitEvent("services")
-                val service = link.getService(UUID.fromString(V12Protocol.SERVICE)) ?: throw IllegalStateException(str(R.string.ble_no_service))
-                val write = service.getCharacteristic(UUID.fromString(V12Protocol.WRITE)) ?: throw IllegalStateException(str(R.string.ble_no_write_char))
-                val notify = service.getCharacteristic(UUID.fromString(V12Protocol.NOTIFY)) ?: throw IllegalStateException(str(R.string.ble_no_notify_char))
+                val service = link.getService(UUID.fromString(V12Protocol.SERVICE)) ?: throw LinkFailure(str(R.string.ble_no_service))
+                val write = service.getCharacteristic(UUID.fromString(V12Protocol.WRITE)) ?: throw LinkFailure(str(R.string.ble_no_write_char))
+                val notify = service.getCharacteristic(UUID.fromString(V12Protocol.NOTIFY)) ?: throw LinkFailure(str(R.string.ble_no_notify_char))
                 check(write.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) { str(R.string.ble_char_no_write) }
                 val notifyValue = when {
                     notify.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0 -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                     notify.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0 -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                    else -> throw IllegalStateException(str(R.string.ble_char_no_notify))
+                    else -> throw LinkFailure(str(R.string.ble_char_no_notify))
                 }
                 check(link.setCharacteristicNotification(notify, true)) { str(R.string.ble_notify_failed) }
-                val cccd = notify.getDescriptor(UUID.fromString(V12Protocol.CCCD)) ?: throw IllegalStateException(str(R.string.ble_no_cccd))
+                val cccd = notify.getDescriptor(UUID.fromString(V12Protocol.CCCD)) ?: throw LinkFailure(str(R.string.ble_no_cccd))
                 if (Build.VERSION.SDK_INT >= 33) check(link.writeDescriptor(cccd, notifyValue) == BluetoothStatusCodes.SUCCESS) { str(R.string.ble_cccd_rejected) }
                 else {
                     @Suppress("DEPRECATION")
@@ -279,7 +279,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     if (identity == null) try { identity = V12Protocol.model(ask(link, write, V12Protocol.Read.MODEL)) }
                     catch (_: TimeoutCancellationException) { /* bounded retry */ }
                 }
-                val model = identity ?: throw IllegalStateException(str(R.string.ble_no_model))
+                val model = identity ?: throw LinkFailure(str(R.string.ble_no_model))
                 check(model.isHt) { str(R.string.ble_not_ht, model.label) }
                 mutable.update { it.copy(verifiedHt = true, deviceName = model.label, message = str(R.string.ble_waiting_telemetry)) }
                 optionalRead(link,write,V12Protocol.Read.SETTINGS)
@@ -296,7 +296,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     } catch (_: TimeoutCancellationException) {
                         record(V12Protocol.Read.TELEMETRY,status=str(R.string.ble_timeout_status))
                         missed++
-                        if (missed >= 3) throw IllegalStateException(str(R.string.ble_no_telemetry))
+                        if (missed >= 3) throw LinkFailure(str(R.string.ble_no_telemetry))
                     }
                     val job = work.tryReceive().getOrNull()
                     if(job != null) {
@@ -363,7 +363,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             } catch (_: TimeoutCancellationException) { error(str(R.string.ble_timeout)) }
             catch (e: CancellationException) { throw e }
             catch (_: SecurityException) { error(str(R.string.ble_permission_revoked)) }
-            catch (e: Exception) { error(e.message ?: str(R.string.ble_connect_failed)) }
+            catch (e: LinkFailure) { error(e.message ?: str(R.string.ble_connect_failed)) }
+            catch (_: Exception) { error(str(R.string.ble_connect_failed)) }
             finally {
                 runCatching { owned?.disconnect(); owned?.close() }
                 if (gatt === owned) gatt = null
@@ -459,6 +460,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         runCatching { old?.disconnect(); old?.close() }
         mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), verifiedHt = false, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0) }
     }
+    /** A connection failure whose message is already localized for the rider. */
+    private class LinkFailure(message: String) : Exception(message)
+
     private fun error(text: String) {
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
