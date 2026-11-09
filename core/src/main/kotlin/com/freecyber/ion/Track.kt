@@ -73,6 +73,7 @@ object TrackCodec {
             t += dt; lat += dLat; lon += dLon
             val alt = f.getOrNull(3)?.takeIf { it.isNotEmpty() }?.toIntOrNull()
             val speed = f.getOrNull(4)?.takeIf { it.isNotEmpty() }?.toIntOrNull()
+            if (kotlin.math.abs(lat) > 9_000_000 || kotlin.math.abs(lon) > 18_000_000) return@forEach
             out += TrackPoint(t, lat / 1e5, lon / 1e5, alt?.toDouble(), speed?.let { it / 10.0 })
         }
         return out

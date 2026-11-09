@@ -53,6 +53,10 @@ class TrackTest {
         assertTrue(TrackCodec.decode("").isEmpty())
         assertEquals(1, TrackCodec.decode("0,5500000,3760000,,").size)
         assertTrue(TrackCodec.decode("x,y,z").isEmpty())
+        // An off-globe point is skipped; the next delta brings the track back and still decodes.
+        val healed = TrackCodec.decode("0,5500000,3760000,,;1000,9000000,0,,;1000,-9000000,0,,")
+        assertEquals(listOf(0L, 2000L), healed.map { it.t })
+        assertEquals(55.0, healed.last().lat, 1e-9)
     }
 
     @Test fun gpxCarriesPointsAndEscapesName() {
