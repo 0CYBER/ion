@@ -16,6 +16,8 @@ import org.robolectric.annotation.Config
 class NotificationTest {
     private val context get() = ApplicationProvider.getApplicationContext<Application>()
 
+    // contentView/bigContentView are deprecated, but they are exactly what Android 16 checks before promoting.
+    @Suppress("DEPRECATION")
     @Test fun liveCardShowsFiguresChipAndActions() {
         val ui = Samples.live()
         val n = IonNotifications.live(context, ui.wheel, ui.trip, reconnecting = false, attempt = 0)
