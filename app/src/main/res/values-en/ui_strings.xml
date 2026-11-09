@@ -24,6 +24,8 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_light_hint">Warm background and soft colours</string>
     <string name="theme_dark_hint">Deep background and bright accents</string>
+    <string name="theme_system">Match system</string>
+    <string name="theme_system_hint">Switch together with the phone\'s dark mode</string>
     <string name="theme_note">The chosen theme applies to the whole app and is saved on this device.</string>
     <string name="forget_title">Forget the wheel?</string>
     <string name="forget_message">The connection will be closed. Next time you will need to pick the device again.</string>

@@ -5,6 +5,8 @@ internal data class Actions(
     val stopScan: () -> Unit = {}, val forget: () -> Unit = {}, val readAll: () -> Unit = {},
     val read: (V12Protocol.Read) -> Unit = {}, val write: (V12Protocol.Write) -> Unit = {},
     val theme: () -> Unit = {}, val permissions: () -> Unit = {},
+    /** true = follow the phone's dark mode; false = pin the theme currently shown. */
+    val followSystemTheme: (Boolean) -> Unit = {},
     val setDashboard: (DashboardLayout) -> Unit = {},
     val setAlerts: (AlertConfig) -> Unit = {},
     val setBackground: (BackgroundConfig) -> Unit = {},
@@ -31,4 +33,5 @@ internal data class PrefsUi(
     val batteryUnrestricted: Boolean = true,
     val trips: List<TripSummary> = emptyList(),
     val locationAllowed: Boolean = true,
+    val themeFollowsSystem: Boolean = false,
 )

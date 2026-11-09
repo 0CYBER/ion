@@ -66,7 +66,7 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
     }
 }
 
-@Composable internal fun AppearanceScreen(dark: Boolean,toggle: ()->Unit,onBack: ()->Unit) {
+@Composable internal fun AppearanceScreen(dark: Boolean,followsSystem: Boolean,toggle: ()->Unit,follow: (Boolean)->Unit,onBack: ()->Unit) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(16.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.appearance),stringResource(R.string.appearance_hint),onBack)}
         item(key="theme-title",contentType="section") {SectionHeader(stringResource(R.string.theme_title))}
@@ -74,6 +74,9 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
             Column(Modifier.selectableGroup()) {
                 MetricPair(first={m -> ThemeChoice(false,!dark,m) {if(dark) toggle()}},second={m -> ThemeChoice(true,dark,m) {if(!dark) toggle()}})
             }
+        }
+        item(key="theme-system",contentType="switch") {
+            SwitchRow(Icons.Rounded.BrightnessAuto,stringResource(R.string.theme_system),followsSystem,stringResource(R.string.theme_system_hint),true,follow)
         }
         item(key="theme-note",contentType="note") {Banner(stringResource(R.string.theme_note),Icons.Rounded.Palette)}
     }

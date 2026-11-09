@@ -24,6 +24,8 @@
     <string name="theme_dark">Тёмная</string>
     <string name="theme_light_hint">Тёплый фон и мягкие цвета</string>
     <string name="theme_dark_hint">Глубокий фон и яркие акценты</string>
+    <string name="theme_system">Как в системе</string>
+    <string name="theme_system_hint">Переключать вместе с тёмным режимом телефона</string>
     <string name="theme_note">Выбранная тема применяется ко всему приложению и сохраняется на устройстве.</string>
     <string name="forget_title">Забыть колесо?</string>
     <string name="forget_message">Соединение будет закрыто. Для следующего подключения нужно будет выбрать устройство заново.</string>

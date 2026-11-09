@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
                 transitionSpec={(fadeIn(motion.defaultEffectsSpec())+slideInHorizontally(motion.defaultSpatialSpec()) {it/12}) togetherWith fadeOut(motion.fastEffectsSpec())},label="destination") {route ->
                 savedPages.SaveableStateProvider(route) {
                     when {
-                        route=="appearance" -> AppearanceScreen(dark,actions.theme) {back()}
+                        route=="appearance" -> AppearanceScreen(dark,prefs.themeFollowsSystem,actions.theme,actions.followSystemTheme) {back()}
                         route=="diagnostics" -> DiagnosticsScreen(ui(),actions) {back()}
                         route=="dashboard" -> DashboardEditorScreen(ui(),prefs.dashboard,actions.setDashboard) {back()}
                         route=="background" -> BackgroundScreen(prefs,actions) {back()}
