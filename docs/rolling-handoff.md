@@ -163,3 +163,14 @@ Research root (не в репозитории): `C:\Users\Bishkeks\Documents\inm
 ## 2026-11-06 — CI собирает release
 
 Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:assembleRelease`, `:app:compileDebugAndroidTestKotlin`; артефакт `app-release` + mapping в reports. **Владелец отдельно запретил проверку эмулятором в workflow** — явное исключение из рекомендации smoke test (тот остаётся обязательным для ручной передачи APK). Проверено локально: YAML, отсутствие emulator steps, task graph (--dry-run: assembleRelease включает minifyReleaseWithR8). Подпись CI — debug signingConfig раннера; обновление поверх локального APK без общего ключа не гарантируется.
+
+# Часть III — ветка `ai-upgrader` (непрерывная доработка)
+
+Запрос владельца (2026-11-09): отдельная ветка `ai-upgrader` от main (`5ff58ab`), циклы «анализ → улучшение» (код, дизайн, UX, фичи), частые коммиты, обновлять этот журнал и `handoff.md`. Push не запрашивался. Сборка/тесты — Linux-машина агента (`/home/agent/workspace/ion`, 4 ГБ, без swap; настройки `~/.gradle/gradle.properties` как в handoff).
+
+## Цикл 1 — заголовки в тёмной теме
+
+- Симптом: заголовки страниц (Ion, Настройки, Оформление, Педали…) чёрные в обеих темах, в тёмной не видны.
+- Причина: `Scaffold(containerColor=Color.Transparent)` берёт `contentColorFor(Transparent)` = текущий `LocalContentColor`, а на корне это `Color.Black` (фон рисует `BoxWithConstraints`, не `Surface`). `IonType.page` цвета не задаёт → `Text` наследовал чёрный. Карточки не страдали — они внутри `Surface` с собственным contentColor.
+- Исправление: `Scaffold(contentColor=colorScheme.onBackground)` в `IonApp.kt` (исправляет весь текст прямо на фоне) + явный `onBackground` в `ScreenHeading`/`DetailHeading` (`ExpressiveComponents.kt`).
+- Проверка: `:app:compileDebugKotlin` ok; `:core:test :app:testDebugUnitTest -PskipScreenshots` ok. Скриншоты не делались (правило владельца). Коммит `9fa6793`.
