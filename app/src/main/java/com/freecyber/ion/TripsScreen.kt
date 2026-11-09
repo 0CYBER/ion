@@ -33,7 +33,7 @@ import java.util.Date
         }
         item(key="totals",contentType="totals") {TotalsCard(totals)}
         item(key="actions",contentType="actions") {
-            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick=actions.shareAllCsv,modifier=Modifier.heightIn(min=48.dp)) {
                     Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_all))
                 }
