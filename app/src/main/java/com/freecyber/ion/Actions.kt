@@ -18,6 +18,8 @@ internal data class Actions(
     val shareGpx: (TripSummary) -> Unit = {},
     val deleteTrip: (TripSummary) -> Unit = {},
     val clearTrips: () -> Unit = {},
+    /** One CSV row per stored ride (TripSummary.csv), for spreadsheets. */
+    val shareAllCsv: () -> Unit = {},
     /** GPS fixes stored for a finished ride, keyed by its startedAt. */
     val tripTrack: (Long) -> List<TrackPoint> = { emptyList() },
     val tripHasTelemetry: (Long) -> Boolean = { false },

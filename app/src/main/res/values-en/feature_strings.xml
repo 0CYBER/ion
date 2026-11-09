@@ -151,6 +151,7 @@
     <string name="trips_empty">No finished rides yet. A ride is saved when you disconnect or tap “Finish”.</string>
     <string name="trips_export">Export CSV</string>
     <string name="trips_export_subject">Ion rides</string>
+    <string name="trips_export_all">All rides to CSV</string>
     <string name="trips_clear">Clear</string>
     <string name="trips_clear_title">Delete the whole history?</string>
     <string name="trips_clear_message">All saved rides will be removed from this phone.</string>

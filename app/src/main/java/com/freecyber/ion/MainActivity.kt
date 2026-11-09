@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
                     requestLocation={ location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
-                    deleteTrip=model.history::delete,clearTrips=model.history::clear,
+                    deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
                     tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry))
             }
         }
@@ -132,6 +132,21 @@ class MainActivity : ComponentActivity() {
                 }
                 startActivity(Intent.createChooser(TripExport.intent(this@MainActivity,file,
                     if(gpx) "application/gpx+xml" else "text/csv"),getString(R.string.trips_export_subject)))
+            } catch(e: CancellationException) { throw e }
+            catch(_: Exception) { android.widget.Toast.makeText(this@MainActivity,R.string.trip_export_failed,android.widget.Toast.LENGTH_LONG).show() }
+        }
+    }
+    private fun exportAllTrips() {
+        lifecycleScope.launch {
+            try {
+                val trips = model.history.trips.value
+                check(trips.isNotEmpty())
+                val file = withContext(Dispatchers.IO) {
+                    val directory = File(cacheDir,"trip_exports").apply { mkdirs() }
+                    val stamp = java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US).format(Date())
+                    File(directory,"Ion_rides_${stamp}.csv").apply { writeText(TripSummary.csv(trips)) }
+                }
+                startActivity(Intent.createChooser(TripExport.intent(this@MainActivity,file,"text/csv"),getString(R.string.trips_export_subject)))
             } catch(e: CancellationException) { throw e }
             catch(_: Exception) { android.widget.Toast.makeText(this@MainActivity,R.string.trip_export_failed,android.widget.Toast.LENGTH_LONG).show() }
         }
