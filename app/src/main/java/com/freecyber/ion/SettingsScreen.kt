@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
@@ -88,7 +89,8 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
         color=if(selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
         border=if(selected) BorderStroke(2.dp,MaterialTheme.colorScheme.primary) else null) {
         Column(Modifier.fillMaxWidth().selectable(selected=selected,role=Role.RadioButton,onClick=choose).padding(12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(20.dp)).background(preview.container)) {
+            Box(Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(20.dp)).background(preview.container)
+                .clearAndSetSemantics {}) {
                 Text("Aa",style=IonType.page,color=preview.content,modifier=Modifier.padding(16.dp))
                 Box(Modifier.size(88.dp).align(Alignment.BottomEnd).offset(x=14.dp,y=14.dp).clip(MaterialShapes.Flower.toShape()).background(preview.content))
             }
