@@ -1,6 +1,5 @@
 package com.freecyber.ion
 
-import java.util.ArrayDeque
 
 /** Offline-derived protocol profile; physical HT/firmware compatibility remains unverified.
  * Reference: WheelLog f44e39e..., GPL-3.0 (see THIRD_PARTY.md). No vendor code/assets.
@@ -45,6 +44,7 @@ object V12Protocol {
     }
     /** Body escaping + raw checksum, matching the published reference writer. Bounded 2KB queue. */
     class Decoder {
+        // kotlin.collections.ArrayDeque: O(1) indexed reads, so a header candidate no longer copies the whole queue.
         private val buffer = ArrayDeque<Int>()
         var rejected = 0; private set
         fun reset() { buffer.clear(); rejected = 0 }
@@ -53,8 +53,8 @@ object V12Protocol {
             bytes.forEach { buffer.addLast(it.u()) }
             if (buffer.size > 2048) { buffer.clear(); rejected++; return emptyList() }
             while (buffer.size >= 2) {
-                if (buffer.first() != 0xaa || buffer.elementAt(1) != 0xaa) { buffer.removeFirst(); continue }
-                val list = buffer.toList(); val body = mutableListOf<Int>()
+                if (buffer.first() != 0xaa || buffer[1] != 0xaa) { buffer.removeFirst(); continue }
+                val list: List<Int> = buffer; val body = mutableListOf<Int>()
                 var i = 2; var size = Int.MAX_VALUE; var invalid = false
                 while (body.size < size) {
                     if (i >= list.size) return frames
