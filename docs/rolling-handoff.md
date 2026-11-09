@@ -173,4 +173,26 @@ Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:asse
 - Симптом: заголовки страниц (Ion, Настройки, Оформление, Педали…) чёрные в обеих темах, в тёмной не видны.
 - Причина: `Scaffold(containerColor=Color.Transparent)` берёт `contentColorFor(Transparent)` = текущий `LocalContentColor`, а на корне это `Color.Black` (фон рисует `BoxWithConstraints`, не `Surface`). `IonType.page` цвета не задаёт → `Text` наследовал чёрный. Карточки не страдали — они внутри `Surface` с собственным contentColor.
 - Исправление: `Scaffold(contentColor=colorScheme.onBackground)` в `IonApp.kt` (исправляет весь текст прямо на фоне) + явный `onBackground` в `ScreenHeading`/`DetailHeading` (`ExpressiveComponents.kt`).
-- Проверка: `:app:compileDebugKotlin` ok; `:core:test :app:testDebugUnitTest -PskipScreenshots` ok. Скриншоты не делались (правило владельца). Коммит `9fa6793`.
+- Проверка: `:app:compileDebugKotlin` ok; `:core:test :app:testDebugUnitTest -PskipScreenshots` ok. Скриншоты не делались (правило владельца). Коммит `c93d110` (после rebase на main).
+
+## Rebase на main (коммит владельца `7d7dbde`)
+
+- Владелец добавил в main `7d7dbde` (build: постоянный ключ подписи release, 0.9.3-ai / v21, `keystore.properties` + секреты CI). `ai-upgrader` перебазирована на main без конфликтов (ветка не была запушена, поэтому rebase, а не merge). Хэши цикла 1 поменялись.
+- Для дальнейших коммитов main: снова `git rebase main`, пока `ai-upgrader` не в remote; после push — только merge.
+
+## Цикл 2 — предупреждения компилятора
+
+- Иконки с направлением (ArrowBack, ShowChart, VolumeUp/Off, CallSplit, BluetoothSearching) → `Icons.AutoMirrored.Rounded.*`: корректно зеркалятся в RTL, убраны deprecation-предупреждения. Лишние `?.` в `WidgetMapping.kt` (smart cast через `live`).
+- Оставлены сознательно: старый `Slider` (Ui/FeatureScreens/TripDetail), `rememberModalBottomSheetState`/`ListItem` в DashboardEditor, BLE `value`/`connectGatt` (нужны для minSdk 26) — миграция меняет поведение, делать отдельно с тестами.
+- Проверка: compile + `:core:test :app:testDebugUnitTest -PskipScreenshots` ok.
+
+## Цикл 3 — README
+
+- Заголовок 0.6.0-debug → 0.9.3-ai; убрано устаревшее «нет фонового сервиса / нет интернета» (в манифесте есть `WheelService`, INTERNET — для тайлов карты OSM в `TripMap.kt`); добавлены фон, виджет, QS-плитка, дашборд, RU/EN.
+
+## Следующие циклы (план)
+
+1. Аудит тёмной темы по коду: текст/иконки вне `Surface`, захардкоженные цвета вне Theme.kt.
+2. Вибро-оповещения (VIBRATE уже в манифесте).
+3. Вынос логики `WheelMonitor` в `:core` с тестами; миграция устаревших Slider/BottomSheet API.
+4. Планшет: двухпанельные настройки; второй вариант виджета.
