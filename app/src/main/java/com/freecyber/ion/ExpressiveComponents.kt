@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 @Composable internal fun ScreenHeading(title: String,actionLabel: String,icon: ImageVector,onAction: ()->Unit,enabled: Boolean=true,
     secondaryLabel: String?=null,secondaryIcon: ImageVector?=null,onSecondary: (()->Unit)?=null) {
     Row(Modifier.fillMaxWidth().padding(top=8.dp,bottom=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(title,style=IonType.page,modifier=Modifier.weight(1f).semantics {heading()})
+        Text(title,style=IonType.page,color=MaterialTheme.colorScheme.onBackground,modifier=Modifier.weight(1f).semantics {heading()})
         if (secondaryIcon!=null&&onSecondary!=null) {
             androidx.compose.material3.FilledTonalIconButton(onClick=onSecondary,modifier=Modifier.size(48.dp)) {
                 Icon(secondaryIcon,secondaryLabel,Modifier.size(24.dp))

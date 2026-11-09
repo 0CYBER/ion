@@ -51,7 +51,9 @@ import androidx.compose.ui.unit.dp
     val rail=maxWidth>maxHeight && maxHeight<480.dp
     val dockClearance=if(rail) 0.dp else 72.dp+WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     CompositionLocalProvider(LocalDockClearance provides dockClearance) {
-    Scaffold(containerColor=Color.Transparent,
+    // A transparent container makes Scaffold inherit LocalContentColor, which is Color.Black at the root:
+    // page headings without an explicit color then stayed black on the dark background.
+    Scaffold(containerColor=Color.Transparent,contentColor=MaterialTheme.colorScheme.onBackground,
         contentWindowInsets=if(rail) WindowInsets.safeDrawing else WindowInsets.safeDrawing.only(WindowInsetsSides.Top+WindowInsetsSides.Horizontal)) {inset ->
         Row(Modifier.fillMaxSize().padding(inset).consumeWindowInsets(inset)) {
         if(rail) IonRail(tab) {tab=it;routes=emptyList()}
