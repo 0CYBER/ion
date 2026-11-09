@@ -118,8 +118,7 @@ class MainActivity : ComponentActivity() {
             try {
                 model.journal.awaitWrites()
                 val file = withContext(Dispatchers.IO) {
-                    val directory = File(cacheDir,"trip_exports").apply { mkdirs() }
-                    directory.listFiles()?.filter { System.currentTimeMillis()-it.lastModified()>7*86_400_000L }?.forEach { it.delete() }
+                    val directory = exportDirectory()
                     val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HHmm",java.util.Locale.US).format(Date(trip.startedAt))
                     val target = File(directory,"Ion_${stamp}.${if(gpx) "gpx" else "csv"}")
                     if(gpx) {
@@ -136,13 +135,18 @@ class MainActivity : ComponentActivity() {
             catch(_: Exception) { android.widget.Toast.makeText(this@MainActivity,R.string.trip_export_failed,android.widget.Toast.LENGTH_LONG).show() }
         }
     }
+    /** Shared files live in the cache; anything older than a week has long been delivered and is dropped. */
+    private fun exportDirectory(): File = File(cacheDir,"trip_exports").apply {
+        mkdirs()
+        listFiles()?.filter { System.currentTimeMillis()-it.lastModified()>7*86_400_000L }?.forEach { it.delete() }
+    }
     private fun exportAllTrips() {
         lifecycleScope.launch {
             try {
                 val trips = model.history.trips.value
                 check(trips.isNotEmpty())
                 val file = withContext(Dispatchers.IO) {
-                    val directory = File(cacheDir,"trip_exports").apply { mkdirs() }
+                    val directory = exportDirectory()
                     val stamp = java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US).format(Date())
                     File(directory,"Ion_rides_${stamp}.csv").apply { writeText(TripSummary.csv(trips)) }
                 }
