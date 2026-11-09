@@ -12,10 +12,12 @@ class VoiceAnnouncer(private val context: Context) : TextToSpeech.OnInitListener
     private var ready = false
     private val pending = ArrayDeque<String>()
 
-    fun speak(text: String) {
+    /** [interrupt] drops whatever is still queued (spoken or pending), so a danger alert is not heard late. */
+    fun speak(text: String, interrupt: Boolean = false) {
         if (text.isBlank()) return
         if (tts == null) { ready = false; tts = TextToSpeech(context.applicationContext, this) }
-        if (ready) say(text) else { if (pending.size >= 4) pending.removeFirst(); pending.addLast(text) }
+        if (interrupt) pending.clear()
+        if (ready) say(text, interrupt) else { if (pending.size >= 4) pending.removeFirst(); pending.addLast(text) }
     }
 
     override fun onInit(status: Int) {
@@ -30,7 +32,9 @@ class VoiceAnnouncer(private val context: Context) : TextToSpeech.OnInitListener
         while (pending.isNotEmpty()) say(pending.removeFirst())
     }
 
-    private fun say(text: String) { tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "ion-${text.hashCode()}") }
+    private fun say(text: String, interrupt: Boolean = false) {
+        tts?.speak(text, if (interrupt) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, "ion-${text.hashCode()}")
+    }
 
     fun shutdown() { tts?.shutdown(); tts = null; ready = false; pending.clear() }
 

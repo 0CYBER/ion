@@ -30,4 +30,12 @@ class AlertHapticsTest {
     }
 
     @Test fun vibrationIsOptIn() = assertFalse(AlertConfig().vibrate)
+
+    @Test fun urgentAlertsSpeakFirstAndOnlyOneInterrupts() {
+        val order = AlertHaptics.voiceOrder(listOf(Alert(AlertKind.LINK_RESTORED), Alert(AlertKind.SPEED_HIGH, 50), Alert(AlertKind.BATTERY_CRITICAL, 9)))
+        assertEquals(listOf(AlertKind.SPEED_HIGH, AlertKind.BATTERY_CRITICAL, AlertKind.LINK_RESTORED), order.map { it.first.kind })
+        assertEquals(listOf(true, false, false), order.map { it.second })
+        assertEquals(listOf(false), AlertHaptics.voiceOrder(listOf(Alert(AlertKind.BATTERY_LOW, 20))).map { it.second })
+        assertTrue(AlertHaptics.voiceOrder(emptyList()).isEmpty())
+    }
 }

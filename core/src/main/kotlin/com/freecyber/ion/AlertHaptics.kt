@@ -22,4 +22,12 @@ object AlertHaptics {
 
     /** Several alerts can fire in one evaluation; only the most urgent rhythm is played (ties: the first). */
     fun strongest(alerts: List<Alert>): Alert? = alerts.maxByOrNull { pattern(it.kind).size }
+
+    /** Alerts that must be heard now, ahead of any queued voice phrase (a battery step or an older alert). */
+    fun urgent(kind: AlertKind): Boolean = kind == AlertKind.BATTERY_CRITICAL || kind == AlertKind.TEMPERATURE_HIGH ||
+        kind == AlertKind.WHEEL_ERROR || kind == AlertKind.SPEED_HIGH
+
+    /** Speaking order for one evaluation: urgent first, otherwise as fired; only the first may cut the queue. */
+    fun voiceOrder(alerts: List<Alert>): List<Pair<Alert, Boolean>> =
+        alerts.sortedByDescending { urgent(it.kind) }.mapIndexed { i, a -> a to (i == 0 && urgent(a.kind)) }
 }

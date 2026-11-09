@@ -88,9 +88,9 @@ class WheelMonitor(private val graph: IonGraph) {
             mosTemp = s.telemetry?.mosTemp, motorTemp = s.telemetry?.motorTemp, speed = s.telemetry?.speed, errors = errors)
         val config = graph.prefs.alerts.value
         val fired = engine.evaluate(input, config, now)
-        fired.forEach {
-            IonNotifications.alert(graph.context, it)
-            if (config.voice) graph.voice.speak(VoiceAnnouncer.phrase(graph.context, it))
+        fired.forEach { IonNotifications.alert(graph.context, it) }
+        if (config.voice) AlertHaptics.voiceOrder(fired).forEach { (alert, interrupt) ->
+            graph.voice.speak(VoiceAnnouncer.phrase(graph.context, alert), interrupt)
         }
         // One rhythm per evaluation (the most severe), played after the channel's own buzz so it is not cut off.
         if (config.vibrate) AlertHaptics.strongest(fired)?.let { alert ->
