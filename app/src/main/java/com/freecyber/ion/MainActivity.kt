@@ -1,5 +1,6 @@
 package com.freecyber.ion
 
+import android.os.SystemClock
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
@@ -60,9 +61,14 @@ class MainActivity : ComponentActivity() {
                 notificationsAllowed=IonNotifications.canPost(this)
             }
             fun askNotifications() { if(Build.VERSION.SDK_INT >= 33 && !IonNotifications.canPost(this)) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            var locationAskedAt by remember { mutableLongStateOf(0L) }
             val location=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                 locationAllowed=model.ble.grantedLocation()
                 model.refreshRecording()
+                // An instant refusal means no dialog was shown ("don't ask again"): the button used to do nothing,
+                // so open the app's system settings, the only place left to grant it.
+                if(!locationAllowed && SystemClock.elapsedRealtime()-locationAskedAt<500)
+                    runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}
             }
             val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
                 if(result.values.all { it } && model.ble.hasPermissions()) {
@@ -88,7 +94,7 @@ class MainActivity : ComponentActivity() {
                     setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
                     requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
-                    requestLocation={ location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
+                    requestLocation={ locationAskedAt=SystemClock.elapsedRealtime(); location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
                     tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry))
