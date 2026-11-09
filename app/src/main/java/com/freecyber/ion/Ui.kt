@@ -104,7 +104,8 @@ import kotlin.math.roundToInt
             Text(text,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary,fontFamily=IonSans)
         }
         Slider(state=rememberSliderState(value,trackRange=range),onValueChange=change,enabled=enabled,
-            modifier=Modifier.fillMaxWidth().then(if(sliderTag!=null) Modifier.testTag(sliderTag) else Modifier))
+            modifier=Modifier.fillMaxWidth().semantics {contentDescription=label;stateDescription=text}
+                .then(if(sliderTag!=null) Modifier.testTag(sliderTag) else Modifier))
     }
 }
 @Composable internal fun ApplyButton(label: String,enabled: Boolean,click: ()->Unit,modifier: Modifier=Modifier) {

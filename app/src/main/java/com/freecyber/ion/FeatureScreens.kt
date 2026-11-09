@@ -19,6 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -172,15 +175,17 @@ internal object EditorSample {
 @Composable private fun ThresholdSlider(label: String,value: Int,range: IntRange,describe: @Composable (Int)->String,steps: Int=0,commit: (Int)->Unit) {
     var draft by remember(value) {mutableFloatStateOf(value.toFloat())}
     val shown=draft.roundToInt()
+    val shownText=if(shown==0) stringResource(R.string.alert_off) else describe(shown)
     Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xs)) {
     Column(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=12.dp)) {
         Row(verticalAlignment=Alignment.CenterVertically) {
             Text(label,style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
-            Text(if(shown==0) stringResource(R.string.alert_off) else describe(shown),style=MaterialTheme.typography.labelLarge,
+            Text(shownText,style=MaterialTheme.typography.labelLarge,
                 color=MaterialTheme.colorScheme.primary)
         }
         Slider(state=rememberSliderState(draft,steps,trackRange=range.first.toFloat()..range.last.toFloat()),
-            onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())})
+            onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
+            modifier=Modifier.semantics {contentDescription=label;stateDescription=shownText})
     }
     }
 }
