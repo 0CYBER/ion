@@ -239,6 +239,11 @@ Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:asse
 - `BatteryTile` тоже объединяет семантику: «Заряд, 87 %, Зарядка» читается одной остановкой.
 - `RidePresentationTest` ищет волны `battery-charge-wave` / `battery-level-wave` с `useUnmergedTree=true` и проверяет, что текст и описание «Зарядка» сидят в одном узле.
 
+## Цикл 14 — возраст показаний (`95a303d`)
+
+- Когда телеметрия устарела, под скоростью вместо «Последние показания» пишется «… · 12 с назад» (мин / ч дальше).
+- Единица выбирается в `:core` (`ReadingAge.of`, `ReadingAgeTest`). Часы — листовые (`ReadingAgeText`, как `PacketAge` в диагностике): `VelaUi.now` фильтруется `samePresentationAs`, поэтому тикает только подпись.
+
 ## Следующие циклы (план)
 
 1. ~~Аудит тёмной темы~~ (захардкоженных цветов вне Theme.kt нет). ~~Вибро-оповещения~~ — цикл 4.
