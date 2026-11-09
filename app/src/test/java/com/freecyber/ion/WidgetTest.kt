@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
+import androidx.glance.testing.unit.hasContentDescriptionEqualTo
 import androidx.glance.testing.unit.hasText
 import androidx.glance.testing.unit.hasTextEqualTo
 import androidx.test.core.app.ApplicationProvider
@@ -62,5 +63,8 @@ class WidgetTest {
         provideComposable { WidgetBody(context, WidgetSnapshot(), large) }
         onNode(hasTextEqualTo("—")).assertExists()
         onNode(hasTextEqualTo(context.getString(R.string.connect))).assertDoesNotExist()
+        // TalkBack hears "Battery, no data" for the dash.
+        val noData = context.getString(R.string.no_data)
+        onNode(hasContentDescriptionEqualTo(context.getString(R.string.metric_battery) + ", " + noData)).assertExists()
     }
 }
