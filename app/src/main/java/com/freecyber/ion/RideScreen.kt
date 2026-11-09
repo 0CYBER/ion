@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -150,7 +151,7 @@ import kotlin.math.roundToInt
 
 @Composable private fun SpeedInstrument(ui: VelaUi,modifier: Modifier) {
     val ion=ionColors()
-    Surface(modifier.testTag("speed-instrument"),color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
+    Surface(modifier.testTag("speed-instrument").semantics(mergeDescendants=true) {},color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
         Column(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text(stringResource(R.string.wheel_model),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
@@ -190,7 +191,7 @@ import kotlin.math.roundToInt
 }
 
 @Composable private fun FigureTile(label: String,value: String,unit: String,icon: ImageVector,tone: IonTone,modifier: Modifier) {
-    Surface(modifier,color=tone.container,contentColor=tone.content,shape=IonShapes.hero) {
+    Surface(modifier.semantics(mergeDescendants=true) {},color=tone.container,contentColor=tone.content,shape=IonShapes.hero) {
         Column(Modifier.fillMaxWidth().heightIn(min=156.dp).padding(20.dp),verticalArrangement=Arrangement.SpaceBetween) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text(label,style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
@@ -204,9 +205,9 @@ import kotlin.math.roundToInt
     }
 }
 
-/** Compact reading: a row when wide, a small card when half width. */
+/** Compact reading: a row when wide, a small card when half width. Read aloud as one item. */
 @Composable private fun MetricTile(label: String,value: String?,unit: String,icon: ImageVector,wide: Boolean,modifier: Modifier) {
-    Surface(modifier,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.l)) {
+    Surface(modifier.semantics(mergeDescendants=true) {},color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.l)) {
         if(wide) Row(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary)
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
@@ -228,7 +229,7 @@ import kotlin.math.roundToInt
     val ion=ionColors()
     val load=pwm?.takeIf {it.isFinite()}?.let {kotlin.math.abs(it).coerceIn(0.0,100.0)}
     val hot=load!=null && load>=80
-    Surface(modifier,color=if(hot) ion.warning else MaterialTheme.colorScheme.surfaceContainerLow,
+    Surface(modifier.semantics(mergeDescendants=true) {},color=if(hot) ion.warning else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor=if(hot) ion.onWarning else MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(IonShapes.l)) {
         Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.tile_pwm),style=MaterialTheme.typography.labelLarge)
