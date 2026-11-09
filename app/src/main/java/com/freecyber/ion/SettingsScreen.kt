@@ -9,6 +9,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -44,7 +45,7 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
         item(key="light-sound",contentType="tiles") {
             TilePair(first={m -> ToneTile(stringResource(R.string.category_lights),stringResource(R.string.category_lights_hint),Icons.Rounded.Lightbulb,
                 ion.blue,m,minHeight=160.dp,motif=2) {open(ControlCategory.LIGHTS)}},
-                second={m -> ToneTile(stringResource(R.string.category_sound),stringResource(R.string.category_sound_hint),Icons.Rounded.VolumeUp,
+                second={m -> ToneTile(stringResource(R.string.category_sound),stringResource(R.string.category_sound_hint),Icons.AutoMirrored.Rounded.VolumeUp,
                     ion.peach,m,minHeight=160.dp,motif=0) {open(ControlCategory.SOUND)}})
         }
         item(key="service",contentType="tiles") {

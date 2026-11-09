@@ -5,7 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ShowChart
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
     Surface(modifier,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Rounded.ShowChart,null,Modifier.size(22.dp),tint=speedColor)
+                Icon(Icons.AutoMirrored.Rounded.ShowChart,null,Modifier.size(22.dp),tint=speedColor)
                 Text(stringResource(R.string.tile_chart),style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
                 if(minutes>0) Text(stringResource(R.string.chart_window,minutes),style=MaterialTheme.typography.labelLarge,
                     color=MaterialTheme.colorScheme.onSurfaceVariant)

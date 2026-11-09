@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +43,7 @@ import androidx.compose.ui.unit.dp
 @Composable internal fun DetailHeading(title: String,subtitle: String,onBack: ()->Unit) {
     Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         FilledTonalButton(onClick=onBack,modifier=Modifier.heightIn(min=48.dp),contentPadding=PaddingValues(horizontal=20.dp,vertical=12.dp)) {
-            Icon(Icons.Rounded.ArrowBack,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp));Text(stringResource(R.string.back))
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp));Text(stringResource(R.string.back))
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val style=if(maxWidth<360.dp) MaterialTheme.typography.headlineLarge else IonType.page

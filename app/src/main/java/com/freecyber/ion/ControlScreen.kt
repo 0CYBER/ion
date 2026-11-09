@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,9 +42,9 @@ import kotlin.math.roundToInt
         }
         if(category==ControlCategory.SOUND) {
             item(key="sound",contentType="controls") { GroupColumn {
-                SwitchRow(Icons.Rounded.VolumeOff,stringResource(R.string.quick_mute),s?.muted,enabled=settingsSafe) {request(V12Protocol.Write(V12Protocol.Control.MUTE,if(it)1 else 0))}
+                SwitchRow(Icons.AutoMirrored.Rounded.VolumeOff,stringResource(R.string.quick_mute),s?.muted,enabled=settingsSafe) {request(V12Protocol.Write(V12Protocol.Control.MUTE,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.MusicNote,stringResource(R.string.control_sound_wave),s?.soundWave,enabled=settingsSafe) {request(V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,if(it)1 else 0))}
-                ExpandSliders(Icons.Rounded.VolumeUp,stringResource(R.string.control_volume),s?.let { "${it.volume}%" } ?: "—",settingsSafe,
+                ExpandSliders(Icons.AutoMirrored.Rounded.VolumeUp,stringResource(R.string.control_volume),s?.let { "${it.volume}%" } ?: "—",settingsSafe,
                     s?.takeIf { it.volume in 0..100 }?.let { listOf(SliderSpec(stringResource(R.string.control_volume),it.volume,0..100) {v -> "$v%"}) }
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.VOLUME,v[0]))}
                 SoundButtons(safe) {n -> request(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,n))}
@@ -54,7 +55,7 @@ import kotlin.math.roundToInt
             item(key="modes",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.Rounded.Terrain,stringResource(R.string.control_off_road),s?.classicMode,hint=stringResource(R.string.control_classic_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.Spa,stringResource(R.string.control_advanced),s?.fancier,hint=stringResource(R.string.control_advanced_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
-                SwitchRow(Icons.Rounded.CallSplit,stringResource(R.string.control_split),s?.splitMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,if(it)1 else 0))}
+                SwitchRow(Icons.AutoMirrored.Rounded.CallSplit,stringResource(R.string.control_split),s?.splitMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,if(it)1 else 0))}
                 ExpandSliders(Icons.Rounded.SyncAlt,stringResource(R.string.control_split_tuning),s?.let { "${it.splitAccel} · ${it.splitBrake}" } ?: "—",settingsStopped,
                     s?.let { listOf(SliderSpec(stringResource(R.string.control_acceleration),it.splitAccel.coerceIn(0,100),0..100) {v -> "$v%"},
                         SliderSpec(stringResource(R.string.control_braking),it.splitBrake.coerceIn(0,100),0..100) {v -> "$v%"}) }

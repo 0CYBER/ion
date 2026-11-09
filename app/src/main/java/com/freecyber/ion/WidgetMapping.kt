@@ -13,9 +13,9 @@ fun WidgetSnapshot.Companion.from(s: WheelState, trip: TripStats, reconnecting: 
     val live = state == WidgetSnapshot.State.LIVE && t != null
     return WidgetSnapshot(state,
         t?.battery?.takeIf { it.isFinite() && it in 0.0..100.0 }?.let { kotlin.math.round(it).toInt() },
-        if (live) t?.speed else null,
+        if (live) t.speed else null,
         t?.rangeKm?.takeIf { it > 0 },
         trip.distanceKm.takeIf { trip.samples > 0 },
         t?.let { maxOf(it.mosTemp, it.motorTemp) }?.takeIf { it in -50..180 },
-        live && t?.lowBeam == true, hasSaved, now)
+        live && t.lowBeam == true, hasSaved, now)
 }

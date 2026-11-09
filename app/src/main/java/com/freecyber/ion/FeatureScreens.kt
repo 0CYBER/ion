@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -72,7 +73,7 @@ internal val DashTile.icon: ImageVector get() = when(this) {
     DashTile.QUICK_AUTO_LIGHT -> Icons.Rounded.AutoAwesome
     DashTile.QUICK_SOUND_WAVE -> Icons.Rounded.MusicNote
     DashTile.MODE -> Icons.Rounded.Tune
-    DashTile.CHART -> Icons.Rounded.ShowChart
+    DashTile.CHART -> Icons.AutoMirrored.Rounded.ShowChart
     DashTile.TOGGLE -> Icons.Rounded.ToggleOn
     DashTile.MAX_SPEED -> Icons.Rounded.Speed
     DashTile.AVG_SPEED -> Icons.Rounded.AvTimer
@@ -126,7 +127,7 @@ internal object EditorSample {
             GroupColumn {
                 SwitchRow(Icons.Rounded.Sync,stringResource(R.string.bg_keep_alive),bg.keepAlive,stringResource(R.string.bg_keep_alive_hint),true) {
                     actions.setBackground(bg.copy(keepAlive=it))}
-                SwitchRow(Icons.Rounded.BluetoothSearching,stringResource(R.string.bg_connect_launch),bg.connectOnLaunch,stringResource(R.string.bg_connect_launch_hint),true) {
+                SwitchRow(Icons.AutoMirrored.Rounded.BluetoothSearching,stringResource(R.string.bg_connect_launch),bg.connectOnLaunch,stringResource(R.string.bg_connect_launch_hint),true) {
                     actions.setBackground(bg.copy(connectOnLaunch=it))}
                 SwitchRow(Icons.Rounded.Autorenew,stringResource(R.string.bg_reconnect),bg.autoReconnect,stringResource(R.string.bg_reconnect_hint),true) {
                     actions.setBackground(bg.copy(autoReconnect=it))}

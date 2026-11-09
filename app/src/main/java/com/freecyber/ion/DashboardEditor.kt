@@ -11,6 +11,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,7 +47,7 @@ internal val DashToggle.icon get() = when(this) {
     DashToggle.SOUND_WAVE -> Icons.Rounded.MusicNote
     DashToggle.OFF_ROAD -> Icons.Rounded.Terrain
     DashToggle.ADVANCED -> Icons.Rounded.Spa
-    DashToggle.SPLIT -> Icons.Rounded.CallSplit
+    DashToggle.SPLIT -> Icons.AutoMirrored.Rounded.CallSplit
     DashToggle.HANDLE -> Icons.Rounded.TouchApp
     DashToggle.TRANSPORT -> Icons.Rounded.LocalShipping
     DashToggle.LOCK -> Icons.Rounded.Lock
