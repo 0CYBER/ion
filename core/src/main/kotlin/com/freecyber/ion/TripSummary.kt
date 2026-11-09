@@ -50,7 +50,7 @@ data class TripSummary(
                 s.maxPower, s.avgPower, s.maxPwm, s.maxCurrent, s.minVoltage)
         }
 
-        const val CSV_HEADER = "started_at_ms,duration_s,moving_s,distance_km,max_kmh,avg_moving_kmh,energy_wh,regen_wh,battery_used_pct,max_temp_c,max_power_w,avg_power_w,max_pwm_pct,max_current_a,min_voltage_v"
+        const val CSV_HEADER = "started_at_ms,duration_s,moving_s,distance_km,max_kmh,avg_moving_kmh,energy_wh,regen_wh,battery_used_pct,max_temp_c,max_power_w,avg_power_w,max_pwm_pct,max_current_a,min_voltage_v,started_at_utc"
 
         fun csv(trips: List<TripSummary>): String = buildString {
             appendLine(CSV_HEADER)
@@ -59,7 +59,8 @@ data class TripSummary(
                     "%.3f".format(Locale.US, t.distanceKm), "%.1f".format(Locale.US, t.maxSpeed), "%.1f".format(Locale.US, t.avgSpeed),
                     "%.1f".format(Locale.US, t.energyWh), "%.1f".format(Locale.US, t.regenWh),
                     t.batteryUsed?.let { "%.1f".format(Locale.US, it) }.orEmpty(), t.maxTemp?.toString().orEmpty(),
-                    t.maxPower.dec(0), t.avgPower.dec(0), t.maxPwm.dec(1), t.maxCurrent.dec(1), t.minVoltage.dec(2)).joinToString(","))
+                    t.maxPower.dec(0), t.avgPower.dec(0), t.maxPwm.dec(1), t.maxCurrent.dec(1), t.minVoltage.dec(2),
+                    java.time.Instant.ofEpochMilli(t.startedAt).toString()).joinToString(","))
             }
         }
     }
