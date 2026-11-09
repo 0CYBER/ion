@@ -18,6 +18,8 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.layout.*
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -92,7 +94,11 @@ object IonWidgetUpdater {
         }
         Spacer(GlanceModifier.height(4.dp))
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Vertical.Bottom) {
-            Text(snap.battery?.let { "$it%" } ?: "—", style = TextStyle(color = if (snap.isStale) colors.onSurfaceVariant else colors.onSurface,
+            // Without a reading the big figure is a dash; TalkBack says "Battery, no data" instead.
+            val batteryMissing = context.getString(R.string.metric_battery) + ", " + context.getString(R.string.no_data)
+            Text(snap.battery?.let { "$it%" } ?: "—",
+                modifier = if (snap.battery == null) GlanceModifier.semantics { contentDescription = batteryMissing } else GlanceModifier,
+                style = TextStyle(color = if (snap.isStale) colors.onSurfaceVariant else colors.onSurface,
                 fontSize = 30.sp, fontWeight = FontWeight.Bold))
             if (live && size.width >= 200.dp) {
                 Spacer(GlanceModifier.width(12.dp))
