@@ -74,6 +74,8 @@ data class TileSlot(val tile: DashTile, val visible: Boolean, val wide: Boolean,
  * unknown ids are dropped and tiles added in later versions are appended with their defaults. */
 data class DashboardLayout(val slots: List<TileSlot>) {
     companion object {
+        // Compiled once: decode runs on every preference read, once per slot.
+        private val SLOT_ID = Regex("[A-Za-z0-9_-]+")
         val DEFAULT = DashboardLayout(DashTile.entries.map { TileSlot(it, it.defaultVisible, it.defaultWide, it.defaultParam) })
         fun decode(text: String?): DashboardLayout {
             if (text.isNullOrBlank()) return DEFAULT
@@ -82,7 +84,7 @@ data class DashboardLayout(val slots: List<TileSlot>) {
             text.removePrefix("v2|").split(',').forEach { part ->
                 val bits = part.split(':')
                 val tile = DashTile.entries.firstOrNull { it.name == bits.getOrNull(0) } ?: return@forEach
-                val id = if(v2) bits.getOrNull(4)?.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) } ?: tile.name else tile.name
+                val id = if(v2) bits.getOrNull(4)?.takeIf { it.matches(SLOT_ID) } ?: tile.name else tile.name
                 if (id in seen) return@forEach
                 val param = bits.getOrNull(3)?.toIntOrNull()
                     ?.takeIf { tile.param != null && it in tile.param } ?: tile.defaultParam
