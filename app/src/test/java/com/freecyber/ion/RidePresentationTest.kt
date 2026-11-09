@@ -50,10 +50,12 @@ class RidePresentationTest {
         rule.setContent { IonTheme(false) {
             DashTileView(TileSlot(DashTile.BATTERY,true,false),TileEnv(ui,{},{}),Modifier.width(180.dp))
         } }
-        rule.onNodeWithTag("battery-charge-wave").assert(SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo,ProgressBarRangeInfo.Indeterminate))
+        rule.onNodeWithTag("battery-charge-wave",useUnmergedTree=true).assert(SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo,ProgressBarRangeInfo.Indeterminate))
         rule.onNodeWithContentDescription("Зарядка").assertExists()
+        // The tile is one TalkBack stop: label, value and charging state are read together.
+        rule.onNode(hasText("Заряд").and(hasContentDescription("Зарядка"))).assertExists()
         rule.runOnIdle { ui=ui.copy(wheel=ui.wheel.copy(phase=Phase.OFFLINE)) }
-        rule.onNodeWithTag("battery-charge-wave").assertDoesNotExist()
-        rule.onNodeWithTag("battery-level-wave").assertExists()
+        rule.onNodeWithTag("battery-charge-wave",useUnmergedTree=true).assertDoesNotExist()
+        rule.onNodeWithTag("battery-level-wave",useUnmergedTree=true).assertExists()
     }
 }

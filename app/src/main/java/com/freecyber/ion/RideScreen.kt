@@ -175,7 +175,7 @@ import kotlin.math.roundToInt
     val ion=ionColors()
     val valid=battery?.takeIf {it.isFinite() && it in 0.0..100.0}
     val progress=animateFloatAsState((valid?.toFloat() ?: 0f)/100f,ProgressIndicatorDefaults.ProgressAnimationSpec,label="battery-level")
-    Surface(modifier,color=if(valid!=null) ion.accent else MaterialTheme.colorScheme.surfaceContainerLow,
+    Surface(modifier.semantics(mergeDescendants=true) {},color=if(valid!=null) ion.accent else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor=if(valid!=null) ion.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,shape=IonShapes.discovery) {
         Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
