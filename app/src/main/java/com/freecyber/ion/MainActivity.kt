@@ -57,8 +57,11 @@ class MainActivity : ComponentActivity() {
                 onPauseOrDispose { }
             }
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
+            var notificationsAskedAt by remember { mutableLongStateOf(0L) }
             val notifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
                 notificationsAllowed=IonNotifications.canPost(this)
+                // Only after the explicit button: an instant refusal means no dialog was shown, go to settings.
+                if(!notificationsAllowed && SystemClock.elapsedRealtime()-notificationsAskedAt<500) openNotificationSettings()
             }
             fun askNotifications() { if(Build.VERSION.SDK_INT >= 33 && !IonNotifications.canPost(this)) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) }
             var locationAskedAt by remember { mutableLongStateOf(0L) }
@@ -92,7 +95,8 @@ class MainActivity : ComponentActivity() {
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}},
                     setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
-                    requestNotifications={ if(Build.VERSION.SDK_INT >= 33) askNotifications() },
+                    // Below Android 13 there is no runtime permission: notifications were turned off in settings.
+                    requestNotifications={ if(Build.VERSION.SDK_INT >= 33) {notificationsAskedAt=SystemClock.elapsedRealtime();askNotifications()} else openNotificationSettings() },
                     requestBatteryUnrestricted=::requestBatteryUnrestricted,
                     requestLocation={ locationAskedAt=SystemClock.elapsedRealtime(); location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
@@ -108,6 +112,10 @@ class MainActivity : ComponentActivity() {
             else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             onDispose { }
         }
+    }
+    private fun openNotificationSettings() {
+        runCatching {startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,packageName))}
+            .onFailure {runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}}
     }
     private fun batteryUnrestricted()=getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(packageName)?:true
     /** A companion app for a ride-safety device: the direct request is allowed, the settings list is the fallback. */
