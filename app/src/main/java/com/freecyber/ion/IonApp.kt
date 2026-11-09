@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
     // Pass writes straight through: BleController.apply guards the tier itself and reports a refusal
     // through writeMessage. The old silent drop left taps with no feedback at all.
     fun write(command: V12Protocol.Write) {actions.write(command)}
-    fun connect() {if(ui().saved!=null) actions.connect(ui().saved!!) else {tab=2;actions.scan()}}
+    fun connect() {ui().saved?.let(actions.connect) ?: run {tab=2;actions.scan()}}
     // A phone on its side has little height: the dock becomes a rail at the start edge.
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().preferredFrameRate(FrameRateCategory.High)) {
     val rail=maxWidth>maxHeight && maxHeight<480.dp
@@ -69,7 +69,8 @@ import androidx.compose.ui.unit.dp
                         route=="trips" -> TripsScreen(prefs.trips,actions,{trip -> open("trip:${trip.startedAt}")}) {back()}
                         route.startsWith("trip:") -> TripDetailRoute(route.substringAfter(':').toLongOrNull(),prefs.trips,actions) {back()}
                         route=="app" -> AppScreen({open("appearance")},{open("dashboard")},{open("trips")},{open("background")}) {back()}
-                        route.startsWith("control:") -> ControlScreen(ui(),ControlCategory.valueOf(route.substringAfter(':')),
+                        route.startsWith("control:") && ControlCategory.entries.any {it.name==route.substringAfter(':')} ->
+                            ControlScreen(ui(),ControlCategory.valueOf(route.substringAfter(':')),
                             {actions.read(V12Protocol.Read.SETTINGS)},::write) {back()}
                         route=="tab:1" -> SettingsScreen({open("app")}) {open("control:${it.name}")}
                         route=="tab:2" -> WheelScreen(ui(),actions,actions.connect,{forget=true},{open("diagnostics")})
