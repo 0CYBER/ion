@@ -2,7 +2,6 @@ package com.freecyber.ion
 
 import android.content.Context
 import java.io.File
-import java.io.IOException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,8 +19,8 @@ class TripJournal(context: Context, scope: CoroutineScope) {
     init {
         scope.launch(Dispatchers.IO) {
             for (write in queue) try { write() }
-            catch (_: IOException) { failure.value = true }
-            catch (_: SecurityException) { failure.value = true }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { failure.value = true }
         }
     }
 
