@@ -20,6 +20,8 @@ import java.util.Date
 /** Ride log: lifetime totals, then every stored ride newest first. Exports belong to each ride. */
 @Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,openTrip: (TripSummary)->Unit,onBack: ()->Unit) {
     var confirmClear by rememberSaveable {mutableStateOf(false)}
+    // Keyed by startedAt so the pending question survives rotation; one tap on the bin must not lose a ride.
+    var pendingDelete by rememberSaveable {mutableStateOf<Long?>(null)}
     val totals=remember(trips) {TripTotals.of(trips)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),onBack)}
@@ -36,12 +38,18 @@ import java.util.Date
             }
         }
         items(trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip ->
-            TripCard(trip,open={openTrip(trip)},delete={actions.deleteTrip(trip)})}
+            TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt})}
     }
     if(confirmClear) AlertDialog(onDismissRequest={confirmClear=false},title={Text(stringResource(R.string.trips_clear_title))},
         text={Text(stringResource(R.string.trips_clear_message))},
         confirmButton={TextButton(onClick={confirmClear=false;actions.clearTrips()}) {Text(stringResource(R.string.trips_clear))}},
         dismissButton={TextButton(onClick={confirmClear=false}) {Text(stringResource(R.string.cancel))}})
+    trips.firstOrNull {it.startedAt==pendingDelete}?.let {trip ->
+        AlertDialog(onDismissRequest={pendingDelete=null},title={Text(stringResource(R.string.trips_delete_title))},
+            text={Text(stringResource(R.string.trips_delete_message))},
+            confirmButton={TextButton(onClick={pendingDelete=null;actions.deleteTrip(trip)}) {Text(stringResource(R.string.trips_delete))}},
+            dismissButton={TextButton(onClick={pendingDelete=null}) {Text(stringResource(R.string.cancel))}})
+    }
 }
 
 @Composable private fun TotalsCard(t: TripTotals) {
