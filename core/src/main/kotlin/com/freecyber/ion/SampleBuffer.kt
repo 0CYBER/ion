@@ -17,7 +17,9 @@ class SampleBuffer(private val capacity: Int = 600, private val stepMs: Long = 1
         if (lastAt != Long.MIN_VALUE && now - lastAt < stepMs) return false
         if (!t.speed.isFinite()) return false
         lastAt = now
-        ring[(head + size) % capacity] = Sample(now, kotlin.math.abs(t.speed).toFloat(), t.power.toFloat(),
+        ring[(head + size) % capacity] = Sample(now, kotlin.math.abs(t.speed).toFloat(),
+            // One NaN/infinite power reading made the whole window's peak NaN and hid the power line.
+            t.power.takeIf { it.isFinite() }?.toFloat() ?: 0f,
             t.battery.takeIf { it.isFinite() }?.toFloat() ?: Float.NaN)
         if (size < capacity) size++ else head = (head + 1) % capacity
         version++
