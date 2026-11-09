@@ -341,4 +341,10 @@ class SampleBufferTest {
         assertTrue(b.snapshot().isEmpty())
         assertTrue(b.add(t(1.0), 3_100))
     }
+
+    @Test fun nonFinitePowerIsStoredAsZero() {
+        val b = SampleBuffer(capacity = 3, stepMs = 1_000)
+        assertTrue(b.add(V12Protocol.Telemetry(Double.NaN, 10.0, 5.0, 80.0, 40, 45, 0.0, 0.0, false, false, false), 0))
+        assertEquals(0f, b.snapshot().single().power, 0f)
+    }
 }
