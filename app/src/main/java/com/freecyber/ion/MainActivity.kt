@@ -120,7 +120,8 @@ class MainActivity : ComponentActivity() {
                 val file = withContext(Dispatchers.IO) {
                     val directory = File(cacheDir,"trip_exports").apply { mkdirs() }
                     directory.listFiles()?.filter { System.currentTimeMillis()-it.lastModified()>7*86_400_000L }?.forEach { it.delete() }
-                    val target = File(directory,"Ion_${trip.startedAt}.${if(gpx) "gpx" else "csv"}")
+                    val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HHmm",java.util.Locale.US).format(Date(trip.startedAt))
+                    val target = File(directory,"Ion_${stamp}.${if(gpx) "gpx" else "csv"}")
                     if(gpx) {
                         val points=model.history.track(trip.startedAt)
                         check(points.size>=2)
