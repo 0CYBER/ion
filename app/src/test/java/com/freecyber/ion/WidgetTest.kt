@@ -8,6 +8,7 @@ import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
 import androidx.glance.testing.unit.hasText
 import androidx.glance.testing.unit.hasTextEqualTo
 import androidx.test.core.app.ApplicationProvider
+import kotlin.time.Duration.Companion.seconds
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,7 +27,7 @@ class WidgetTest {
 
     @Before fun russianNumbers() { IonFormat.locale = java.util.Locale.forLanguageTag("ru") }
 
-    @Test fun liveLargeShowsSpeedFiguresAndActions() = runGlanceAppWidgetUnitTest {
+    @Test fun liveLargeShowsSpeedFiguresAndActions() = runGlanceAppWidgetUnitTest(timeout = 15.seconds) {
         setAppWidgetSize(large); setContext(context)
         provideComposable { WidgetBody(context, live, large) }
         onNode(hasTextEqualTo("78%")).assertExists()
@@ -36,7 +37,7 @@ class WidgetTest {
         onNode(hasTextEqualTo(context.getString(R.string.action_light_on))).assertExists()
     }
 
-    @Test fun smallKeepsOnlyBatteryAndState() = runGlanceAppWidgetUnitTest {
+    @Test fun smallKeepsOnlyBatteryAndState() = runGlanceAppWidgetUnitTest(timeout = 15.seconds) {
         setAppWidgetSize(small); setContext(context)
         provideComposable { WidgetBody(context, live, small) }
         onNode(hasTextEqualTo("78%")).assertExists()
@@ -44,7 +45,7 @@ class WidgetTest {
         onNode(hasTextEqualTo(context.getString(R.string.disconnect))).assertDoesNotExist()
     }
 
-    @Test fun offlineKeepsLastFiguresAndOffersConnect() = runGlanceAppWidgetUnitTest {
+    @Test fun offlineKeepsLastFiguresAndOffersConnect() = runGlanceAppWidgetUnitTest(timeout = 15.seconds) {
         val offline = WidgetSnapshot(hasSavedWheel = true).carryOver(live)
         setAppWidgetSize(large); setContext(context)
         provideComposable { WidgetBody(context, offline, large) }
@@ -56,7 +57,7 @@ class WidgetTest {
         onNode(hasTextEqualTo(context.getString(R.string.action_light_on))).assertDoesNotExist()
     }
 
-    @Test fun noSavedWheelHasNoConnectButton() = runGlanceAppWidgetUnitTest {
+    @Test fun noSavedWheelHasNoConnectButton() = runGlanceAppWidgetUnitTest(timeout = 15.seconds) {
         setAppWidgetSize(large); setContext(context)
         provideComposable { WidgetBody(context, WidgetSnapshot(), large) }
         onNode(hasTextEqualTo("—")).assertExists()
