@@ -37,9 +37,10 @@ import kotlinx.coroutines.CancellationException
             val loaded=withContext(Dispatchers.IO) { actions.tripTrack(trip.startedAt) to actions.tripHasTelemetry(trip.startedAt) }
             track=loaded.first; hasCsv=loaded.second
         } catch(e: CancellationException) {throw e}
-        catch(_: java.io.IOException) {failed=true}
+        catch(_: Exception) {failed=true}
     }
-    if(track==null) {
+    val loaded=track
+    if(loaded==null) {
         Column(Modifier.fillMaxSize().padding(PagePadding),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             DetailHeading(rememberTripDate(trip.startedAt),V12Protocol.formatDuration(trip.durationMs/1000),onBack)
             if(failed) {
@@ -47,7 +48,7 @@ import kotlinx.coroutines.CancellationException
                 TextButton(onClick={retry++}) {Text(stringResource(R.string.trip_retry))}
             } else CircularProgressIndicator()
         }
-    } else TripDetailScreen(trip,track!!,{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack,
+    } else TripDetailScreen(trip,loaded,{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack,
         shareCsv={actions.shareCsv(trip)},hasCsv=hasCsv)
 }
 
