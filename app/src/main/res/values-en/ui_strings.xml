@@ -91,6 +91,4 @@
     <string name="data_no_export">Nothing to export</string>
     <string name="data_refresh">Re-read %1$s</string>
     <string name="data_age"> · %1$d s ago</string>
-    <string name="data_expanded">Expanded</string>
-    <string name="data_collapsed">Collapsed</string>
 </resources>

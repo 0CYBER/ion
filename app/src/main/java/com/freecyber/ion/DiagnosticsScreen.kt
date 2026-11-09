@@ -90,7 +90,7 @@ import androidx.compose.ui.text.style.TextAlign
 @Composable private fun PacketCard(read: V12Protocol.Read,record: PacketRecord?,now: Long,fields: List<V12Protocol.Field>,rawMode: Boolean,enabled: Boolean,refresh: ()->Unit) {
     var expanded by rememberSaveable(read) { mutableStateOf(read in listOf(V12Protocol.Read.TELEMETRY,V12Protocol.Read.SETTINGS)) }
     var raw by rememberSaveable(read) { mutableStateOf(false) }
-    val expandState=stringResource(if(expanded) R.string.data_expanded else R.string.data_collapsed)
+    val expandState=stringResource(if(expanded) R.string.expanded else R.string.collapsed)
     Surface(shape=RoundedCornerShape(IonShapes.xl),color=MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.fillMaxWidth().animateContentSize()) {
             Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode,role=androidx.compose.ui.semantics.Role.Button) {expanded=!expanded}
