@@ -300,6 +300,13 @@ class TripSummaryTest {
         assertEquals(40.0, t.maxSpeed, 0.0)
         assertEquals(215.0, t.energyWh, 1e-9)
     }
+
+    @Test fun totalsConsumptionNeedsAKilometre() {
+        val t = TripTotals.of(listOf(sample, sample.copy(distanceKm = 1.0, maxSpeed = 40.0)))
+        assertEquals(t.energyWh / t.distanceKm, t.consumption!!, 1e-9)
+        assertNull(TripTotals.of(listOf(sample.copy(distanceKm = 0.5))).consumption)
+        assertNull(TripTotals.of(emptyList()).consumption)
+    }
 }
 
 class BatteryStepperTest {

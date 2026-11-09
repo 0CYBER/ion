@@ -71,7 +71,10 @@ private fun Double?.dec(places: Int): String =
 
 /** Aggregate over all stored rides, shown above the list. */
 data class TripTotals(val count: Int, val distanceKm: Double, val movingMs: Long, val maxSpeed: Double, val energyWh: Double) {
+    /** Net Wh/km over all rides; below a kilometre the figure is noise, so there is none. */
+    val consumption: Double? get() = if (distanceKm < MIN_CONSUMPTION_KM) null else energyWh / distanceKm
     companion object {
+        const val MIN_CONSUMPTION_KM = 1.0
         fun of(trips: List<TripSummary>) = TripTotals(trips.size, trips.sumOf { it.distanceKm }, trips.sumOf { it.movingMs },
             trips.maxOfOrNull { it.maxSpeed } ?: 0.0, trips.sumOf { it.energyWh - it.regenWh })
     }
