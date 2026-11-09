@@ -38,7 +38,8 @@ class IonWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val snap = WidgetSnapshot.decode(currentState<Preferences>()[KEY])
-            GlanceTheme { WidgetBody(context, snap, LocalSize.current) }
+            val canConnect = context.ionGraph.ble.hasPermissions()
+            GlanceTheme { WidgetBody(context, snap, LocalSize.current, canConnect) }
         }
     }
 }
@@ -74,7 +75,7 @@ object IonWidgetUpdater {
     }
 }
 
-@Composable internal fun WidgetBody(context: Context, snap: WidgetSnapshot, size: DpSize) {
+@Composable internal fun WidgetBody(context: Context, snap: WidgetSnapshot, size: DpSize, canConnect: Boolean = true) {
     val colors = GlanceTheme.colors
     val live = snap.state == WidgetSnapshot.State.LIVE
     val open: Action = actionStartActivity<MainActivity>()
@@ -115,7 +116,8 @@ object IonWidgetUpdater {
                 val connectAction = if (live || snap.state == WidgetSnapshot.State.CONNECTING || snap.state == WidgetSnapshot.State.RECONNECTING)
                     WheelService.ACTION_DISCONNECT else WheelService.ACTION_CONNECT
                 Button(context.getString(if (connectAction == WheelService.ACTION_CONNECT) R.string.connect else R.string.disconnect),
-                    actionStartService(Intent(context, WheelService::class.java).setAction(connectAction), isForegroundService = true),
+                    if (connectAction == WheelService.ACTION_CONNECT && !canConnect) open
+                    else actionStartService(Intent(context, WheelService::class.java).setAction(connectAction), isForegroundService = true),
                     modifier = GlanceModifier.defaultWeight())
                 if (live && size.width >= 200.dp) {
                     Spacer(GlanceModifier.width(8.dp))
