@@ -244,6 +244,21 @@ Workflow: `:core:test`, `:app:testDebugUnitTest`, `:app:lintRelease`, `:app:asse
 - Когда телеметрия устарела, под скоростью вместо «Последние показания» пишется «… · 12 с назад» (мин / ч дальше).
 - Единица выбирается в `:core` (`ReadingAge.of`, `ReadingAgeTest`). Часы — листовые (`ReadingAgeText`, как `PacketAge` в диагностике): `VelaUi.now` фильтруется `samePresentationAs`, поэтому тикает только подпись.
 
+## Цикл 15 — уход с deprecated Material 3 (`17e88b4`)
+
+- Слайдеры (`SettingSlider`, `ThresholdSlider`, ползунок маршрута) — `Slider(state=rememberSliderState(...),onValueChange=…)`; старая перегрузка внутри делает ровно это, поведение не меняется.
+- Каталог плиток: `rememberBottomSheetState(Hidden, enabledValues={Hidden,Expanded})` вместо `skipPartiallyExpanded`, `ListItem(content=…)`.
+- Сигнатуры взяты из диагностики компилятора (временный probe-файл удалён).
+
+## Цикл 16 — блокировка педалей и сервиса (`3a23617`)
+
+- Баннер «доступно только на стоящем колесе» теперь и в «Педалях» и «Сервисе» (`STATIONARY_CATEGORIES`), раньше только в «Езде» — контролы были серыми без объяснения.
+
+## Цикл 17 — история по месяцам (`6e6489c`)
+
+- `TripMonths.group` (core, по локальной зоне, порядок сохраняется) + `TripMonthsTest`.
+- В истории заголовок месяца «Ноябрь 2026 · 42,1 км» (`trips_month`), месяц в именительном падеже (`LLLL`).
+
 ## Следующие циклы (план)
 
 1. ~~Аудит тёмной темы~~ (захардкоженных цветов вне Theme.kt нет). ~~Вибро-оповещения~~ — цикл 4.
