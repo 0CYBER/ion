@@ -58,17 +58,17 @@ class AlertEngine {
             if (input.charging) { batteryArmed = true; criticalArmed = true }
             else {
                 if (limit > CRITICAL_BATTERY) {
-                    if (criticalArmed && battery <= CRITICAL_BATTERY) { out += Alert(AlertKind.BATTERY_CRITICAL, battery.toInt()); criticalArmed = false; batteryArmed = false }
+                    if (criticalArmed && battery <= CRITICAL_BATTERY) { out += Alert(AlertKind.BATTERY_CRITICAL, kotlin.math.round(battery).toInt()); criticalArmed = false; batteryArmed = false }
                     else if (battery >= CRITICAL_BATTERY + BATTERY_REARM) criticalArmed = true
                 }
                 if (limit > 0) {
-                    if (batteryArmed && battery <= limit) { out += Alert(AlertKind.BATTERY_LOW, battery.toInt()); batteryArmed = false }
+                    if (batteryArmed && battery <= limit) { out += Alert(AlertKind.BATTERY_LOW, kotlin.math.round(battery).toInt()); batteryArmed = false }
                     else if (battery >= limit + BATTERY_REARM) batteryArmed = true
                 }
             }
             val target = config.chargeTargetPercent
             if (target > 0) {
-                if (chargeArmed && input.charging && battery >= target) { out += Alert(AlertKind.CHARGE_TARGET, battery.toInt()); chargeArmed = false }
+                if (chargeArmed && input.charging && battery >= target) { out += Alert(AlertKind.CHARGE_TARGET, kotlin.math.round(battery).toInt()); chargeArmed = false }
                 else if (battery <= target - BATTERY_REARM) chargeArmed = true
             }
         }

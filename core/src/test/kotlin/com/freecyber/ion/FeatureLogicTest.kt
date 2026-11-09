@@ -23,6 +23,13 @@ class AlertEngineTest {
         assertTrue(AlertEngine().evaluate(input(battery = 100.0, charging = true), AlertConfig(), 0).isEmpty())
     }
 
+    @Test fun batteryAlertsRoundLikeTheDisplay() {
+        assertEquals(listOf(Alert(AlertKind.BATTERY_LOW, 20)),
+            AlertEngine().evaluate(input(19.6), AlertConfig(batteryLowPercent = 20), 0))
+        assertEquals(listOf(Alert(AlertKind.CHARGE_TARGET, 91)),
+            AlertEngine().evaluate(input(battery = 90.6, charging = true), AlertConfig(chargeTargetPercent = 90), 0))
+    }
+
     @Test fun batteryFiresOnceAndRearmsWithHysteresis() {
         val e = AlertEngine(); val c = AlertConfig(batteryLowPercent = 20)
         assertTrue(e.evaluate(input(25.0), c, 0).isEmpty())
