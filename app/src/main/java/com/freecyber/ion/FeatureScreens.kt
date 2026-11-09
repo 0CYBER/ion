@@ -183,8 +183,8 @@ internal object EditorSample {
             Text(shownText,style=MaterialTheme.typography.labelLarge,
                 color=MaterialTheme.colorScheme.primary)
         }
-        Slider(state=rememberSliderState(draft,steps,trackRange=range.first.toFloat()..range.last.toFloat()),
-            onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
+        Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
+            valueRange=range.first.toFloat()..range.last.toFloat(),steps=steps,
             modifier=Modifier.semantics {contentDescription=label;stateDescription=shownText})
     }
     }

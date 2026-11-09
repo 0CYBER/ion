@@ -75,7 +75,7 @@ import kotlinx.coroutines.CancellationException
                     // TalkBack: "Route, 12:30 · 3.25 km" instead of a bare percentage of track points.
                     val sliderLabel=stringResource(R.string.trips_track)
                     val sliderState=V12Protocol.formatDuration(track[idx].t/1000)+" · "+cum[idx].fmt(2)+" "+stringResource(R.string.unit_km)
-                    Slider(state=rememberSliderState(pick,trackRange=0f..(track.size-1).coerceAtLeast(1).toFloat()),onValueChange={pick=it},
+                    Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat(),
                         modifier=Modifier.semantics {contentDescription=sliderLabel;stateDescription=sliderState})
                     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                         TripFigure(stringResource(R.string.trip_point_time),V12Protocol.formatDuration(track[idx].t/1000),"",Modifier.weight(1f))
