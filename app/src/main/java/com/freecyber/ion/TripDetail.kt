@@ -41,7 +41,7 @@ import kotlinx.coroutines.CancellationException
     }
     if(track==null) {
         Column(Modifier.fillMaxSize().padding(PagePadding),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            DetailHeading(stringResource(R.string.trips_title),"",onBack)
+            DetailHeading(rememberTripDate(trip.startedAt),V12Protocol.formatDuration(trip.durationMs/1000),onBack)
             if(failed) {
                 Banner(stringResource(R.string.trip_load_failed),Icons.Rounded.ErrorOutline,warning=true)
                 TextButton(onClick={retry++}) {Text(stringResource(R.string.trip_retry))}
@@ -56,7 +56,7 @@ import kotlinx.coroutines.CancellationException
 @Composable internal fun TripDetailScreen(trip: TripSummary,track: List<TrackPoint>,shareGpx: ()->Unit,delete: ()->Unit,onBack: ()->Unit,
     shareCsv: ()->Unit = {},hasCsv: Boolean = false) {
     var confirmDelete by rememberSaveable {mutableStateOf(false)}
-    val date=remember(trip.startedAt) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))}
+    val date=rememberTripDate(trip.startedAt)
     val cum=remember(track) {Track.cumulativeKm(track)}
     var pick by rememberSaveable(track.size) {mutableFloatStateOf((track.size-1).coerceAtLeast(0).toFloat())}
     val idx=pick.roundToInt().coerceIn(0,(track.size-1).coerceAtLeast(0))
@@ -111,6 +111,9 @@ import kotlinx.coroutines.CancellationException
         confirmButton={TextButton(onClick={confirmDelete=false;delete()}) {Text(stringResource(R.string.trips_delete))}},
         dismissButton={TextButton(onClick={confirmDelete=false}) {Text(stringResource(R.string.cancel))}})
 }
+
+@Composable private fun rememberTripDate(startedAt: Long): String =
+    remember(startedAt) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(startedAt))}
 
 @Composable private fun TripStatsCard(trip: TripSummary) {
     val ion=ionColors()
