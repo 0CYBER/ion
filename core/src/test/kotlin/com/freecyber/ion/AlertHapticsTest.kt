@@ -22,5 +22,12 @@ class AlertHapticsTest {
         assertTrue(AlertHaptics.pattern(AlertKind.LINK_LOST)[1] > AlertHaptics.pattern(AlertKind.LINK_RESTORED)[1])
     }
 
+    @Test fun strongestPicksTheMostUrgentRhythm() {
+        assertNull(AlertHaptics.strongest(emptyList()))
+        val fired = listOf(Alert(AlertKind.SPEED_HIGH, 50), Alert(AlertKind.TEMPERATURE_HIGH, 80), Alert(AlertKind.LINK_RESTORED))
+        assertEquals(AlertKind.TEMPERATURE_HIGH, AlertHaptics.strongest(fired)?.kind)
+        assertEquals(AlertKind.SPEED_HIGH, AlertHaptics.strongest(listOf(Alert(AlertKind.LINK_RESTORED), Alert(AlertKind.SPEED_HIGH)))?.kind)
+    }
+
     @Test fun vibrationIsOptIn() = assertFalse(AlertConfig().vibrate)
 }

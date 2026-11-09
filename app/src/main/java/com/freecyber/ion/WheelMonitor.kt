@@ -27,6 +27,8 @@ class WheelMonitor(private val graph: IonGraph) {
     private var sessionStart: Long? = null
     private var sessionWall: Long? = null
     private companion object { const val CHECKPOINT_MS = 5_000L; const val VIBRATE_AFTER_MS = 700L }
+    /** A link is being made or held: the foreground service must run so Android does not kill it in the pocket. */
+    private val Phase.holdsLink get() = this != Phase.OFFLINE && this != Phase.ERROR && this != Phase.SCANNING
 
     fun start() {
         graph.history.recoverPending()
@@ -91,15 +93,14 @@ class WheelMonitor(private val graph: IonGraph) {
             if (config.voice) graph.voice.speak(VoiceAnnouncer.phrase(graph.context, it))
         }
         // One rhythm per evaluation (the most severe), played after the channel's own buzz so it is not cut off.
-        if (config.vibrate) fired.maxByOrNull { AlertHaptics.pattern(it.kind).size }?.let { alert ->
+        if (config.vibrate) AlertHaptics.strongest(fired)?.let { alert ->
             graph.scope.launch { delay(VIBRATE_AFTER_MS); graph.vibrator.play(alert.kind) }
         }
         if (connected && config.voiceBattery) stepper.next(s.telemetry?.battery, s.telemetry?.charging ?: false)
             ?.let { graph.voice.speak(graph.context.resources.getQuantityString(R.plurals.voice_battery_step, it, it)) }
         if (!config.voice && !config.voiceBattery) graph.voice.shutdown()
 
-        val active = s.phase != Phase.OFFLINE && s.phase != Phase.ERROR && s.phase != Phase.SCANNING
-        if ((active || reconnectingState.value) && graph.prefs.background.value.keepAlive) WheelService.ensureRunning(graph.context)
+        if ((s.phase.holdsLink || reconnectingState.value) && graph.prefs.background.value.keepAlive) WheelService.ensureRunning(graph.context)
 
         if (s.phase != lastWidgetPhase || now - lastWidgetAt >= IonWidgetUpdater.MIN_INTERVAL_MS) {
             lastWidgetPhase = s.phase; lastWidgetAt = now
@@ -128,7 +129,7 @@ class WheelMonitor(private val graph: IonGraph) {
     /** Also called from the resumed Activity after a permission change, before it goes into the pocket. */
     fun refreshRecording(refreshService: Boolean = true) {
         val s = graph.ble.state.value
-        if (s.phase !in listOf(Phase.OFFLINE, Phase.ERROR, Phase.SCANNING) && graph.prefs.background.value.keepAlive)
+        if (s.phase.holdsLink && graph.prefs.background.value.keepAlive)
             if (refreshService) WheelService.start(graph.context, WheelService.ACTION_START)
             else WheelService.ensureRunning(graph.context)
         sessionStart?.let(graph.track::start)

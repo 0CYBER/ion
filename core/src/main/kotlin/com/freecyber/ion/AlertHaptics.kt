@@ -19,4 +19,7 @@ object AlertHaptics {
         // Good news: one short tap.
         AlertKind.LINK_RESTORED, AlertKind.CHARGE_TARGET -> longArrayOf(0, SHORT)
     }
+
+    /** Several alerts can fire in one evaluation; only the most urgent rhythm is played (ties: the first). */
+    fun strongest(alerts: List<Alert>): Alert? = alerts.maxByOrNull { pattern(it.kind).size }
 }
