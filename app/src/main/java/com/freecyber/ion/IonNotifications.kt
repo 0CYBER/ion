@@ -48,8 +48,9 @@ object IonNotifications {
     fun live(context: Context, s: WheelState, trip: TripStats, reconnecting: Boolean, attempt: Int): android.app.Notification {
         val t = s.telemetry
         val connected = s.verifiedHt && s.phase == Phase.CONNECTED
+        val battery = t?.battery?.takeIf { it.isFinite() }?.roundToInt()?.coerceIn(0, 100) ?: 0
         val title = when {
-            connected && t != null -> context.getString(R.string.live_title_speed, kotlin.math.abs(t.speed).fmt(1), t.battery.roundToInt())
+            connected && t != null -> context.getString(R.string.live_title_speed, kotlin.math.abs(t.speed).fmt(1), battery)
             reconnecting -> context.getString(R.string.live_title_reconnecting)
             s.phase == Phase.ERROR -> context.getString(R.string.live_title_lost)
             else -> context.getString(R.string.live_title_connecting)
@@ -68,7 +69,6 @@ object IonNotifications {
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(openApp(context))
         if (connected && t != null) {
-            val battery = t.battery.takeIf { it.isFinite() }?.roundToInt()?.coerceIn(0, 100) ?: 0
             b.setProgress(100, battery, false)
             // Android 16+: promoted ongoing notification shows a status-bar chip (speed while riding, charge at rest).
             b.setRequestPromotedOngoing(true)
