@@ -23,6 +23,7 @@ import java.util.Date
     // Keyed by startedAt so the pending question survives rotation; one tap on the bin must not lose a ride.
     var pendingDelete by rememberSaveable {mutableStateOf<Long?>(null)}
     val totals=remember(trips) {TripTotals.of(trips)}
+    val months=remember(trips) {TripMonths.group(trips,java.time.ZoneId.systemDefault())}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),onBack)}
         if(trips.isEmpty()) {
@@ -37,8 +38,11 @@ import java.util.Date
                 }
             }
         }
-        items(trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip ->
-            TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt})}
+        months.forEach {month ->
+            item(key="month-${month.month}",contentType="month") {MonthHeader(month)}
+            items(month.trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip ->
+                TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt})}
+        }
     }
     if(confirmClear) AlertDialog(onDismissRequest={confirmClear=false},title={Text(stringResource(R.string.trips_clear_title))},
         text={Text(stringResource(R.string.trips_clear_message))},
@@ -50,6 +54,15 @@ import java.util.Date
             confirmButton={TextButton(onClick={pendingDelete=null;actions.deleteTrip(trip)}) {Text(stringResource(R.string.trips_delete))}},
             dismissButton={TextButton(onClick={pendingDelete=null}) {Text(stringResource(R.string.cancel))}})
     }
+}
+
+/** "November 2026 · 42.1 km": a long log stays scannable and each month shows how much was ridden. */
+@Composable private fun MonthHeader(month: TripMonth) {
+    val locale=androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val name=remember(month.month,locale) {
+        month.month.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy",locale)).replaceFirstChar {it.titlecase(locale)}
+    }
+    SectionHeader(stringResource(R.string.trips_month,name,month.distanceKm.fmt(1)))
 }
 
 @Composable private fun TotalsCard(t: TripTotals) {
