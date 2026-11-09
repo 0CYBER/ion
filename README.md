@@ -1,9 +1,11 @@
-# Ion 0.6.0-debug — INMOTION V12 HT companion
+# Ion 0.9.3-ai — INMOTION V12 HT companion
 
 Native Kotlin / Jetpack Compose / Material 3 Expressive personal app for one INMOTION V12 HT. Not an official INMOTION app.
 
 - Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
-- Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode, no background service, no internet permission.
+- Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode.
+- Background: foreground service (`connectedDevice|location`) keeps the link, auto-reconnects, records trips with GPS tracks; live notification, home-screen widget and Quick Settings tile. Internet is used only for trip map tiles.
+- Customisable ride dashboard (repeatable tiles, universal toggle), alerts with voice, RU/EN.
 
 ## What it does
 - BLE (Nordic UART) link to a verified V12 HT (series 7 / variant 2); the wheel is remembered after the first valid telemetry.
