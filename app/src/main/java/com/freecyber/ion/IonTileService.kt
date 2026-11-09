@@ -39,6 +39,7 @@ class IonTileService : TileService() {
                 graph.monitor.userConnect(saved)
                 WheelService.ensureRunning(this)
             }
+            isLocked -> unlockAndRun { openApp() }
             else -> openApp()
         }
     }
