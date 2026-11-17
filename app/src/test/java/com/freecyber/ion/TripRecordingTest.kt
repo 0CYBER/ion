@@ -8,6 +8,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import android.content.Intent
 import android.net.Uri
@@ -17,6 +18,53 @@ import kotlinx.coroutines.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class TripRecordingTest {
+    @Config(application = IonApplication::class)
+    @Test fun gpsWaitsForAValidFixAndPausesWithoutLosingTheRoute() {
+        val context = ApplicationProvider.getApplicationContext<IonApplication>()
+        val graph = context.ionGraph
+        shadowOf(context).grantPermissions(android.Manifest.permission.ACCESS_FINE_LOCATION)
+        graph.prefs.setBackground(graph.prefs.background.value.copy(gpsTrack = true))
+        val locationManager = context.getSystemService(android.location.LocationManager::class.java)
+        val gps = android.location.LocationManager.GPS_PROVIDER
+        val provider = shadowOf(locationManager)
+        provider.setProviderEnabled(gps, true)
+        val looper = shadowOf(android.os.Looper.getMainLooper())
+        val start = android.os.SystemClock.elapsedRealtime()
+        val recorder = graph.track
+        fun emit(accuracyMetres: Float, latitude: Double) {
+            looper.idleFor(java.time.Duration.ofSeconds(2))
+            provider.simulateLocation(android.location.Location(gps).apply {
+                this.latitude = latitude
+                longitude = 21.0
+                accuracy = accuracyMetres
+                elapsedRealtimeNanos = android.os.SystemClock.elapsedRealtimeNanos()
+            })
+            looper.idle()
+        }
+
+        assertFalse(graph.companionWheel.usesForegroundService())
+        recorder.start(start)
+        assertEquals(GpsStatus.WAITING, recorder.status.value)
+        assertTrue(graph.companionWheel.usesForegroundService())
+        emit(60f, 52.0)
+        assertEquals(0, recorder.count.value)
+        emit(8f, 52.0)
+        assertEquals(GpsStatus.RECORDING, recorder.status.value)
+        assertEquals(1, recorder.count.value)
+
+        recorder.pause()
+        assertEquals(GpsStatus.PAUSED, recorder.status.value)
+        assertFalse(graph.companionWheel.usesForegroundService())
+        emit(8f, 52.0001)
+        assertEquals(1, recorder.count.value)
+        recorder.start(start)
+        emit(8f, 52.0002)
+        assertEquals(2, recorder.count.value)
+        assertTrue(checkNotNull(recorder.lastPoint).t >= 6000L)
+        recorder.stop()
+        assertFalse(graph.companionWheel.usesForegroundService())
+    }
+
     @Test fun backgroundRideServiceDeclaresLocationType() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val info = context.packageManager.getServiceInfo(ComponentName(context, WheelService::class.java), 0)

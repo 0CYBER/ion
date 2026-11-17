@@ -14,7 +14,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class GpsStatus { OFF, PRECISE_REQUIRED, DISABLED, WAITING, RECORDING, ERROR }
+enum class GpsStatus { OFF, PAUSED, PRECISE_REQUIRED, DISABLED, WAITING, RECORDING, ERROR }
 
 /** Subscriptions can restart without clearing the ride or changing the telemetry/GPS time origin. */
 class TrackRecorder(
@@ -59,14 +59,20 @@ class TrackRecorder(
     }
 
     fun pause() {
+        if (!listening) return
+        unsubscribe()
+        statusState.value = if (enabled()) GpsStatus.PAUSED else GpsStatus.OFF
+    }
+
+    private fun unsubscribe() {
         val lm = context.getSystemService(LocationManager::class.java)
         listener?.let { lm?.removeUpdates(it) }
         listener = null
-        statusState.value = GpsStatus.OFF
     }
 
     fun stop() {
-        pause()
+        unsubscribe()
+        statusState.value = GpsStatus.OFF
         startedAt = null; latest = null; countState.value = 0
     }
 

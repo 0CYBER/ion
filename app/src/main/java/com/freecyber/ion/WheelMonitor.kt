@@ -144,6 +144,7 @@ class WheelMonitor(private val graph: IonGraph) {
     private fun onState(s: WheelState) {
         val now = SystemClock.elapsedRealtime()
         val connected = s.verifiedV12 && s.phase == Phase.CONNECTED
+        if (!connected) graph.track.pause()
         if (connected && now - lastCheckpointAt >= CHECKPOINT_MS) {
             lastCheckpointAt = now
             summary(now)?.let(graph.history::checkpoint)
@@ -199,10 +200,11 @@ class WheelMonitor(private val graph: IonGraph) {
     /** Also called from the resumed Activity after a permission change, before it goes into the pocket. */
     fun refreshRecording(refreshService: Boolean = true) {
         val s = graph.ble.state.value
+        val previousSubscription = graph.track.listening
+        if (s.phase == Phase.CONNECTED && s.verifiedV12) sessionStart?.let(graph.track::start)
         if ((s.phase.holdsLink || reconnectingState.value) && graph.companionWheel.usesForegroundService())
-            if (refreshService) WheelService.start(graph.context, WheelService.ACTION_START)
+            if (refreshService || previousSubscription != graph.track.listening) WheelService.start(graph.context, WheelService.ACTION_START)
             else WheelService.ensureRunning(graph.context)
-        sessionStart?.let(graph.track::start)
     }
 
     private fun onLinkFailed() {

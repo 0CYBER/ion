@@ -18,6 +18,7 @@
     <string name="trip_map_position">Выбранная точка</string>
     <string name="trip_map_hint">Масштаб и перемещение — жестами. Для загрузки карты нужен интернет; уже просмотренные участки доступны из кэша.</string>
     <string name="gps_off">GPS выключен в настройках записи</string>
+    <string name="gps_paused">GPS: пауза до подключения колеса</string>
     <string name="gps_precise">GPS: разрешите точное местоположение</string>
     <string name="gps_disabled">GPS: включите геолокацию телефона</string>
     <string name="gps_waiting">GPS: ожидание спутников</string>

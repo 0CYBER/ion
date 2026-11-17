@@ -67,7 +67,7 @@ class CompanionWheel(private val graph: IonGraph) {
     fun covers(address: String?): Boolean = observed?.address == address?.uppercase() && ready.value
 
     fun usesForegroundService(config: BackgroundConfig = graph.prefs.background.value): Boolean =
-        config.keepAlive && (showsLiveCard(config) || (config.gpsTrack && graph.track.granted()))
+        config.keepAlive && (showsLiveCard(config) || graph.track.listening)
 
     fun showsLiveCard(config: BackgroundConfig): Boolean =
         config.liveNotification && IonNotifications.canPost(graph.context)

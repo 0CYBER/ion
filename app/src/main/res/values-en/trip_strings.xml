@@ -18,6 +18,7 @@
     <string name="trip_map_position">Selected point</string>
     <string name="trip_map_hint">Pinch to zoom and drag to pan. Internet is needed to load the map; previously viewed tiles are cached.</string>
     <string name="gps_off">GPS recording is off</string>
+    <string name="gps_paused">GPS: paused until the wheel reconnects</string>
     <string name="gps_precise">GPS: allow precise location</string>
     <string name="gps_disabled">GPS: enable phone location</string>
     <string name="gps_waiting">GPS: waiting for satellites</string>

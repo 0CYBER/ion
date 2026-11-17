@@ -285,6 +285,7 @@ import kotlin.math.roundToInt
             }
             if(trip.samples>0) Text(stringResource(when(gpsStatus) {
                 GpsStatus.OFF -> R.string.gps_off
+                GpsStatus.PAUSED -> R.string.gps_paused
                 GpsStatus.PRECISE_REQUIRED -> R.string.gps_precise
                 GpsStatus.DISABLED -> R.string.gps_disabled
                 GpsStatus.WAITING -> R.string.gps_waiting

@@ -80,11 +80,11 @@ class WheelService : Service() {
             IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
                 graph.monitor.reconnecting.value, graph.monitor.attempt.value)
         } else {
-            IonNotifications.gpsRecording(this)
+            IonNotifications.gpsRecording(this, graph.track.status.value)
         }
         val connectedDevice = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
         // Request the location type while waiting for GPS too. Upgrading can require a resumed Activity.
-        val location = Build.VERSION.SDK_INT >= 29 && graph.prefs.background.value.gpsTrack && graph.track.granted()
+        val location = Build.VERSION.SDK_INT >= 29 && graph.track.listening
         val type = connectedDevice or (if (location) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0)
         try {
             ServiceCompat.startForeground(this, id, notification, type)
@@ -107,8 +107,9 @@ class WheelService : Service() {
         reconnecting || state.phase !in listOf(Phase.OFFLINE, Phase.ERROR, Phase.SCANNING)
 
     private suspend fun observe(graph: IonGraph) {
-        combine(graph.ble.state, graph.trips.stats, graph.monitor.reconnecting, graph.prefs.background, graph.companionWheel.ready) { s, trip, retry, _, _ ->
-            Snapshot(s, trip, retry)
+        var lastGpsStatus: GpsStatus? = null
+        combine(graph.ble.state, graph.trips.stats, graph.monitor.reconnecting, graph.prefs.background, graph.track.status) { s, trip, retry, _, gps ->
+            Snapshot(s, trip, retry, gps)
         }.conflate().collect { snap ->
             val background = graph.prefs.background.value
             if (!graph.companionWheel.usesForegroundService(background)) {
@@ -127,9 +128,15 @@ class WheelService : Service() {
             }
             val id = notificationId(graph, background)
             if (foregroundId != id) {
+                lastGpsStatus = null
                 if (!promote(graph)) shutdown()
             } else if (id == IonNotifications.LIVE_ID) {
                 refresh(graph, snap)
+            } else if (snap.gps != lastGpsStatus && IonNotifications.canPost(this)) {
+                try {
+                    NotificationManagerCompat.from(this).notify(id, IonNotifications.gpsRecording(this, snap.gps))
+                    lastGpsStatus = snap.gps
+                } catch (_: SecurityException) { }
             }
             delay(UPDATE_INTERVAL_MS)
         }
@@ -162,5 +169,5 @@ class WheelService : Service() {
         super.onTaskRemoved(rootIntent)
     }
 
-    private data class Snapshot(val state: WheelState, val trip: TripStats, val reconnecting: Boolean)
+    private data class Snapshot(val state: WheelState, val trip: TripStats, val reconnecting: Boolean, val gps: GpsStatus)
 }

@@ -52,10 +52,15 @@ object IonNotifications {
     internal fun serviceAction(context: Context, action: String, code: Int): PendingIntent = PendingIntent.getService(context, code,
         Intent(context, WheelService::class.java).setAction(action), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-    fun gpsRecording(context: Context): android.app.Notification =
+    fun gpsRecording(context: Context, status: GpsStatus = GpsStatus.WAITING): android.app.Notification =
         NotificationCompat.Builder(context, CHANNEL_GPS)
             .setSmallIcon(R.drawable.ic_stat_ion)
             .setContentTitle(context.getString(R.string.gps_recording_notification))
+            .setContentText(context.getString(when (status) {
+                GpsStatus.RECORDING -> R.string.gps_recording
+                GpsStatus.DISABLED -> R.string.gps_disabled
+                else -> R.string.gps_waiting
+            }))
             .setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(openApp(context))
