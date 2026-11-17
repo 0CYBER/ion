@@ -4,7 +4,7 @@ Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V
 
 - Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
 - Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode.
-- Background: foreground service (`connectedDevice|location`) keeps the link, auto-reconnects, records trips with GPS tracks; live notification, home-screen widget and Quick Settings tile. Internet is used only for trip map tiles.
+- Background: on supported Android 12+ devices, ION requests Android’s companion association when you choose a wheel. The default background BLE connection needs no persistent card once associated. GPS tracking and live notifications are optional and use the foreground service (`connectedDevice|location`). Auto-reconnect, home-screen widget and Quick Settings tile are available. Internet is used only for trip map tiles.
 - Customisable ride dashboard (repeatable tiles, universal toggle), alerts with voice and optional vibration rhythms (danger / speed / warning / info are told apart in a pocket), RU/EN.
 - Appearance: light, dark or "Match system" (follows the phone's dark mode).
 

@@ -9,6 +9,12 @@ import kotlinx.coroutines.flow.asStateFlow
 /** One SharedPreferences file, exposed as StateFlows so the UI, service and widgets observe the same values. */
 class AppPrefs(context: Context) {
     private val prefs = context.getSharedPreferences("vela_preferences", Context.MODE_PRIVATE)
+    var onboardingDone: Boolean
+        get() = prefs.getBoolean("connection_onboarding_done", false)
+        set(value) { prefs.edit { putBoolean("connection_onboarding_done", value) } }
+    var companionReconnectArmed: Boolean
+        get() = prefs.getBoolean("companion_reconnect_armed", false)
+        set(value) { prefs.edit { putBoolean("companion_reconnect_armed", value) } }
 
     private val darkState = MutableStateFlow(if (prefs.contains("dark")) prefs.getBoolean("dark", true) else null)
     val dark: StateFlow<Boolean?> = darkState.asStateFlow()
@@ -39,12 +45,12 @@ class AppPrefs(context: Context) {
     private val backgroundState = MutableStateFlow(loadBackground())
     val background: StateFlow<BackgroundConfig> = backgroundState.asStateFlow()
     private fun loadBackground() = BackgroundConfig(
-        prefs.getBoolean("bg_keep_alive", true), prefs.getBoolean("bg_reconnect", true),
-        prefs.getBoolean("bg_live_notification", true), prefs.getBoolean("keep_screen_on", false),
-        prefs.getBoolean("bg_connect_on_launch", true), prefs.getBoolean("bg_gps_track", true))
+        true, prefs.getBoolean("bg_reconnect", true),
+        prefs.getBoolean("bg_live_notification", false), prefs.getBoolean("keep_screen_on", false),
+        prefs.getBoolean("bg_connect_on_launch", true), prefs.getBoolean("bg_gps_track", false))
     fun setBackground(value: BackgroundConfig) {
         backgroundState.value = value
-        prefs.edit { putBoolean("bg_keep_alive", value.keepAlive).putBoolean("bg_reconnect", value.autoReconnect)
+        prefs.edit { putBoolean("bg_reconnect", value.autoReconnect)
             .putBoolean("bg_live_notification", value.liveNotification).putBoolean("keep_screen_on", value.keepScreenOn)
             .putBoolean("bg_connect_on_launch", value.connectOnLaunch).putBoolean("bg_gps_track", value.gpsTrack) }
     }

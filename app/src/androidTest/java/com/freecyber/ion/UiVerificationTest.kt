@@ -150,6 +150,29 @@ class UiVerificationTest {
         rule.onNodeWithText("Блокировка колеса").assertIsDisplayed();shot("system-dark")
     }
 
+    @Test fun onboardingRequestsBluetoothBeforeAddingWheel() {
+        val allowed = mutableStateOf(false)
+        var additions = 0
+        rule.runOnUiThread {
+            rule.activity.setContent {
+                IonTheme(true) {
+                    ConnectionOnboarding(allowed.value, false, false, true,
+                        requestBluetooth = { allowed.value = true }, requestNotifications = {},
+                        requestLocation = {}, requestBattery = {}, addWheel = { additions++ }, later = {})
+                }
+            }
+        }
+        val add = rule.activity.getString(R.string.setup_add_wheel)
+        scroll(add)
+        rule.onNodeWithText(add).assertIsNotEnabled()
+        val bluetooth = rule.activity.getString(R.string.setup_bluetooth)
+        scroll(bluetooth)
+        rule.onNodeWithText(bluetooth).performClick()
+        scroll(add)
+        rule.onNodeWithText(add).assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(1, additions) }
+    }
+
     @Test fun liveRideCardIsEligibleForAndroidPromotion() {
         org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 36)
         val ui = sample()

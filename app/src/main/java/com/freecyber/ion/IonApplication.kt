@@ -19,6 +19,7 @@ class IonApplication : Application() {
         graph = IonGraph(this)
         IonNotifications.createChannels(this)
         graph.monitor.start()
+        graph.companionWheel.start()
     }
 }
 
@@ -44,9 +45,16 @@ class IonGraph(val context: Context) {
         store.saveVerified(device)
         savedState.value = device
         monitor.onWheelVerified(device.address)
+        companionWheel.pruneAssociations(device.address)
     }
     val monitor = WheelMonitor(this)
-    fun forget() { monitor.userDisconnect(); store.forget(); savedState.value = null }
+    val companionWheel: CompanionWheel = CompanionWheel(this)
+    fun forget() {
+        monitor.userDisconnect()
+        store.forget()
+        savedState.value = null
+        companionWheel.pruneAssociations(null)
+    }
 }
 
 val Context.ionGraph: IonGraph get() = (applicationContext as IonApplication).graph

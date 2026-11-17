@@ -32,10 +32,22 @@ class WheelService : Service() {
         const val WAKE_LOCK_MS = 120_000L
         @Volatile var running = false; private set
 
-        fun ensureRunning(context: Context) { if (!running) start(context, ACTION_START) }
+        fun ensureRunning(context: Context) {
+            if (!running && context.ionGraph.companionWheel.usesForegroundService()) start(context, ACTION_START)
+        }
         fun start(context: Context, action: String) {
             try { ContextCompat.startForegroundService(context, Intent(context, WheelService::class.java).setAction(action)) }
             catch (_: Exception) { /* background start not allowed: the UI path will start us next time */ }
+        }
+
+        fun dispatch(graph: IonGraph, action: String?) {
+            when (action) {
+                ACTION_DISCONNECT -> graph.monitor.userDisconnect()
+                ACTION_CONNECT -> graph.saved.value?.let { if (graph.ble.hasPermissions()) graph.monitor.userConnect(it) }
+                ACTION_TOGGLE_LIGHT -> graph.ble.state.value.takeIf { it.verifiedV12 && it.phase == Phase.CONNECTED }?.telemetry?.let { t ->
+                    graph.ble.apply(V12Protocol.Write(V12Protocol.Control.LIGHTS, if (t.lowBeam) 0 else 1, if (t.highBeam) 1 else 0))
+                }
+            }
         }
     }
 
@@ -55,13 +67,7 @@ class WheelService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val graph = ionGraph
         if (!promote(graph)) { stopSelf(); return START_NOT_STICKY }
-        when (intent?.action) {
-            ACTION_DISCONNECT -> graph.monitor.userDisconnect()
-            ACTION_CONNECT -> graph.saved.value?.let { if (graph.ble.hasPermissions()) graph.monitor.userConnect(it) }
-            ACTION_TOGGLE_LIGHT -> graph.ble.state.value.takeIf { it.verifiedV12 && it.phase == Phase.CONNECTED }?.telemetry?.let { t ->
-                graph.ble.apply(V12Protocol.Write(V12Protocol.Control.LIGHTS, if (t.lowBeam) 0 else 1, if (t.highBeam) 1 else 0))
-            }
-        }
+        dispatch(graph, intent?.action)
         if (observer == null) observer = graph.scope.launch { observe(graph) }
         return START_NOT_STICKY
     }
@@ -102,11 +108,11 @@ class WheelService : Service() {
         reconnecting || state.phase !in listOf(Phase.OFFLINE, Phase.ERROR, Phase.SCANNING)
 
     private suspend fun observe(graph: IonGraph) {
-        combine(graph.ble.state, graph.trips.stats, graph.monitor.reconnecting, graph.prefs.background) { s, trip, retry, _ ->
+        combine(graph.ble.state, graph.trips.stats, graph.monitor.reconnecting, graph.prefs.background, graph.companionWheel.ready) { s, trip, retry, _, _ ->
             Snapshot(s, trip, retry)
         }.conflate().collect { snap ->
             val background = graph.prefs.background.value
-            if (!background.keepAlive) {
+            if (!graph.companionWheel.usesForegroundService(background)) {
                 shutdown()
                 return@collect
             }

@@ -16,8 +16,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.viewModels
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,27 +43,69 @@ class MainActivity : ComponentActivity() {
         if(Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced=false
         // The system language may have changed while the process lived on.
         IonFormat.locale = java.util.Locale.forLanguageTag(getString(R.string.format_locale))
-        if(savedInstanceState==null) model.autoConnect()
+        ionGraph.companionWheel.refresh()
+        if(savedInstanceState==null && model.prefs.onboardingDone) model.autoConnect()
         setContent {
             val ui = model.ui.collectAsStateWithLifecycle()
             val preference by model.dark.collectAsStateWithLifecycle()
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
             val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
             val background by model.prefs.background.collectAsStateWithLifecycle()
+            val companionWheel = ionGraph.companionWheel
+            var onboarding by rememberSaveable { mutableStateOf(!model.prefs.onboardingDone) }
+            var startOnWheel by rememberSaveable { mutableStateOf(false) }
+            var pendingPair by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
+            fun finishPair(warn: Boolean) {
+                val target = pendingPair ?: return
+                pendingPair = null
+                if (warn) showAssociationError()
+                val device = ionGraph.saved.value?.takeIf { it.address == target[0] }
+                    ?: WheelDevice(target[0], target[1], target[2].toInt(), target.getOrNull(3)?.ifEmpty { null })
+                model.connect(device)
+            }
+            val association = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+                if (result.resultCode == RESULT_OK) companionWheel.refresh()
+                finishPair(result.resultCode != RESULT_OK)
+            }
+            var pairingDialogLaunched by rememberSaveable { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                if (pendingPair != null && !pairingDialogLaunched) finishPair(true)
+            }
+            fun connect(device: WheelDevice) {
+                if (pendingPair != null) return
+                if (!companionWheel.supported || companionWheel.covers(device.address)) {
+                    model.connect(device)
+                    return
+                }
+                model.ble.stopScan()
+                val target = arrayListOf(device.address, device.name, device.rssi.toString(), device.advertisedName.orEmpty())
+                pendingPair = target
+                pairingDialogLaunched = false
+                companionWheel.associate(device.address, { sender ->
+                    if (!isDestroyed && pendingPair === target) {
+                        runCatching {
+                            association.launch(IntentSenderRequest.Builder(sender).build())
+                            pairingDialogLaunched = true
+                        }.onFailure { finishPair(true) }
+                    }
+                }, { if (!isDestroyed && pendingPair === target) finishPair(true) })
+            }
             val trips by model.history.trips.collectAsStateWithLifecycle()
             var notificationsAllowed by remember { mutableStateOf(IonNotifications.canPost(this)) }
             var batteryUnrestricted by remember { mutableStateOf(batteryUnrestricted()) }
             var locationAllowed by remember { mutableStateOf(model.ble.grantedLocation()) }
+            var bluetoothAllowed by remember { mutableStateOf(model.ble.hasPermissions()) }
             val dark=systemDark(preference)
             // Permission may change in system settings while we are away.
             LifecycleResumeEffect(Unit) {
                 notificationsAllowed=IonNotifications.canPost(this@MainActivity); batteryUnrestricted=batteryUnrestricted()
                 locationAllowed=model.ble.grantedLocation()
+                bluetoothAllowed=model.ble.hasPermissions()
+                companionWheel.refresh()
                 model.refreshRecording()
                 model.resumeSavedLink()
                 onPauseOrDispose { }
             }
-            var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }
             var notificationsAskedAt by remember { mutableLongStateOf(0L) }
             val notifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
                 notificationsAllowed=IonNotifications.canPost(this)
@@ -74,37 +122,68 @@ class MainActivity : ComponentActivity() {
                 if(!locationAllowed && SystemClock.elapsedRealtime()-locationAskedAt<500)
                     runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}
             }
-            val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-                if(result.values.all { it } && model.ble.hasPermissions()) {
-                    pendingDevice?.let(model::connect) ?: model.scan()
-                    // Ask right after Bluetooth, when the rider understands why a live card is useful.
-                    askNotifications()
-                } else model.ble.permissionDenied()
-                pendingDevice=null
+            var bluetoothAskedAt by remember { mutableLongStateOf(0L) }
+            val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+                bluetoothAllowed = model.ble.hasPermissions()
+                if (!bluetoothAllowed && SystemClock.elapsedRealtime() - bluetoothAskedAt < 500) openAppSettings()
             }
             fun permitted(device: WheelDevice?) {
-                if(model.ble.hasPermissions()) { if(device==null) model.scan() else model.connect(device) }
-                else { pendingDevice=device; permission.launch(model.ble.permissions()) }
+                if(model.ble.hasPermissions()) { if(device==null) model.scan() else connect(device) }
+                else onboarding = true
+            }
+            fun finishOnboarding(addWheel: Boolean) {
+                model.prefs.onboardingDone = true
+                if (addWheel) {
+                    val saved = ionGraph.saved.value
+                    startOnWheel = true
+                    if (saved == null) model.scan() else connect(saved)
+                }
+                onboarding = false
             }
             SideEffect { WindowCompat.getInsetsController(window,window.decorView).apply {
                 isAppearanceLightStatusBars=!dark; isAppearanceLightNavigationBars=!dark
             } }
             KeepRideScreenOn(ui,background.keepScreenOn)
             IonTheme(dark) {
-                IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,notificationsAllowed,batteryUnrestricted,trips,locationAllowed,themeFollowsSystem=preference==null),Actions(scan={permitted(null)},connect={permitted(it)},
+                BackHandler(onboarding) { finishOnboarding(false) }
+                if (onboarding) ConnectionOnboarding(
+                    bluetoothAllowed, notificationsAllowed, locationAllowed, batteryUnrestricted,
+                    requestBluetooth = { bluetoothAskedAt = SystemClock.elapsedRealtime(); permission.launch(model.ble.permissions()) },
+                    requestNotifications = { if (Build.VERSION.SDK_INT >= 33) {
+                        notificationsAskedAt = SystemClock.elapsedRealtime(); askNotifications()
+                    } else openNotificationSettings() },
+                    requestLocation = { locationAskedAt = SystemClock.elapsedRealtime()
+                        location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
+                    requestBattery = ::requestBatteryUnrestricted,
+                    addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
+                ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
+                    themeFollowsSystem=preference==null),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
-                    theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}},
-                    setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground=model.prefs::setBackground,
-                    // Below Android 13 there is no runtime permission: notifications were turned off in settings.
-                    requestNotifications={ if(Build.VERSION.SDK_INT >= 33) {notificationsAskedAt=SystemClock.elapsedRealtime();askNotifications()} else openNotificationSettings() },
-                    requestBatteryUnrestricted=::requestBatteryUnrestricted,
-                    requestLocation={ locationAskedAt=SystemClock.elapsedRealtime(); location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
+                    theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
+                    setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground={ config ->
+                        model.prefs.setBackground(config)
+                        if ((config.gpsTrack && !background.gpsTrack && !locationAllowed) ||
+                            (config.liveNotification && !background.liveNotification && !notificationsAllowed)) onboarding = true
+                    },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
-                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry))
+                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry),
+                    initialTab=if (startOnWheel) 2 else 0)
+                if (pendingPair != null && !pairingDialogLaunched) AlertDialog(
+                    onDismissRequest = {}, title = { Text(stringResource(R.string.bg_companion_pairing)) },
+                    confirmButton = { androidx.compose.material3.TextButton(onClick = { finishPair(true) }) {
+                        Text(stringResource(R.string.setup_connect_without_pairing))
+                    } },
+                )
             }
         }
+    }
+    private fun openAppSettings() {
+        runCatching { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))) }
+    }
+    private fun showAssociationError() {
+        android.widget.Toast.makeText(this, R.string.bg_companion_failed, android.widget.Toast.LENGTH_LONG).show()
     }
     @Composable private fun KeepRideScreenOn(ui: State<VelaUi>, enabled: Boolean) {
         val keepOn=enabled && ui.value.connected

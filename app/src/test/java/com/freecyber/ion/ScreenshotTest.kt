@@ -69,7 +69,7 @@ class ScreenshotTest {
     @Test fun rideLargeFont() = shot("ride_large_font", fontScale = 1.5f) {
         RideScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}, {}, {}, {}, {})
     }
-    @Test fun settingsLargeFont() = shot("settings_large_font", dark = true, fontScale = 1.5f) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
+    @Test fun settingsLargeFont() = shot("settings_large_font", dark = true, fontScale = 1.5f) { BackgroundScreen(PrefsUi(), Actions(), {}) }
     /** English UI: strings from values-en and "23.4"-style numbers. */
     @Config(qualifiers = "en-w411dp-h1400dp-xhdpi")
     @Test fun rideLiveEnglish() {
@@ -78,9 +78,9 @@ class ScreenshotTest {
         finally { IonFormat.locale = java.util.Locale.forLanguageTag("ru") }
     }
     @Config(qualifiers = "en-w411dp-h1400dp-xhdpi")
-    @Test fun settingsEnglish() = shot("background_en", dark = true) { BackgroundScreen(PrefsUi(notificationsAllowed = false), Actions(), {}) }
+    @Test fun settingsEnglish() = shot("background_en", dark = true) { BackgroundScreen(PrefsUi(), Actions(), {}) }
     @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}) }
-    @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(notificationsAllowed = false, batteryUnrestricted = false), Actions(), {}) }
+    @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(), Actions(), {}) }
     @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}, {}) }
     @Test fun tripsEmpty() = shot("trips_empty", dark = true) { TripsScreen(emptyList(), Actions(), {}, {}) }
     @Test fun settings() = shot("settings") { SettingsScreen({}, {}) }

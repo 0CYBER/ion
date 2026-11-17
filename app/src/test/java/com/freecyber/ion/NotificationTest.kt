@@ -50,6 +50,7 @@ class NotificationTest {
     @Config(application = IonApplication::class)
     @Test fun switchingLiveOffReplacesTheForegroundRideCardUntilReenabled() {
         val graph = context.ionGraph
+        graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = true))
         val controller = Robolectric.buildService(WheelService::class.java).create()
         try {
             val service = controller.get()

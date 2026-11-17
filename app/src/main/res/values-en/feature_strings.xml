@@ -100,6 +100,14 @@
     <string name="bg_section">Background</string>
     <string name="bg_keep_alive">Stay connected in background</string>
     <string name="bg_keep_alive_hint">The wheel stays connected with the screen off</string>
+    <string name="bg_companion_pairing">Looking for the wheel to link…</string>
+    <string name="bg_companion_failed">The wheel was not linked in Android. ION will show a notification for the background connection. To retry linking, turn on phone location and tap Connect again.</string>
+    <string name="setup_connection">Connect your wheel</string>
+    <string name="setup_connection_hint">Allow Bluetooth, then choose your wheel and confirm the Android prompt if it appears.</string>
+    <string name="setup_bluetooth">Allow Bluetooth</string>
+    <string name="setup_add_wheel">Continue to wheel</string>
+    <string name="setup_later">Later</string>
+    <string name="setup_connect_without_pairing">Continue without linking</string>
     <string name="bg_reconnect">Auto-reconnect</string>
     <string name="bg_reconnect_hint">Restore the link if it drops</string>
     <string name="bg_live">Live notification</string>
@@ -132,7 +140,7 @@
     <string name="status_connected_short">Connected</string>
     <string name="trips_title">Ride history</string>
     <string name="bg_gps">GPS track recording</string>
-    <string name="bg_gps_hint">Each ride\'s route is saved with its stats</string>
+    <string name="bg_gps_hint">Saves the route for each ride. Android shows a notification while recording.</string>
     <string name="location_permission_hint">Allow precise location to record the route. Approximate location is insufficient.</string>
     <string name="location_permission">Allow location access</string>
     <string name="trips_track">Route</string>

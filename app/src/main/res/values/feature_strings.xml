@@ -100,6 +100,14 @@
     <string name="bg_section">Работа в фоне</string>
     <string name="bg_keep_alive">Держать связь в фоне</string>
     <string name="bg_keep_alive_hint">Колесо остаётся на связи при выключенном экране</string>
+    <string name="bg_companion_pairing">Поиск колеса для привязки…</string>
+    <string name="bg_companion_failed">Колесо не привязано в Android. Для фоновой связи ION покажет уведомление. Чтобы повторить привязку, включите геолокацию телефона и заново нажмите «Подключить».</string>
+    <string name="setup_connection">Подключение колеса</string>
+    <string name="setup_connection_hint">Разрешите Bluetooth, затем выберите колесо и подтвердите привязку в Android, если появится запрос.</string>
+    <string name="setup_bluetooth">Разрешить Bluetooth</string>
+    <string name="setup_add_wheel">Перейти к колесу</string>
+    <string name="setup_later">Позже</string>
+    <string name="setup_connect_without_pairing">Продолжить без привязки</string>
     <string name="bg_reconnect">Авто­пере­подклю­чение</string>
     <string name="bg_reconnect_hint">Восстанавливать связь, если она оборвалась</string>
     <string name="bg_live">Живое уведомление</string>
@@ -132,7 +140,7 @@
     <string name="status_connected_short">Подключено</string>
     <string name="trips_title">История поездок</string>
     <string name="bg_gps">Запись GPS-трека</string>
-    <string name="bg_gps_hint">Маршрут каждой поездки сохраняется вместе со статистикой</string>
+    <string name="bg_gps_hint">Сохраняет маршрут поездки. Во время записи Android показывает уведомление.</string>
     <string name="location_permission_hint">Для записи маршрута разрешите точное местоположение. Приблизительного недостаточно.</string>
     <string name="location_permission">Разрешить местоположение</string>
     <string name="trips_track">Маршрут</string>

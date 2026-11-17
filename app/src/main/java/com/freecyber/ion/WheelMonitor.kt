@@ -1,11 +1,15 @@
 package com.freecyber.ion
 
+import android.os.PowerManager
 import android.os.SystemClock
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -23,11 +27,17 @@ class WheelMonitor(private val graph: IonGraph) {
     private var lastPhase = Phase.OFFLINE
     private var userStopped = true
     private var requestedAddress: String? = null
+    internal val linkAddress get() = requestedAddress
     private var lastWidgetAt = 0L
     private var lastWidgetPhase: Phase? = null
     private var lastCheckpointAt = 0L
     private var sessionStart: Long? = null
     private var sessionWall: Long? = null
+    private val companionWakeLock by lazy {
+        graph.context.getSystemService(PowerManager::class.java)
+            ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ion:companion-link")
+            ?.apply { setReferenceCounted(false) }
+    }
     private companion object { const val CHECKPOINT_MS = 5_000L; const val VIBRATE_AFTER_MS = 700L }
     /** A link is being made or held: the foreground service must run so Android does not kill it in the pocket. */
     private val Phase.holdsLink get() = this != Phase.OFFLINE && this != Phase.ERROR && this != Phase.SCANNING
@@ -42,6 +52,24 @@ class WheelMonitor(private val graph: IonGraph) {
                 refreshRecording()
             }
         }
+        graph.scope.launch { graph.companionWheel.ready.collect { refreshRecording() } }
+        graph.scope.launch {
+            combine(graph.ble.state, reconnecting, graph.companionWheel.ready, graph.prefs.background) { state, retry, ready, config ->
+                ready && config.keepAlive && graph.companionWheel.covers(requestedAddress) && (state.phase.holdsLink || retry)
+            }.distinctUntilChanged().collectLatest { hold ->
+                if (hold) {
+                    val lock = companionWakeLock ?: return@collectLatest
+                    try {
+                        while (true) {
+                            lock.acquire(WheelService.WAKE_LOCK_MS)
+                            delay(WheelService.WAKE_LOCK_MS / 2)
+                        }
+                    } finally {
+                        if (lock.isHeld) lock.release()
+                    }
+                }
+            }
+        }
     }
 
     /** The user asked for a link: a fresh trip unless this continues a dropped session. */
@@ -49,15 +77,21 @@ class WheelMonitor(private val graph: IonGraph) {
         cancelReconnect()
         if (lastPhase == Phase.OFFLINE || graph.trips.stats.value.samples == 0) finishTrip()
         userStopped = false
+        graph.prefs.companionReconnectArmed = device.address == graph.saved.value?.address
         requestedAddress = device.address
         engine.reset(); stepper.reset()
         graph.ble.connect(device, fromSaved = device == graph.saved.value)
     }
 
-    internal fun onWheelVerified(address: String) { requestedAddress = address }
+    internal fun onWheelVerified(address: String) {
+        requestedAddress = address
+        if (!userStopped) graph.prefs.companionReconnectArmed = true
+    }
 
     fun userDisconnect() {
+        discardUnverifiedAssociation()
         userStopped = true
+        graph.prefs.companionReconnectArmed = false
         requestedAddress = null
         cancelReconnect()
         graph.ble.disconnect()
@@ -65,7 +99,9 @@ class WheelMonitor(private val graph: IonGraph) {
     }
 
     fun userScan() {
+        discardUnverifiedAssociation()
         userStopped = true
+        graph.prefs.companionReconnectArmed = false
         requestedAddress = null
         cancelReconnect()
         graph.ble.scan()
@@ -74,6 +110,18 @@ class WheelMonitor(private val graph: IonGraph) {
     fun resumeSavedLink() {
         if (graph.ble.state.value.phase == Phase.ERROR && reconnectJob?.isActive != true &&
             graph.ble.hasPermissions()) onLinkFailed()
+    }
+
+    fun resumeCompanionLink(address: String) {
+        val config = graph.prefs.background.value
+        if (!config.keepAlive || !config.autoReconnect || !graph.prefs.companionReconnectArmed ||
+            reconnectJob?.isActive == true || !graph.ble.hasPermissions()) return
+        val device = graph.saved.value?.takeIf { it.address.equals(address, ignoreCase = true) } ?: return
+        when (graph.ble.state.value.phase) {
+            Phase.OFFLINE -> userConnect(device)
+            Phase.ERROR -> resumeSavedLink()
+            else -> Unit
+        }
     }
 
     /** Archives the running session (if it was a real ride) and starts a fresh one. */
@@ -122,7 +170,8 @@ class WheelMonitor(private val graph: IonGraph) {
             ?.let { graph.voice.speak(graph.context.resources.getQuantityString(R.plurals.voice_battery_step, it, it)) }
         if (!config.voice && !config.voiceBattery) graph.voice.shutdown()
 
-        if ((s.phase.holdsLink || reconnectingState.value) && graph.prefs.background.value.keepAlive) WheelService.ensureRunning(graph.context)
+        if ((s.phase.holdsLink || reconnectingState.value) && graph.companionWheel.usesForegroundService())
+            WheelService.ensureRunning(graph.context)
 
         if (s.phase != lastWidgetPhase || now - lastWidgetAt >= IonWidgetUpdater.MIN_INTERVAL_MS) {
             lastWidgetPhase = s.phase; lastWidgetAt = now
@@ -151,7 +200,7 @@ class WheelMonitor(private val graph: IonGraph) {
     /** Also called from the resumed Activity after a permission change, before it goes into the pocket. */
     fun refreshRecording(refreshService: Boolean = true) {
         val s = graph.ble.state.value
-        if ((s.phase.holdsLink || reconnectingState.value) && graph.prefs.background.value.keepAlive)
+        if ((s.phase.holdsLink || reconnectingState.value) && graph.companionWheel.usesForegroundService())
             if (refreshService) WheelService.start(graph.context, WheelService.ACTION_START)
             else WheelService.ensureRunning(graph.context)
         sessionStart?.let(graph.track::start)
@@ -159,7 +208,10 @@ class WheelMonitor(private val graph: IonGraph) {
 
     private fun onLinkFailed() {
         val bg = graph.prefs.background.value
-        val device = graph.saved.value?.takeIf { it.address == requestedAddress } ?: return
+        val device = graph.saved.value?.takeIf { it.address == requestedAddress } ?: run {
+            discardUnverifiedAssociation()
+            return
+        }
         val first = ReconnectPolicy.decide(userStopped, true, bg.autoReconnect, bg.keepAlive,
             wasLive = lastPhase == Phase.CONNECTED, retrying = false, attempt = 0, restoringSavedWheel = true)
         if (first !is ReconnectPolicy.Decision.Retry) return
@@ -179,5 +231,10 @@ class WheelMonitor(private val graph: IonGraph) {
                 attemptState.value = 0
             }
         }
+    }
+
+    private fun discardUnverifiedAssociation() {
+        val saved = graph.saved.value?.address
+        if (requestedAddress != null && requestedAddress != saved) graph.companionWheel.pruneAssociations(saved)
     }
 }

@@ -13,7 +13,10 @@ import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
 import androidx.glance.action.actionStartActivity
-import androidx.glance.appwidget.action.actionStartService
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.layout.*
 import androidx.glance.state.GlanceStateDefinition
@@ -24,6 +27,19 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import kotlinx.coroutines.launch
+
+class WidgetWheelAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val action = parameters[Command] ?: return
+        val graph = context.ionGraph
+        if (graph.companionWheel.canRunWithoutCard()) WheelService.dispatch(graph, action)
+        else WheelService.start(context, action)
+    }
+
+    companion object {
+        val Command = ActionParameters.Key<String>("wheel_command")
+    }
+}
 
 /** Home-screen widget: battery and state at a glance, live speed and figures when there is room,
  * one-tap connect/disconnect and headlight. Rendering reads only the persisted [WidgetSnapshot]. */
@@ -127,12 +143,12 @@ object IonWidgetUpdater {
                     WheelService.ACTION_DISCONNECT else WheelService.ACTION_CONNECT
                 Button(context.getString(if (connectAction == WheelService.ACTION_CONNECT) R.string.connect else R.string.disconnect),
                     if (connectAction == WheelService.ACTION_CONNECT && !canConnect) open
-                    else actionStartService(Intent(context, WheelService::class.java).setAction(connectAction), isForegroundService = true),
+                    else actionRunCallback<WidgetWheelAction>(actionParametersOf(WidgetWheelAction.Command to connectAction)),
                     modifier = GlanceModifier.defaultWeight())
                 if (live && size.width >= 200.dp) {
                     Spacer(GlanceModifier.width(8.dp))
                     Button(context.getString(if (snap.lowBeam) R.string.action_light_off else R.string.action_light_on),
-                        actionStartService(Intent(context, WheelService::class.java).setAction(WheelService.ACTION_TOGGLE_LIGHT), isForegroundService = true),
+                        actionRunCallback<WidgetWheelAction>(actionParametersOf(WidgetWheelAction.Command to WheelService.ACTION_TOGGLE_LIGHT)),
                         modifier = GlanceModifier.defaultWeight())
                 }
             }

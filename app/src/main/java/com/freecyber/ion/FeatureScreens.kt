@@ -107,29 +107,9 @@ internal object EditorSample {
     val bg=prefs.background; val al=prefs.alerts
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),onBack)}
-        if(!prefs.notificationsAllowed) item(key="permission",contentType="banner") {
-            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                Banner(stringResource(R.string.notif_permission_hint),Icons.Rounded.NotificationsOff,warning=true)
-                ApplyButton(stringResource(R.string.notif_permission),true,actions.requestNotifications)
-            }
-        }
-        if(!prefs.batteryUnrestricted && (bg.keepAlive || bg.autoReconnect)) item(key="battery",contentType="banner") {
-            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                Banner(stringResource(R.string.battery_unrestricted_hint),Icons.Rounded.BatterySaver,warning=true)
-                ApplyButton(stringResource(R.string.battery_unrestricted),true,actions.requestBatteryUnrestricted)
-            }
-        }
-        if(!prefs.locationAllowed && bg.gpsTrack) item(key="location",contentType="banner") {
-            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                Banner(stringResource(R.string.location_permission_hint),Icons.Rounded.LocationOff,warning=true)
-                ApplyButton(stringResource(R.string.location_permission),true,actions.requestLocation)
-            }
-        }
         item(key="bg-title",contentType="section") {SectionHeader(stringResource(R.string.bg_section))}
         item(key="bg",contentType="group") {
             GroupColumn {
-                SwitchRow(Icons.Rounded.Sync,stringResource(R.string.bg_keep_alive),bg.keepAlive,stringResource(R.string.bg_keep_alive_hint),true) {
-                    actions.setBackground(bg.copy(keepAlive=it))}
                 SwitchRow(Icons.AutoMirrored.Rounded.BluetoothSearching,stringResource(R.string.bg_connect_launch),bg.connectOnLaunch,stringResource(R.string.bg_connect_launch_hint),true) {
                     actions.setBackground(bg.copy(connectOnLaunch=it))}
                 SwitchRow(Icons.Rounded.Autorenew,stringResource(R.string.bg_reconnect),bg.autoReconnect,stringResource(R.string.bg_reconnect_hint),true) {
