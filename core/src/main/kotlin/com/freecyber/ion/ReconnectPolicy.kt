@@ -16,12 +16,13 @@ object ReconnectPolicy {
     }
 
     /** What to do when the link fails. [wasLive] means it dropped from an established ride link,
-     * [retrying] that a previous automatic attempt failed. */
+     * [retrying] that a previous automatic attempt failed, [restoringSavedWheel] that the rider
+     * is reconnecting to an already verified device. */
     fun decide(userStopped: Boolean, hasDevice: Boolean, autoReconnect: Boolean, keepAlive: Boolean,
-               wasLive: Boolean, retrying: Boolean, attempt: Int): Decision = when {
+               wasLive: Boolean, retrying: Boolean, attempt: Int, restoringSavedWheel: Boolean = false): Decision = when {
         userStopped || !hasDevice || !autoReconnect || !keepAlive -> Decision.Cancel
         // A failure while the user is still setting up a link is shown, not retried.
-        !wasLive && !retrying -> Decision.Show
+        !wasLive && !retrying && !restoringSavedWheel -> Decision.Show
         !shouldRetry(attempt) -> Decision.Cancel
         else -> Decision.Retry(attempt, delayFor(attempt))
     }

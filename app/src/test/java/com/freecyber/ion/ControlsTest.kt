@@ -5,7 +5,7 @@ import org.junit.Test
 class ControlsTest {
     private fun unpack(w: V12Protocol.Write) = V12Protocol.Decoder().feed(w.bytes()).single()
     @Test fun allowlistMatchesReferencePayloads() {
-        assertEquals(18,V12Protocol.Control.entries.size)
+        assertEquals(19,V12Protocol.Control.entries.size)
         val samples=listOf(
             V12Protocol.Write(V12Protocol.Control.LIGHTS,1,0) to byteArrayOf(0x50,1,0),
             V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,25,75) to byteArrayOf(0x2b,25,75),
@@ -25,6 +25,15 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,1) to byteArrayOf(0x2e,0),
             V12Protocol.Write(V12Protocol.Control.TRANSPORT,0) to byteArrayOf(0x32,0))
         samples.forEach { (w,p) -> val f=unpack(w);assertEquals(0x14,f.flags);assertEquals(0x60,f.command);assertFalse(f.response);assertArrayEquals(p,f.payload) }
+    }
+    @Test fun v12LightEffectsUseTheAddressedControlAndDefaultParameter() {
+        fun bytes(hex: String) = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
+        val off = V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, V12Protocol.LightEffect.OFF.id)
+        val music = V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, V12Protocol.LightEffect.MUSIC.id)
+        assertArrayEquals(bytes("AA AA 16 09 02 21 60 33 00 FF FF FF FF 6F"), off.bytes())
+        assertArrayEquals(bytes("AA AA 16 09 02 21 60 33 02 FF FF FF FF 6D"), music.bytes())
+        assertNull(off.readBack)
+        assertThrows(IllegalArgumentException::class.java) { V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, 1) }
     }
     @Test fun lockFramesMatchOfficialObservedV12HtSession() {
         fun bytes(hex: String) = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
@@ -179,7 +188,7 @@ class ControlsTest {
     }
     @Test fun stationarySamplesGateOnlyStationaryTier() {
         val t=V12Protocol.Telemetry(96.0,0.0,0.0,50.0,30,30,0.0,0.0,false,false,false)
-        val s=WheelState(phase=Phase.CONNECTED,verifiedHt=true,telemetry=t,lastPacketAt=1000,stationaryPackets=2)
+        val s=WheelState(phase=Phase.CONNECTED,model=V12Protocol.Model(7, 2),telemetry=t,lastPacketAt=1000,stationaryPackets=2)
         val ui2=VelaUi(s,now=1100);val ui3=VelaUi(s.copy(stationaryPackets=3),now=1100)
         // SAFE tier ignores stillness; STATIONARY requires 3 stationary samples and fresh age.
         assertTrue(ui2.safeWrite);assertFalse(ui2.stoppedWrite)

@@ -94,7 +94,7 @@ internal object EditorSample {
         val s=ByteArray(42); s[0]=0x20
         fun set(i: Int,v: Int) {s[i]=v.toByte();s[i+1]=(v ushr 8).toByte()}
         set(9,5000); set(11,3000); set(13,4000); set(17,600); s[20]=50; s[21]=60; s[22]=40; s[26]=70; s[27]=80; s[39]=9
-        VelaUi(WheelState(phase=Phase.CONNECTED,message="",verifiedHt=true,telemetry=V12Protocol.telemetry(V12Protocol.Frame(0x14,0x84,p)),
+        VelaUi(WheelState(phase=Phase.CONNECTED,message="",model=V12Protocol.Model(7, 2),telemetry=V12Protocol.telemetry(V12Protocol.Frame(0x14,0x84,p)),
             settings=V12Protocol.settings(V12Protocol.Frame(0x14,0xa0,s)),settingsAt=9500,lastPacketAt=9500,packets=128),
             WheelDevice("AA:BB:CC:DD:EE:FF","V12HT", -55),10_000,
             trip=TripStats(startedAt=1_000,lastAt=2_000_000,samples=4000,distanceKm=12.34,maxSpeed=41.2,movingMs=1_800_000,

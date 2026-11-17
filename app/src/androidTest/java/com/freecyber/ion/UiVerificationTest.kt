@@ -38,7 +38,7 @@ class UiVerificationTest {
         val settings=V12Protocol.Frame(0x14,0xa0,s)
         val model=V12Protocol.Frame(0x11,0x82,byteArrayOf(1,2,7,2,1,3,0))
         val frames=mapOf(V12Protocol.Read.MODEL to model,V12Protocol.Read.TELEMETRY to telemetry,V12Protocol.Read.SETTINGS to settings)
-        return VelaUi(WheelState(phase=Phase.CONNECTED,message="Данные с колеса",verifiedHt=true,
+        return VelaUi(WheelState(phase=Phase.CONNECTED,message="Данные с колеса",model=V12Protocol.Model(7, 2),
             telemetry=V12Protocol.telemetry(telemetry),settings=V12Protocol.settings(settings),settingsAt=9500,lastPacketAt=9500,packets=128,
             stationaryPackets=5,records=frames.mapValues {(r,f)->PacketRecord(r,f,9500,"Получено")}),WheelDevice("AA:BB:CC:DD:EE:FF","INMOTION V12 HT",-55),10000)
     }
@@ -143,10 +143,19 @@ class UiVerificationTest {
         category("Звук");rule.onNodeWithText("Без звука").assertIsDisplayed();shot("sound-dark")
         rule.onNodeWithText("Назад").performClick()
         scroll("Педали");rule.onNodeWithText("Педали").performClick()
+        rule.onNodeWithText("Split Mode", ignoreCase = true).assertExists()
         rule.onNodeWithText("Чувствительность педалей").assertIsDisplayed();shot("pedals-dark")
         rule.onNodeWithText("Назад").performClick()
         scroll("Система");rule.onNodeWithText("Система").performClick()
         rule.onNodeWithText("Блокировка колеса").assertIsDisplayed();shot("system-dark")
+    }
+
+    @Test fun liveRideCardIsEligibleForAndroidPromotion() {
+        org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= 36)
+        val ui = sample()
+        val card = IonNotifications.live(rule.activity, ui.wheel, ui.trip, reconnecting = false, attempt = 0)
+        assertTrue(card.hasPromotableCharacteristics())
+        assertFalse(IonNotifications.backgroundLink(rule.activity).hasPromotableCharacteristics())
     }
     @Test fun appearanceShowsRealSelectionsAndOnlyRequestsAChangeOnce() {
         var toggles=0
@@ -233,6 +242,9 @@ class UiVerificationTest {
         val device=WheelDevice("AA:BB:CC:DD:EE:FF","My V12 HT",-50)
         store.saveVerified(device)
         assertEquals(device.address,WheelStore(rule.activity,name).load()!!.address)
+        val rediscovered = device.copy(address = "AA:BB:CC:DD:EE:00", advertisedName = "V12-12345678", serial = "12345678")
+        store.saveVerified(rediscovered)
+        assertEquals(rediscovered.copy(rssi = 0), WheelStore(rule.activity, name).load())
         store.forget();assertNull(WheelStore(rule.activity,name).load())
     }
 }

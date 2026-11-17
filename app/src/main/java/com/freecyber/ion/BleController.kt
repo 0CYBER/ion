@@ -22,18 +22,30 @@ enum class Phase { OFFLINE, SCANNING, CONNECTING, DISCOVERING, IDENTIFYING, CONN
 internal object Timing {
     const val TELEMETRY_ASK_MS = 1200L
     const val POLL_DELAY_MS = 500L
+    const val STATISTICS_INTERVAL_MS = 5_000L
     const val FRESH_WINDOW_MS = 2500L
     /** Sustained staleness before any banner may appear: brief packet gaps never flash UI. */
     const val STALE_BANNER_AFTER_MS = 2500L
 }
-data class WheelDevice(val address: String, val name: String, val rssi: Int)
+data class WheelDevice(
+    val address: String,
+    val name: String,
+    val rssi: Int,
+    val advertisedName: String? = null,
+    val serial: String? = null
+) {
+    internal fun recoveryName(): String? = advertisedName?.takeIf { it.isNotBlank() && !serial.isNullOrBlank() }
+
+    internal fun acceptsRecoveredAddress(address: String, reportedSerial: String?): Boolean =
+        this.address.equals(address, ignoreCase = true) || (serial != null && reportedSerial == serial)
+}
 data class PacketRecord(val read: V12Protocol.Read, val frame: V12Protocol.Frame? = null, val at: Long? = null, val status: String = "Ещё не запрошено")
 data class WheelState(
     val phase: Phase = Phase.OFFLINE,
     val message: String = "", // set from resources by BleController
     val devices: List<WheelDevice> = emptyList(),
     val deviceName: String? = null,
-    val verifiedHt: Boolean = false,
+    val model: V12Protocol.Model? = null,
     val telemetry: V12Protocol.Telemetry? = null,
     val settings: V12Protocol.Settings? = null,
     val lastPacketAt: Long? = null,
@@ -49,7 +61,9 @@ data class WheelState(
     val movingStreak: Int = 0,
     /** Consecutive telemetry packets carrying the firmware-update bit; the guard acts from 2 in a row. */
     val firmwareUpdateStreak: Int = 0
-)
+) {
+    val verifiedV12 get() = model?.isSupported == true
+}
 /** Foreground-only BLE. Only serialized, validated reads/accessory controls. No internet access.
  * All GATT setup operations run sequentially; notifications are incrementally decoded.
  */
@@ -67,6 +81,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     private var session: Job? = null
     private var scanTimeout: Job? = null
     private var scanning = false
+    private val discoveredDevices = mutableMapOf<String, BluetoothDevice>()
     private var decoder = V12Protocol.Decoder()
     private data class Event(val kind: String, val status: Int, val value: Int = 0)
     private val events = Channel<Event>(Channel.BUFFERED)
@@ -93,13 +108,17 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     }
     private fun mayWrite(tier: V12Protocol.Tier, pending: Boolean, ignorePending: Boolean = false): Boolean {
         val s = mutable.value; val t = s.telemetry
-        return (tier != V12Protocol.Tier.STATIONARY || s.stationaryPackets >= 3) && V12Protocol.canWrite(tier, s.verifiedHt, s.phase == Phase.CONNECTED,
+        return (tier != V12Protocol.Tier.STATIONARY || s.stationaryPackets >= 3) && V12Protocol.canWrite(tier, s.verifiedV12, s.phase == Phase.CONNECTED,
             s.lastPacketAt?.let { SystemClock.elapsedRealtime()-it }, t?.speed, t?.charging ?: false,
             t?.firmwareUpdate ?: false, pending && !ignorePending)
     }
     fun readAll() = enqueue(Work.ReadAll)
     fun read(read: V12Protocol.Read) = enqueue(Work.ReadOne(read))
     fun apply(command: V12Protocol.Write) {
+        if (command.kind == V12Protocol.Control.LOCK && mutable.value.model?.isHt != true) {
+            mutable.update { it.copy(writeMessage = str(R.string.ble_lock_unsupported)) }
+            return
+        }
         // Only an in-flight write blocks a new one; queued reads must not reject the tap.
         if(!mayWrite(command.kind.tier, mutable.value.writeInFlight)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
             str(R.string.ble_write_no_link) else
@@ -107,7 +126,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         enqueue(Work.Write(command))
     }
     private fun enqueue(item: Work) {
-        if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedHt || mutable.value.workPending) return
+        if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedV12 || mutable.value.workPending) return
         if(work.trySend(item).isSuccess) mutable.update { it.copy(workPending=true, writeMessage=if(item is Work.Write) null else it.writeMessage) }
     }
     private fun clearWork() { while(work.tryReceive().isSuccess) {} }
@@ -131,15 +150,20 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             scope.launch {
                 if (!scanning || !hasPermissions()) return@launch
                 val name = result.scanRecord?.deviceName ?: runCatching { result.device.name }.getOrNull() ?: str(R.string.ble_device_generic)
-                val device = WheelDevice(result.device.address, name, result.rssi)
+                val device = WheelDevice(result.device.address, name, result.rssi, result.scanRecord?.deviceName)
                 mutable.update { s -> s.copy(devices = (s.devices.filterNot { it.address == device.address } + device)
                     .sortedWith(compareByDescending<WheelDevice> { it.name.contains("V12", ignoreCase = true) }.thenByDescending { it.rssi }).take(30)) }
+                discoveredDevices[device.address] = result.device
+                discoveredDevices.keys.retainAll(mutable.value.devices.map { it.address }.toSet())
             }
         }
-        override fun onScanFailed(errorCode: Int) { scope.launch { stopScan(); error(str(R.string.ble_scan_failed, errorCode)) } }
+        override fun onScanFailed(errorCode: Int) {
+            scope.launch { if (scanning) error(str(R.string.ble_scan_failed, errorCode)) }
+        }
     }
     fun scan() {
         disconnect()
+        discoveredDevices.clear()
         if (!hasPermissions()) { error(str(R.string.ble_need_permission)); return }
         try {
             val a = adapter
@@ -207,10 +231,10 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     lockTrace("lock_reply observed; status semantics unknown")
                 }
                 if (!f.response) continue
-                if (mutable.value.verifiedHt || V12Protocol.Read.MODEL.matches(f)) {
+                if (mutable.value.verifiedV12 || V12Protocol.Read.MODEL.matches(f)) {
                     V12Protocol.Read.entries.firstOrNull { it.matches(f) }?.let { record(it,f,str(R.string.ble_received)) }
                 }
-                if (mutable.value.verifiedHt) {
+                if (mutable.value.verifiedV12) {
                     V12Protocol.telemetry(f)?.let { parsed ->
                         // Debounce the firmware-update bit: one noisy packet must not lock the controls.
                         val streak = if(parsed.firmwareUpdate) mutable.value.firmwareUpdateStreak+1 else 0
@@ -233,21 +257,65 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             }
         }
     }
-    fun connect(device: WheelDevice) {
+    /** Scan filters allow rediscovery during a screen-off reconnect. A matching name only selects a candidate. */
+    private suspend fun rediscover(saved: WheelDevice): ScanResult? {
+        val scanner = adapter?.bluetoothLeScanner ?: return null
+        val name = saved.recoveryName()
+        val filters = buildList {
+            add(ScanFilter.Builder().setDeviceAddress(saved.address.uppercase()).build())
+            name?.let { add(ScanFilter.Builder().setDeviceName(it).build()) }
+        }
+        val exact = CompletableDeferred<ScanResult?>()
+        var alternate: ScanResult? = null
+        var ambiguous = false
+        val callback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                scope.launch {
+                    if (exact.isCompleted || !result.isConnectable) return@launch
+                    val address = result.device.address
+                    if (address.equals(saved.address, ignoreCase = true)) exact.complete(result)
+                    else if (name != null && result.scanRecord?.deviceName == name) {
+                        if (alternate?.device?.address?.let { it != address } == true) ambiguous = true
+                        alternate = result
+                    }
+                }
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                exact.complete(null)
+            }
+        }
+        try {
+            scanner.startScan(filters, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), callback)
+            return withTimeoutOrNull(4_000) { exact.await() } ?: alternate?.takeUnless { ambiguous }
+        } catch (_: IllegalStateException) {
+            return null
+        } finally {
+            exact.cancel()
+            runCatching { scanner.stopScan(callback) }
+        }
+    }
+
+    fun connect(device: WheelDevice, fromSaved: Boolean = false) {
+        val selected = discoveredDevices.remove(device.address)
         disconnect()
         if (!hasPermissions()) { permissionDenied(); return }
         if(adapter?.isEnabled != true) { error(str(R.string.ble_turn_on)); return }
-        mutable.value = WheelState(phase = Phase.CONNECTING, message = str(R.string.ble_connecting), deviceName = device.name)
+        mutable.value = WheelState(phase = Phase.CONNECTING,
+            message = str(if (fromSaved) R.string.ble_rediscovering else R.string.ble_connecting), deviceName = device.name)
         session = scope.launch {
             var owned: BluetoothGatt? = null
             try {
+                val seen = if (fromSaved) rediscover(device) else null
                 while (events.tryReceive().isSuccess) { /* clear previous session */ }
                 while (responses.tryReceive().isSuccess) { }
                 while (securityResponses.tryReceive().isSuccess) { }
                 awaitingSecurity = false
                 negotiatedMtu = 23
                 decoder = V12Protocol.Decoder()
-                val link = adapter?.getRemoteDevice(device.address)?.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+                val remote = seen?.device ?: selected ?: adapter?.getRemoteDevice(device.address.uppercase())
+                mutable.update { it.copy(message = str(R.string.ble_connecting)) }
+                val link = remote?.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
                     ?: throw LinkFailure(str(R.string.ble_unavailable))
                 owned = link
                 gatt = link
@@ -281,19 +349,32 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     catch (_: TimeoutCancellationException) { /* bounded retry */ }
                 }
                 val model = identity ?: throw LinkFailure(str(R.string.ble_no_model))
-                check(model.isHt) { str(R.string.ble_not_ht, model.label) }
-                mutable.update { it.copy(verifiedHt = true, deviceName = model.label, message = str(R.string.ble_waiting_telemetry)) }
+                check(model.isSupported) { str(R.string.ble_unsupported_model, model.label) }
+                val addressChanged = !device.address.equals(link.device.address, ignoreCase = true)
+                val serial = if (addressChanged || device.serial == null) {
+                    optionalRead(link, write, V12Protocol.Read.SERIAL, 1_000)?.let(V12Protocol::serial)
+                } else device.serial
+                if (!device.acceptsRecoveredAddress(link.device.address, serial)) {
+                    throw LinkFailure(str(R.string.ble_serial_mismatch))
+                }
+                val verifiedDevice = device.copy(
+                    address = link.device.address,
+                    name = model.label,
+                    advertisedName = seen?.scanRecord?.deviceName ?: device.advertisedName,
+                    serial = serial
+                )
+                mutable.update { it.copy(model = model, deviceName = model.label, message = str(R.string.ble_waiting_telemetry)) }
                 optionalRead(link,write,V12Protocol.Read.SETTINGS)
-                optionalRead(link,write,V12Protocol.Read.STATISTICS) // one-time: odometer for the ride screen
                 var missed = 0
                 var saved = false
+                var statisticsDue = SystemClock.elapsedRealtime()
                 var settingsDue = SystemClock.elapsedRealtime() + 5000
                 while (isActive) {
                     try {
                         val frame = ask(link, write, V12Protocol.Read.TELEMETRY, Timing.TELEMETRY_ASK_MS)
                         checkNotNull(V12Protocol.telemetry(frame)) { str(R.string.ble_bad_telemetry) }
                         missed = 0
-                        if(!saved) { onConnected(device); saved = true }
+                        if(!saved) { onConnected(verifiedDevice); saved = true }
                     } catch (_: TimeoutCancellationException) {
                         record(V12Protocol.Read.TELEMETRY,status=str(R.string.ble_timeout_status))
                         missed++
@@ -358,6 +439,9 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                         // One retry keeps the 15s settings-freshness window stable on a flaky radio.
                         if(optionalRead(link,write,V12Protocol.Read.SETTINGS) == null) optionalRead(link,write,V12Protocol.Read.SETTINGS)
                         settingsDue=SystemClock.elapsedRealtime()+5000
+                    } else if (missed == 0 && SystemClock.elapsedRealtime() >= statisticsDue) {
+                        optionalRead(link, write, V12Protocol.Read.STATISTICS, Timing.TELEMETRY_ASK_MS)
+                        statisticsDue = SystemClock.elapsedRealtime() + Timing.STATISTICS_INTERVAL_MS
                     }
                     delay(Timing.POLL_DELAY_MS)
                 }
@@ -448,10 +532,10 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         if (type == BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) waitEvent("write") else delay(60)
         awaitingWrite = false
     }
-    private suspend fun optionalRead(g: BluetoothGatt, c: BluetoothGattCharacteristic, read: V12Protocol.Read): V12Protocol.Frame? {
+    private suspend fun optionalRead(g: BluetoothGatt, c: BluetoothGattCharacteristic, read: V12Protocol.Read, timeout: Long = 2_000): V12Protocol.Frame? {
         return try {
-            val f=ask(g,c,read)
-            if(read == V12Protocol.Read.MODEL) check(V12Protocol.model(f)?.isHt == true) { str(R.string.ble_model_changed) }
+            val f=ask(g,c,read,timeout)
+            if(read == V12Protocol.Read.MODEL) check(V12Protocol.model(f) == mutable.value.model) { str(R.string.ble_model_changed) }
             f
         } catch(_: TimeoutCancellationException) { record(read,status=str(R.string.ble_timeout_status)); null }
     }
@@ -459,7 +543,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), verifiedHt = false, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0) }
+        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), model = null, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0) }
     }
     /** A connection failure whose message is already localized for the rider. */
     private class LinkFailure(message: String) : Exception(message)
@@ -468,7 +552,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.ERROR, message = text, verifiedHt = false, workPending = false, stationaryPackets = 0, writeMessage=if(it.workPending && it.writeMessage!=null) str(R.string.ble_write_interrupted) else it.writeMessage) }
+        mutable.update { it.copy(phase = Phase.ERROR, message = text, model = null, workPending = false, stationaryPackets = 0, writeMessage=if(it.workPending && it.writeMessage!=null) str(R.string.ble_write_interrupted) else it.writeMessage) }
     }
     fun onBackground() { if (mutable.value.phase !in listOf(Phase.OFFLINE, Phase.ERROR)) disconnect() }
 }

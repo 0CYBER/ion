@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Session coordinator living in the process scope: feeds the trip recorder, evaluates alerts, keeps the
@@ -21,6 +22,7 @@ class WheelMonitor(private val graph: IonGraph) {
     private var reconnectJob: Job? = null
     private var lastPhase = Phase.OFFLINE
     private var userStopped = true
+    private var requestedAddress: String? = null
     private var lastWidgetAt = 0L
     private var lastWidgetPhase: Phase? = null
     private var lastCheckpointAt = 0L
@@ -34,7 +36,12 @@ class WheelMonitor(private val graph: IonGraph) {
         graph.history.recoverPending()
         graph.ble.telemetrySink = ::onTelemetry
         graph.scope.launch { graph.ble.state.collect { onState(it) } }
-        graph.scope.launch { graph.prefs.background.collect { refreshRecording() } }
+        graph.scope.launch {
+            graph.prefs.background.collect { config ->
+                if (!config.autoReconnect || !config.keepAlive) cancelReconnect()
+                refreshRecording()
+            }
+        }
     }
 
     /** The user asked for a link: a fresh trip unless this continues a dropped session. */
@@ -42,15 +49,31 @@ class WheelMonitor(private val graph: IonGraph) {
         cancelReconnect()
         if (lastPhase == Phase.OFFLINE || graph.trips.stats.value.samples == 0) finishTrip()
         userStopped = false
+        requestedAddress = device.address
         engine.reset(); stepper.reset()
-        graph.ble.connect(device)
+        graph.ble.connect(device, fromSaved = device == graph.saved.value)
     }
+
+    internal fun onWheelVerified(address: String) { requestedAddress = address }
 
     fun userDisconnect() {
         userStopped = true
+        requestedAddress = null
         cancelReconnect()
         graph.ble.disconnect()
         finishTrip()
+    }
+
+    fun userScan() {
+        userStopped = true
+        requestedAddress = null
+        cancelReconnect()
+        graph.ble.scan()
+    }
+
+    fun resumeSavedLink() {
+        if (graph.ble.state.value.phase == Phase.ERROR && reconnectJob?.isActive != true &&
+            graph.ble.hasPermissions()) onLinkFailed()
     }
 
     /** Archives the running session (if it was a real ride) and starts a fresh one. */
@@ -73,14 +96,13 @@ class WheelMonitor(private val graph: IonGraph) {
 
     private fun onState(s: WheelState) {
         val now = SystemClock.elapsedRealtime()
-        val connected = s.verifiedHt && s.phase == Phase.CONNECTED
+        val connected = s.verifiedV12 && s.phase == Phase.CONNECTED
         if (connected && now - lastCheckpointAt >= CHECKPOINT_MS) {
             lastCheckpointAt = now
             summary(now)?.let(graph.history::checkpoint)
         }
 
-        if (connected && reconnectingState.value) { reconnectingState.value = false; attemptState.value = 0 }
-        if (s.phase == Phase.ERROR && lastPhase != Phase.ERROR) onLinkFailed(lastPhase)
+        if (s.phase == Phase.ERROR && lastPhase != Phase.ERROR && reconnectJob?.isActive != true) onLinkFailed()
 
         val errors = s.records[V12Protocol.Read.TELEMETRY]?.frame?.let { f -> V12Protocol.errors(f).filterNot(WheelErrors::isBenign).toSet() } ?: emptySet()
         val input = AlertInput(connected, linkLost = s.phase == Phase.ERROR || reconnectingState.value,
@@ -129,27 +151,32 @@ class WheelMonitor(private val graph: IonGraph) {
     /** Also called from the resumed Activity after a permission change, before it goes into the pocket. */
     fun refreshRecording(refreshService: Boolean = true) {
         val s = graph.ble.state.value
-        if (s.phase.holdsLink && graph.prefs.background.value.keepAlive)
+        if ((s.phase.holdsLink || reconnectingState.value) && graph.prefs.background.value.keepAlive)
             if (refreshService) WheelService.start(graph.context, WheelService.ACTION_START)
             else WheelService.ensureRunning(graph.context)
         sessionStart?.let(graph.track::start)
     }
 
-    private fun onLinkFailed(previous: Phase) {
+    private fun onLinkFailed() {
         val bg = graph.prefs.background.value
-        val device = graph.saved.value
-        when (val d = ReconnectPolicy.decide(userStopped, device != null, bg.autoReconnect, bg.keepAlive,
-            wasLive = previous == Phase.CONNECTED, retrying = reconnectingState.value, attempt = attemptState.value)) {
-            ReconnectPolicy.Decision.Cancel -> cancelReconnect()
-            ReconnectPolicy.Decision.Show -> Unit
-            is ReconnectPolicy.Decision.Retry -> {
-                reconnectingState.value = true
-                reconnectJob?.cancel()
-                reconnectJob = graph.scope.launch {
-                    delay(d.delayMs)
-                    attemptState.value = d.attempt + 1
-                    device?.let(graph.ble::connect)
+        val device = graph.saved.value?.takeIf { it.address == requestedAddress } ?: return
+        val first = ReconnectPolicy.decide(userStopped, true, bg.autoReconnect, bg.keepAlive,
+            wasLive = lastPhase == Phase.CONNECTED, retrying = false, attempt = 0, restoringSavedWheel = true)
+        if (first !is ReconnectPolicy.Decision.Retry) return
+
+        reconnectingState.value = true
+        reconnectJob = graph.scope.launch {
+            try {
+                for (attempt in first.attempt until ReconnectPolicy.MAX_ATTEMPTS) {
+                    delay(if (attempt == first.attempt) first.delayMs else ReconnectPolicy.delayFor(attempt))
+                    attemptState.value = attempt + 1
+                    graph.ble.connect(device, fromSaved = true)
+                    val result = graph.ble.state.first { it.phase == Phase.CONNECTED || it.phase == Phase.ERROR }
+                    if (result.phase == Phase.CONNECTED) break
                 }
+            } finally {
+                reconnectingState.value = false
+                attemptState.value = 0
             }
         }
     }

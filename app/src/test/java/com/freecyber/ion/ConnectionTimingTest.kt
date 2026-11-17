@@ -4,6 +4,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConnectionTimingTest {
+    @Test fun savedWheelAcceptsNewAddressOnlyWithItsOwnSerial() {
+        val wheel = WheelDevice("AA:BB:CC:DD:EE:FF", "V12 HT", 0, "V12-12345678", "12345678")
+        val other = "AA:BB:CC:DD:EE:00"
+        assertTrue(wheel.acceptsRecoveredAddress(wheel.address.lowercase(), null))
+        assertEquals("V12-12345678", wheel.recoveryName())
+        assertTrue(wheel.acceptsRecoveredAddress(other, "12345678"))
+        assertFalse(wheel.acceptsRecoveredAddress(other, null))
+        assertFalse(wheel.acceptsRecoveredAddress(other, "87654321"))
+        val legacy = wheel.copy(advertisedName = null, serial = null)
+        assertNull(legacy.recoveryName())
+        assertFalse(legacy.acceptsRecoveredAddress(other, "12345678"))
+        assertTrue(legacy.acceptsRecoveredAddress(wheel.address, null))
+    }
     @Test fun clockOnlyUpdatesAreSuppressedUntilAnActualPresentationBoundary() {
         val wheel=state(1000)
         val a=VelaUi(wheel,now=1100)
@@ -17,7 +30,7 @@ class ConnectionTimingTest {
         assertFalse(a.samePresentationAs(a.copy(chart=listOf(Sample(1100,10f,100f,80f)))))
     }
 
-    private fun state(at: Long) = WheelState(phase=Phase.CONNECTED,verifiedHt=true,lastPacketAt=at,
+    private fun state(at: Long) = WheelState(phase=Phase.CONNECTED,model=V12Protocol.Model(7, 2),lastPacketAt=at,
         settingsAt=at,stationaryPackets=3,
         telemetry=V12Protocol.Telemetry(96.0,0.0,0.0,50.0,30,30,0.0,0.0,false,false,false))
 

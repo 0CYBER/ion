@@ -56,7 +56,7 @@ class IonTileService : TileService() {
 
     private fun render(s: WheelState, reconnecting: Boolean, hasSaved: Boolean) {
         val tile = qsTile ?: return
-        val live = s.verifiedHt && s.phase == Phase.CONNECTED
+        val live = s.verifiedV12 && s.phase == Phase.CONNECTED
         val connecting = !live && (reconnecting || s.phase in listOf(Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING))
         tile.state = when {
             live || connecting -> Tile.STATE_ACTIVE

@@ -16,18 +16,18 @@ data class VelaUi(val wheel: WheelState = WheelState(), val saved: WheelDevice? 
     val gpsStatus: GpsStatus = GpsStatus.OFF, val recordingFailed: Boolean = false) {
     val fresh get() = wheel.phase == Phase.CONNECTED && wheel.lastPacketAt?.let { now-it in 0..Timing.FRESH_WINDOW_MS } == true
     val busy get() = when(wheel.phase) {Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING -> true; else -> false}
-    val connected get() = wheel.verifiedHt && wheel.phase == Phase.CONNECTED
+    val connected get() = wheel.verifiedV12 && wheel.phase == Phase.CONNECTED
     /** Staleness only surfaces after a sustained gap, so brief packet lag never flashes a banner. */
     val staleConfirmed get() = connected && staleSince != null && now-staleSince >= Timing.STALE_BANNER_AFTER_MS
-    val safeWrite get() = V12Protocol.canWriteSafe(wheel.verifiedHt, connected,
+    val safeWrite get() = V12Protocol.canWriteSafe(wheel.verifiedV12, connected,
         wheel.telemetry?.firmwareUpdate ?: false, wheel.writeInFlight)
     val stoppedWrite get() = wheel.stationaryPackets >= 3 && V12Protocol.canWrite(V12Protocol.Tier.STATIONARY,
-        wheel.verifiedHt, connected, wheel.lastPacketAt?.let { now-it }, wheel.telemetry?.speed,
+        wheel.verifiedV12, connected, wheel.lastPacketAt?.let { now-it }, wheel.telemetry?.speed,
         wheel.telemetry?.charging ?: false, wheel.telemetry?.firmwareUpdate ?: false, wheel.writeInFlight)
     fun canTier(tier: V12Protocol.Tier) = if(tier == V12Protocol.Tier.SAFE) safeWrite else stoppedWrite
     fun canWrite(command: V12Protocol.Write) = canTier(command.kind.tier)
     val settingsFresh get() = connected && wheel.settingsAt?.let { now-it in 0..15_000 } == true
-    val odometerKm get() = wheel.records[V12Protocol.Read.STATISTICS]?.frame?.let(V12Protocol::statistics)?.totalKm?.takeIf { it > 0 }
+    val odometerKm get() = wheel.records[V12Protocol.Read.STATISTICS]?.frame?.let(V12Protocol::statistics)?.totalKm
 }
 // Sample the monotonic clock for EVERY combined emission, not only the 500ms ticker.
 // A BLE packet can be newer than the last ticker value; that is not a disconnect.
@@ -56,7 +56,7 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
     val ui: StateFlow<VelaUi> = combine(graph.ble.state,graph.saved,tick,graph.monitor.reconnecting,graph.trips.stats) { wheel,device,_,retry,trip ->
         val now=SystemClock.elapsedRealtime()
         val age=wheel.lastPacketAt?.let { now-it }
-        staleSince = if(wheel.phase == Phase.CONNECTED && wheel.verifiedHt && (age == null || age > Timing.FRESH_WINDOW_MS)) staleSince ?: now else null
+        staleSince = if(wheel.phase == Phase.CONNECTED && wheel.verifiedV12 && (age == null || age > Timing.FRESH_WINDOW_MS)) staleSince ?: now else null
         wheelUiSnapshot(wheel,device,staleSince) { now }.copy(reconnecting=retry,trip=trip)
     }.combine(graph.chart) { ui,chart -> ui.copy(chart=chart) }
         .combine(graph.track.count) { ui,gps -> ui.copy(gpsPoints=gps) }
@@ -64,7 +64,7 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
         .combine(graph.journal.failed) { ui,failed -> ui.copy(recordingFailed=failed) }
         .distinctUntilChanged { previous,next -> previous.samePresentationAs(next) }
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5_000),VelaUi(saved=graph.saved.value))
-    fun scan()=graph.ble.scan()
+    fun scan()=graph.monitor.userScan()
     fun connect(device: WheelDevice)=graph.monitor.userConnect(device)
     fun forget()=graph.forget()
     fun disconnect()=graph.monitor.userDisconnect()
@@ -72,6 +72,7 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
     val history get() = graph.history
     val journal get() = graph.journal
     fun refreshRecording() = graph.monitor.refreshRecording()
+    fun resumeSavedLink() = graph.monitor.resumeSavedLink()
     /** Cold start: pick the saved wheel back up if the rider wants that and nothing else is running. */
     fun autoConnect() {
         val saved=graph.saved.value ?: return

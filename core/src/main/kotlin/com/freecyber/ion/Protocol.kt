@@ -80,6 +80,7 @@ object V12Protocol {
         }
     }
     data class Model(val series: Int, val variant: Int) {
+        val isSupported get() = series == 7 && variant in 1..2
         val isHt get() = series == 7 && variant == 2
         val label get() = when { isHt -> "INMOTION V12 HT"; series == 7 && variant == 1 -> "V12 HS"; series == 7 && variant == 3 -> "V12 Pro"; else -> tr("Неизвестная модель ($series/$variant)","Unknown model ($series/$variant)") }
     }
@@ -180,8 +181,11 @@ object V12Protocol {
         listOf("err_motorNoLoadState","err_noSelfTestState","err_compatibilityState","err_powerKeyLongPressState","err_forceDfuState","err_deviceLockState","err_cpuOverTempState","err_imuOverTempState"),
         listOf("","err_hwCompatibilityState","err_fanLowSpeedState","err_notKnown2"))
     enum class Tier { SAFE, STATIONARY }
+    val soundIds = (0..15).toList() + 24
+    enum class LightEffect(val id: Int) { OFF(0), MUSIC(2) }
+
     enum class Control(val tier: Tier) {
-        LIGHTS(Tier.SAFE), BRIGHTNESS(Tier.SAFE), AUTO_LIGHT(Tier.SAFE),
+        LIGHTS(Tier.SAFE), BRIGHTNESS(Tier.SAFE), AUTO_LIGHT(Tier.SAFE), LIGHT_EFFECT(Tier.SAFE),
         VOLUME(Tier.SAFE), MUTE(Tier.SAFE), SOUND_WAVE(Tier.SAFE), PLAY_SOUND(Tier.SAFE),
         CLASSIC(Tier.STATIONARY), FANCIER(Tier.STATIONARY), SPLIT_MODE(Tier.STATIONARY), SPLIT_ACCEL_BRAKE(Tier.STATIONARY),
         PEDAL_SENS(Tier.STATIONARY), PEDAL_TILT(Tier.STATIONARY), ALARMS(Tier.STATIONARY),
@@ -196,14 +200,15 @@ object V12Protocol {
                 Control.STANDBY -> require(a in 1..30)
                 Control.PEDAL_TILT -> require(a in -100..100) // tenths of a degree
                 Control.ALARMS -> require(a in 0..70 && b in 0..70)
-                Control.PLAY_SOUND -> require(a in 0..15)
+                Control.PLAY_SOUND -> require(a in soundIds)
+                Control.LIGHT_EFFECT -> require(LightEffect.entries.any { it.id == a } && b == 0)
                 else -> require(a in 0..1)
             }
         }
         /** Authoritative read-back target; null means the value is not observable in known reads. */
         val readBack: Read? get() = when(kind) {
             Control.LIGHTS -> Read.TELEMETRY
-            Control.PLAY_SOUND -> null
+            Control.PLAY_SOUND, Control.LIGHT_EFFECT -> null
             else -> Read.SETTINGS
         }
         val label: String get() {
@@ -212,6 +217,8 @@ object V12Protocol {
                 Control.LIGHTS -> tr("Свет: ближний ${on(a)}, дальний ${on(b)}","Lights: low ${on(a)}, high ${on(b)}")
                 Control.BRIGHTNESS -> tr("Яркость: ближний $a%, дальний $b%","Brightness: low $a%, high $b%")
                 Control.AUTO_LIGHT -> tr("Автосвет: ${on(a)}","Auto light: ${on(a)}")
+                Control.LIGHT_EFFECT -> if (a == LightEffect.OFF.id) tr("Выключить подсветку", "Turn off RGB lights")
+                    else tr("Подсветка в такт музыке", "Lights follow music")
                 Control.VOLUME -> tr("Громкость: $a%","Volume: $a%")
                 Control.MUTE -> if(a==1) tr("Без звука: да","Mute: yes") else tr("Без звука: нет","Mute: no")
                 Control.SOUND_WAVE -> tr("Звук движения: ${on(a)}","Riding sound: ${on(a)}")
@@ -234,6 +241,9 @@ object V12Protocol {
                 Control.LIGHTS -> byteArrayOf(0x50, a.toByte(), b.toByte())
                 Control.BRIGHTNESS -> byteArrayOf(0x2b, a.toByte(), b.toByte())
                 Control.AUTO_LIGHT -> byteArrayOf(0x2f, a.toByte())
+                // INMOTION 8.1.34 V12MessageFactory.genSetLightEffectModeMsg uses 0x33,
+                // a mode byte, and four 0xff bytes when no package or colour is supplied.
+                Control.LIGHT_EFFECT -> byteArrayOf(0x33, a.toByte(), -1, -1, -1, -1)
                 Control.VOLUME -> byteArrayOf(0x26, a.toByte())
                 Control.MUTE -> byteArrayOf(0x2c, (1-a).toByte())
                 Control.SOUND_WAVE -> byteArrayOf(0x39, a.toByte())
@@ -252,8 +262,10 @@ object V12Protocol {
             }
             // V12 HT lock frames observed in INMOTION 8.1.34 on this wheel. The
             // address can be session-dependent; this test path requires hardware verification.
-            return if (kind == Control.LOCK) frame(0x16, 0x02, byteArrayOf(0x21, 0x60) + payload)
-                   else frame(0x14, 0x60, payload)
+            return when (kind) {
+                Control.LOCK, Control.LIGHT_EFFECT -> frame(0x16, 0x02, byteArrayOf(0x21, 0x60) + payload)
+                else -> frame(0x14, 0x60, payload)
+            }
         }
         /** Only an authoritative read-back confirms success, never a GATT callback or guessed ACK. */
         fun confirmed(f: Frame): Boolean? {

@@ -150,6 +150,8 @@ class DashboardLayoutTest {
         assertEquals(4, legacy.slots.first { it.tile == DashTile.PLAY_SOUND }.param)
         // Out-of-range params fall back to the default.
         assertEquals(4, DashboardLayout.decode("PLAY_SOUND:1:0:99").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        assertEquals(24, DashboardLayout.decode("PLAY_SOUND:1:0:24").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        assertEquals(4, DashboardLayout.decode("PLAY_SOUND:1:0:23").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
         val set = legacy.setParam(DashTile.PLAY_SOUND, 2)
         assertTrue(set.encode().removePrefix("v2|").split(',').any { it.startsWith("PLAY_SOUND:1:0:2") })
         // setParam ignores values outside the tile's range.
@@ -224,6 +226,11 @@ class WidgetSnapshotTest {
 }
 
 class ReconnectPolicyTest {
+    @Test fun anInitialFailureCanRetryAnAlreadyVerifiedWheel() {
+        assertEquals(ReconnectPolicy.Decision.Retry(0, 2_000L), ReconnectPolicy.decide(
+            userStopped = false, hasDevice = true, autoReconnect = true, keepAlive = true,
+            wasLive = false, retrying = false, attempt = 0, restoringSavedWheel = true))
+    }
     @Test fun backoffGrowsAndCaps() {
         assertEquals(2_000L, ReconnectPolicy.delayFor(0))
         assertEquals(4_000L, ReconnectPolicy.delayFor(1))

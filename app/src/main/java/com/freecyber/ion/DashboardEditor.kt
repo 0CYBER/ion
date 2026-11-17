@@ -149,10 +149,10 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                                 }
                             }
                         }
-                        slot.tile.param?.let { range -> item(key="sound",contentType="sound") {
+                        if (slot.tile.paramOptions.isNotEmpty()) { item(key="sound",contentType="sound") {
                             Text(stringResource(R.string.dash_param_sound),style=MaterialTheme.typography.titleMedium)
                             FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                                range.forEach { n -> FilterChip(selected=slot.param==n,onClick={change(layout.setParam(slot.id,n))},label={Text("$n")}) }
+                                slot.tile.paramOptions.forEach { n -> FilterChip(selected=slot.param==n,onClick={change(layout.setParam(slot.id,n))},label={Text("$n")}) }
                             }
                         } }
                     }

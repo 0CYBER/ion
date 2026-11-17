@@ -155,7 +155,7 @@ import kotlin.math.roundToInt
     Surface(modifier.testTag("speed-instrument").semantics(mergeDescendants=true) {},color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
         Column(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
-                Text(stringResource(R.string.wheel_model),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
+                Text(ui.wheel.deviceName ?: ui.saved?.name ?: stringResource(R.string.wheel_model),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
                 Icon(if(ui.fresh) Icons.Rounded.Sensors else Icons.Rounded.Update,null,Modifier.size(24.dp))
             }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -236,15 +236,18 @@ import kotlin.math.roundToInt
         if(wide) Row(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary)
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
-            Text("${value ?: "—"} $unit",style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
+            Text("${value ?: "—"}\u00A0$unit",style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),
+                fontFamily=IonSans,softWrap=false,maxLines=1)
         } else Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 Icon(icon,null,Modifier.size(18.dp),tint=MaterialTheme.colorScheme.primary)
                 Text(label,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2)
             }
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                Text(value ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1)
-                Text(unit,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(bottom=3.dp))
+                Text(value ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,softWrap=false,maxLines=1,
+                    modifier=Modifier.weight(1f,fill=false))
+                Text(unit,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap=false,maxLines=1,modifier=Modifier.padding(bottom=3.dp))
             }
         }
     }

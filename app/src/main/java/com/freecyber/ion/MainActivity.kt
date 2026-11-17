@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
                 notificationsAllowed=IonNotifications.canPost(this@MainActivity); batteryUnrestricted=batteryUnrestricted()
                 locationAllowed=model.ble.grantedLocation()
                 model.refreshRecording()
+                model.resumeSavedLink()
                 onPauseOrDispose { }
             }
             var pendingDevice by remember { mutableStateOf<WheelDevice?>(null) }

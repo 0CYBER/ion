@@ -39,6 +39,24 @@ import kotlin.math.roundToInt
                             SliderSpec(stringResource(R.string.control_high),it.highBrightness,0..100) {v -> "$v%"})
                     }) {v -> request(V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,v[0],v[1]))}
             } }
+            item(key="light-effects",contentType="controls") {
+                GroupColumn {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.control_light_effect), style = MaterialTheme.typography.titleMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            V12Protocol.LightEffect.entries.forEach { effect ->
+                                val label = when (effect) {
+                                    V12Protocol.LightEffect.OFF -> R.string.control_light_effect_off
+                                    V12Protocol.LightEffect.MUSIC -> R.string.control_light_effect_music
+                                }
+                                FilledTonalButton(enabled = safe, onClick = {
+                                    request(V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, effect.id))
+                                }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(label)) }
+                            }
+                        }
+                    }
+                }
+            }
         }
         if(category==ControlCategory.SOUND) {
             item(key="sound",contentType="controls") { GroupColumn {
@@ -58,15 +76,15 @@ import kotlin.math.roundToInt
             item(key="modes",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.Rounded.Terrain,stringResource(R.string.control_off_road),s?.classicMode,hint=stringResource(R.string.control_classic_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.Spa,stringResource(R.string.control_advanced),s?.fancier,hint=stringResource(R.string.control_advanced_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
+            } }
+        }
+        if(category==ControlCategory.PEDALS) {
+            item(key="pedals",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.AutoMirrored.Rounded.CallSplit,stringResource(R.string.control_split),s?.splitMode,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.SPLIT_MODE,if(it)1 else 0))}
                 ExpandSliders(Icons.Rounded.SyncAlt,stringResource(R.string.control_split_tuning),s?.let { "${it.splitAccel} · ${it.splitBrake}" } ?: "—",settingsStopped,
                     s?.let { listOf(SliderSpec(stringResource(R.string.control_acceleration),it.splitAccel.coerceIn(0,100),0..100) {v -> "$v%"},
                         SliderSpec(stringResource(R.string.control_braking),it.splitBrake.coerceIn(0,100),0..100) {v -> "$v%"}) }
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,v[0],v[1]))}
-            } }
-        }
-        if(category==ControlCategory.PEDALS) {
-            item(key="pedals",contentType="controls") { GroupColumn {
                 ExpandSliders(Icons.Rounded.Tune,stringResource(R.string.control_sensitivity),s?.let { "${it.comfortable}%" } ?: "—",settingsStopped,
                     s?.let { listOf(SliderSpec(stringResource(R.string.control_sensitivity_label),it.comfortable.coerceIn(0,100),0..100) {v -> "$v%"}) }
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.PEDAL_SENS,v[0]))}
@@ -85,7 +103,9 @@ import kotlin.math.roundToInt
             item(key="service",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.Rounded.TouchApp,stringResource(R.string.control_handle),s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.LocalShipping,stringResource(R.string.control_transport),s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
-                SwitchRow(Icons.Rounded.Lock,stringResource(R.string.control_lock),s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
+                if (ui.wheel.model?.isHt == true) {
+                    SwitchRow(Icons.Rounded.Lock,stringResource(R.string.control_lock),s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
+                }
                 ExpandSliders(Icons.Rounded.Timer,stringResource(R.string.control_standby),s?.let { "${(it.standbySeconds/60f).roundToInt()} ${stringResource(R.string.unit_min)}" } ?: "—",settingsStopped,
                     s?.let { listOf(SliderSpec(stringResource(R.string.control_timer_label),(it.standbySeconds/60f).roundToInt(),1..30) {v -> "$v ${stringResource(R.string.unit_min)}"}) }
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.STANDBY,v[0]))}

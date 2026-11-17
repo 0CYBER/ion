@@ -12,12 +12,14 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlin.math.roundToInt
 
-/** All notification wiring: three channels so the rider can silence the live card but keep alerts loud. */
+/** Separate channels for ride updates, the background link service and alerts. */
 object IonNotifications {
     const val CHANNEL_LIVE = "ride_live"
+    const val CHANNEL_SERVICE = "wheel_service"
     const val CHANNEL_ALERTS = "ride_alerts"
     const val CHANNEL_LINK = "link_state"
     const val LIVE_ID = 1
+    const val SERVICE_ID = 2
     private const val ALERT_BASE_ID = 100
 
     fun createChannels(context: Context) {
@@ -25,6 +27,10 @@ object IonNotifications {
         nm.createNotificationChannels(listOf(
             NotificationChannel(CHANNEL_LIVE, context.getString(R.string.channel_live), NotificationManager.IMPORTANCE_LOW).apply {
                 description = context.getString(R.string.channel_live_hint); setShowBadge(false)
+            },
+            NotificationChannel(CHANNEL_SERVICE, context.getString(R.string.bg_keep_alive), NotificationManager.IMPORTANCE_LOW).apply {
+                setSound(null, null)
+                setShowBadge(false)
             },
             NotificationChannel(CHANNEL_ALERTS, context.getString(R.string.channel_alerts), NotificationManager.IMPORTANCE_HIGH).apply {
                 description = context.getString(R.string.channel_alerts_hint); enableVibration(true)
@@ -44,10 +50,20 @@ object IonNotifications {
     internal fun serviceAction(context: Context, action: String, code: Int): PendingIntent = PendingIntent.getService(context, code,
         Intent(context, WheelService::class.java).setAction(action), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
+    fun backgroundLink(context: Context): android.app.Notification =
+        NotificationCompat.Builder(context, CHANNEL_SERVICE)
+            .setSmallIcon(R.drawable.ic_stat_ion)
+            .setContentTitle(context.getString(R.string.bg_keep_alive))
+            .setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setContentIntent(openApp(context))
+            .addAction(0, context.getString(R.string.disconnect), serviceAction(context, WheelService.ACTION_DISCONNECT, 1))
+            .build()
+
     /** The ongoing card shown by the foreground service: live figures while connected, state otherwise. */
     fun live(context: Context, s: WheelState, trip: TripStats, reconnecting: Boolean, attempt: Int): android.app.Notification {
         val t = s.telemetry
-        val connected = s.verifiedHt && s.phase == Phase.CONNECTED
+        val connected = s.verifiedV12 && s.phase == Phase.CONNECTED
         val battery = t?.battery?.takeIf { it.isFinite() }?.roundToInt()?.coerceIn(0, 100) ?: 0
         val title = when {
             connected && t != null -> context.getString(R.string.live_title_speed, kotlin.math.abs(t.speed).fmt(1), battery)
@@ -63,14 +79,18 @@ object IonNotifications {
         val b = NotificationCompat.Builder(context, CHANNEL_LIVE)
             .setSmallIcon(R.drawable.ic_stat_ion)
             .setContentTitle(title).setContentText(text)
-            .setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setOngoing(true).setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(openApp(context))
         if (connected && t != null) {
-            b.setProgress(100, battery, false)
-            // Android 16+: promoted ongoing notification shows a status-bar chip (speed while riding, charge at rest).
+            if (Build.VERSION.SDK_INT >= 36) {
+                b.setStyle(NotificationCompat.ProgressStyle().addProgressSegment(NotificationCompat.ProgressStyle.Segment(100))
+                    .setProgress(battery))
+            } else {
+                b.setProgress(100, battery, false)
+            }
             b.setRequestPromotedOngoing(true)
             b.setShortCriticalText(statusChip(context, t.speed, battery))
             b.setSubText(context.getString(R.string.live_subtext, trip.maxSpeed.fmt(1)))

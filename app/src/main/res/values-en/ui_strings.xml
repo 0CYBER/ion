@@ -33,7 +33,7 @@
     <string name="cancel">Cancel</string>
     <string name="ride_start">It all starts with a connection</string>
     <string name="ride_ready">Your wheel is ready to ride</string>
-    <string name="ride_start_hint">Turn on your V12 HT and connect it over Bluetooth. Live readings will show up here.</string>
+    <string name="ride_start_hint">Turn on your V12 and connect it over Bluetooth. Live readings will show up here.</string>
     <string name="last_readings">Last readings</string>
     <string name="last_readings_seconds">Last readings · %d s ago</string>
     <string name="last_readings_minutes">Last readings · %d min ago</string>

@@ -4,7 +4,7 @@ package com.freecyber.ion
  * [defaultWide] is the initial size; [canBeHalf] false keeps hero-sized tiles full width.
  * Tiles may carry a [Param] that the rider chooses in the editor (e.g. which horn sound to play). */
 enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val canBeHalf: Boolean = true,
-                    val param: IntRange? = null, val defaultParam: Int? = null) {
+                    val paramOptions: List<Int> = emptyList(), val defaultParam: Int? = null) {
     SPEED(true, true),
     BATTERY(true, false),
     RANGE(true, false),
@@ -21,7 +21,7 @@ enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val c
     PWM(false, false),
     TILT(false, false),
     QUICK_HIGH_BEAM(false, false),
-    PLAY_SOUND(false, false, param = 1..8, defaultParam = 4),
+    PLAY_SOUND(false, false, paramOptions = V12Protocol.soundIds, defaultParam = 4),
     QUICK_AUTO_LIGHT(false, false),
     QUICK_SOUND_WAVE(false, false),
     MODE(false, true),
@@ -87,7 +87,7 @@ data class DashboardLayout(val slots: List<TileSlot>) {
                 val id = if(v2) bits.getOrNull(4)?.takeIf { it.matches(SLOT_ID) } ?: tile.name else tile.name
                 if (id in seen) return@forEach
                 val param = bits.getOrNull(3)?.toIntOrNull()
-                    ?.takeIf { tile.param != null && it in tile.param } ?: tile.defaultParam
+                    ?.takeIf { it in tile.paramOptions } ?: tile.defaultParam
                 val toggle = DashToggle.entries.firstOrNull { it.name == bits.getOrNull(5) } ?: DashToggle.LOW_BEAM
                 seen[id] = TileSlot(tile, bits.getOrNull(1) != "0", bits.getOrNull(2)?.let { it == "1" } ?: tile.defaultWide, param, id, toggle)
             }
@@ -110,7 +110,7 @@ data class DashboardLayout(val slots: List<TileSlot>) {
     fun remove(id: String) = copy(slots = slots.filterNot { it.id == id })
     fun resize(id: String) = copy(slots = slots.map { if(it.id == id && it.tile.canBeHalf) it.copy(wide = !it.wide) else it })
     fun setParam(id: String, param: Int) = copy(slots = slots.map {
-        if(it.id == id && it.tile.param?.contains(param) == true) it.copy(param = param) else it
+        if(it.id == id && param in it.tile.paramOptions) it.copy(param = param) else it
     })
     fun setToggle(id: String, target: DashToggle) = copy(slots = slots.map {
         if(it.id == id) it.copy(tile = DashTile.TOGGLE, toggle = target, param = null) else it
@@ -129,7 +129,7 @@ data class DashboardLayout(val slots: List<TileSlot>) {
     fun toggle(tile: DashTile) = copy(slots = slots.map { if (it.tile == tile) it.copy(visible = !it.visible) else it })
     fun resize(tile: DashTile) = copy(slots = slots.map { if (it.tile == tile && it.tile.canBeHalf) it.copy(wide = !it.wide) else it })
     fun setParam(tile: DashTile, param: Int) = copy(slots = slots.map {
-        if (it.tile == tile && tile.param != null && param in tile.param) it.copy(param = param) else it
+        if (it.tile == tile && param in tile.paramOptions) it.copy(param = param) else it
     })
     /** Moves a tile by [delta] positions inside the full list, clamped to the bounds. */
     fun move(tile: DashTile, delta: Int): DashboardLayout {

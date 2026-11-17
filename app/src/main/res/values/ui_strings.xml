@@ -33,7 +33,7 @@
     <string name="cancel">Отмена</string>
     <string name="ride_start">Всё начинается с подключения</string>
     <string name="ride_ready">Твоё колесо готово к поездке</string>
-    <string name="ride_start_hint">Включи V12 HT и подключи её по Bluetooth. Здесь появятся показания с колеса.</string>
+    <string name="ride_start_hint">Включи V12 и подключи её по Bluetooth. Здесь появятся показания с колеса.</string>
     <string name="last_readings">Последние показания</string>
     <string name="last_readings_seconds">Последние показания · %d с назад</string>
     <string name="last_readings_minutes">Последние показания · %d мин назад</string>

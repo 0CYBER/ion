@@ -16,6 +16,8 @@
     <string name="ble_received">Received</string>
     <string name="ble_live">Live from the wheel</string>
     <string name="ble_connecting">Connecting…</string>
+    <string name="ble_rediscovering">Looking for the saved wheel nearby…</string>
+    <string name="ble_serial_mismatch">Could not verify the serial number of the saved wheel.</string>
     <string name="ble_unavailable">BLE unavailable</string>
     <string name="ble_discovering">Checking BLE services…</string>
     <string name="ble_discover_failed">Could not request BLE services</string>
@@ -27,14 +29,15 @@
     <string name="ble_notify_failed">Could not enable notifications</string>
     <string name="ble_no_cccd">The notification descriptor is missing</string>
     <string name="ble_cccd_rejected">CCCD write rejected</string>
-    <string name="ble_identifying">Checking that this is a V12 HT…</string>
+    <string name="ble_identifying">Checking that this is a V12…</string>
     <string name="ble_no_model">The wheel did not answer the model request</string>
-    <string name="ble_waiting_telemetry">V12 HT identified. Waiting for telemetry…</string>
+    <string name="ble_waiting_telemetry">V12 identified. Waiting for telemetry…</string>
     <string name="ble_bad_telemetry">Unsupported telemetry format. The firmware needs checking.</string>
     <string name="ble_timeout_status">No answer · timeout</string>
     <string name="ble_no_telemetry">No telemetry answer. Check the wheel and reconnect.</string>
     <string name="ble_not_sent_link">Not sent: no connection to the wheel</string>
     <string name="ble_not_sent_moving">Not sent: the wheel is moving</string>
+    <string name="ble_lock_unsupported">Wheel lock is supported on the V12 HT</string>
     <string name="ble_lock_refused">Lock failed: the wheel rejected the secure exchange</string>
     <string name="ble_lock_moving">Lock failed: the wheel is moving</string>
     <string name="ble_apply_no_answer">Not applied: the wheel did not answer</string>
@@ -51,6 +54,6 @@
     <string name="ble_link_dropped">Connection lost%1$s. Data is no longer updating.</string>
     <string name="ble_gatt_warning">BLE warning (GATT %1$d); keeping the connection.</string>
     <string name="ble_request_error">BLE request error (%1$d).</string>
-    <string name="ble_not_ht">Expected a V12 HT, got: %1$s. Polling stopped.</string>
+    <string name="ble_unsupported_model">Supported models are V12 HT and HS. The wheel reported %1$s. Polling stopped.</string>
     <string name="ble_error_code">BLE error %1$d</string>
 </resources>

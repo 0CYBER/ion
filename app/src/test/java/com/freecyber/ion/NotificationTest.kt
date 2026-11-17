@@ -2,13 +2,18 @@ package com.freecyber.ion
 
 import android.app.Application
 import android.app.Notification
+import android.content.Intent
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.time.Duration
 
 /** The ongoing ride card: figures while live, a status-bar chip request, and actions that match the state. */
 @RunWith(RobolectricTestRunner::class)
@@ -40,6 +45,34 @@ class NotificationTest {
         assertNull(NotificationCompat.getShortCriticalText(n))
         assertEquals(1, n.actions.size)
         assertTrue(n.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("3"))
+    }
+
+    @Config(application = IonApplication::class)
+    @Test fun switchingLiveOffReplacesTheForegroundRideCardUntilReenabled() {
+        val graph = context.ionGraph
+        val controller = Robolectric.buildService(WheelService::class.java).create()
+        try {
+            val service = controller.get()
+            val shadow = shadowOf(service)
+            val start = Intent(context, WheelService::class.java).setAction(WheelService.ACTION_START)
+            service.onStartCommand(start, 0, 1)
+            assertEquals(IonNotifications.LIVE_ID, shadow.lastForegroundNotificationId)
+
+            graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = false))
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(WheelService.UPDATE_INTERVAL_MS))
+            assertEquals(IonNotifications.SERVICE_ID, shadow.lastForegroundNotificationId)
+            assertEquals(IonNotifications.CHANNEL_SERVICE, shadow.lastForegroundNotification.channelId)
+            assertFalse(NotificationCompat.isRequestPromotedOngoing(shadow.lastForegroundNotification))
+
+            service.onStartCommand(start, 0, 2)
+            assertEquals(IonNotifications.SERVICE_ID, shadow.lastForegroundNotificationId)
+
+            graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = true))
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(WheelService.UPDATE_INTERVAL_MS))
+            assertEquals(IonNotifications.LIVE_ID, shadow.lastForegroundNotificationId)
+        } finally {
+            controller.destroy()
+        }
     }
 
     @Test fun voicePhrasesUseRussianPlurals() {

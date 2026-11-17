@@ -103,7 +103,7 @@
     <string name="bg_reconnect">Auto-reconnect</string>
     <string name="bg_reconnect_hint">Restore the link if it drops</string>
     <string name="bg_live">Live notification</string>
-    <string name="bg_live_hint">Speed, battery and temperature in the notification shade</string>
+    <string name="bg_live_hint">Speed, battery and temperature in the notification shade. When off, only the background connection status appears.</string>
     <string name="bg_screen_on">Keep screen on</string>
     <string name="bg_screen_on_hint">While the app is open</string>
     <string name="notif_permission">Allow notifications</string>
@@ -157,6 +157,13 @@
     <string name="trips_clear_title">Delete the whole history?</string>
     <string name="trips_clear_message">All saved rides will be removed from this phone.</string>
     <string name="trips_delete">Delete ride</string>
+    <string name="trip_duration">Duration</string>
+    <string name="trips_details">Details</string>
+    <string name="control_light_effect">Side lights</string>
+    <string name="control_light_effect_off">Turn off</string>
+    <string name="control_light_effect_music">Follow music</string>
+    <string name="trips_expanded">Expanded</string>
+    <string name="trips_collapsed">Collapsed</string>
     <string name="trips_delete_one">Delete ride %1$s</string>
     <string name="trips_month">%1$s · %2$s km</string>
     <string name="trips_total">Total</string>

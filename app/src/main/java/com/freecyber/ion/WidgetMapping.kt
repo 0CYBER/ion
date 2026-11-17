@@ -4,7 +4,7 @@ package com.freecyber.ion
 fun WidgetSnapshot.Companion.from(s: WheelState, trip: TripStats, reconnecting: Boolean, hasSaved: Boolean, now: Long): WidgetSnapshot {
     val t = s.telemetry
     val state = when {
-        s.verifiedHt && s.phase == Phase.CONNECTED -> WidgetSnapshot.State.LIVE
+        s.verifiedV12 && s.phase == Phase.CONNECTED -> WidgetSnapshot.State.LIVE
         reconnecting -> WidgetSnapshot.State.RECONNECTING
         s.phase in listOf(Phase.CONNECTING, Phase.DISCOVERING, Phase.IDENTIFYING) -> WidgetSnapshot.State.CONNECTING
         s.phase == Phase.ERROR -> WidgetSnapshot.State.ERROR

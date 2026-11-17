@@ -7,11 +7,21 @@ internal class WheelStore(context: Context, file: String = "vela_preferences") {
     private val prefs=context.getSharedPreferences(file,Context.MODE_PRIVATE)
     fun load(): WheelDevice? {
         val address=prefs.getString("wheel_address",null)
-        return if(SavedWheelFormat.validAddress(address)) WheelDevice(address!!,prefs.getString("wheel_name","V12 HT") ?: "V12 HT",0) else null
+        return if(SavedWheelFormat.validAddress(address)) WheelDevice(
+            address!!, prefs.getString("wheel_name","V12") ?: "V12", 0,
+            prefs.getString("wheel_advertised_name", null), prefs.getString("wheel_serial", null)
+        ) else null
     }
     fun saveVerified(device: WheelDevice) {
         require(SavedWheelFormat.validAddress(device.address))
-        prefs.edit { putString("wheel_address",device.address).putString("wheel_name",device.name.take(100)) }
+        prefs.edit {
+            putString("wheel_address",device.address)
+            putString("wheel_name",device.name.take(100))
+            putString("wheel_advertised_name",device.advertisedName)
+            putString("wheel_serial",device.serial)
+        }
     }
-    fun forget() {prefs.edit { remove("wheel_address").remove("wheel_name") }}
+    fun forget() {
+        prefs.edit { remove("wheel_address").remove("wheel_name").remove("wheel_advertised_name").remove("wheel_serial") }
+    }
 }

@@ -36,7 +36,10 @@ class ProtocolTest {
         val bytes = V12Protocol.frame(0x11, 0x82, byteArrayOf(1, 2, 7, 2, 1, 3, 0))
         val m = V12Protocol.model(V12Protocol.Decoder().feed(bytes).single())!!
         assertTrue(m.isHt)
-        assertFalse(V12Protocol.model(V12Protocol.Decoder().feed("aaaa110882010207010103009c".hex()).single())!!.isHt)
+        val hs = V12Protocol.model(V12Protocol.Decoder().feed("aaaa110882010207010103009c".hex()).single())!!
+        assertFalse(hs.isHt)
+        assertTrue(hs.isSupported)
+        assertFalse(V12Protocol.Model(7, 3).isSupported)
     }
     @Test fun readOnlyRequestsMatchReferenceAndExposeNoControlEnum() {
         assertArrayEquals("aaaa1102020110".hex(), V12Protocol.request(V12Protocol.Read.MODEL))

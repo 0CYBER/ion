@@ -40,6 +40,8 @@ class WheelService : Service() {
     }
 
     private var observer: Job? = null
+    private var idleStop: Job? = null
+    private var foregroundId: Int? = null
     /** The wheel is polled, not streaming: if the CPU suspends between polls the session silently stalls.
      * A non-counted partial wake lock, renewed while the link is active, keeps polling and alerts alive in a pocket. */
     private val wakeLock by lazy {
@@ -56,7 +58,7 @@ class WheelService : Service() {
         when (intent?.action) {
             ACTION_DISCONNECT -> graph.monitor.userDisconnect()
             ACTION_CONNECT -> graph.saved.value?.let { if (graph.ble.hasPermissions()) graph.monitor.userConnect(it) }
-            ACTION_TOGGLE_LIGHT -> graph.ble.state.value.takeIf { it.verifiedHt && it.phase == Phase.CONNECTED }?.telemetry?.let { t ->
+            ACTION_TOGGLE_LIGHT -> graph.ble.state.value.takeIf { it.verifiedV12 && it.phase == Phase.CONNECTED }?.telemetry?.let { t ->
                 graph.ble.apply(V12Protocol.Write(V12Protocol.Control.LIGHTS, if (t.lowBeam) 0 else 1, if (t.highBeam) 1 else 0))
             }
         }
@@ -64,40 +66,67 @@ class WheelService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun promote(graph: IonGraph): Boolean = try {
-        val n = IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
-            graph.monitor.reconnecting.value, graph.monitor.attempt.value)
-        // Keep the location type while waiting for GPS as well, so enabling the provider later
-        // does not require a while-in-use type upgrade from a locked/background Activity.
-        val location = graph.prefs.background.value.gpsTrack && graph.track.granted()
-        val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or
-            (if (location) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0) else 0
-        ServiceCompat.startForeground(this, IonNotifications.LIVE_ID, n, type)
-        true
-    } catch (_: SecurityException) {
-        // A location upgrade initiated in the background can be rejected. Keep BLE alive;
-        // the resumed Activity retries with while-in-use access.
+    private fun notificationId(background: BackgroundConfig) =
+        if (background.liveNotification && background.keepAlive) IonNotifications.LIVE_ID else IonNotifications.SERVICE_ID
+
+    private fun promote(graph: IonGraph): Boolean {
+        val id = notificationId(graph.prefs.background.value)
+        val notification = if (id == IonNotifications.LIVE_ID) {
+            IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
+                graph.monitor.reconnecting.value, graph.monitor.attempt.value)
+        } else {
+            IonNotifications.backgroundLink(this)
+        }
+        val connectedDevice = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
+        // Request the location type while waiting for GPS too. Upgrading can require a resumed Activity.
+        val location = Build.VERSION.SDK_INT >= 29 && graph.prefs.background.value.gpsTrack && graph.track.granted()
+        val type = connectedDevice or (if (location) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0)
         try {
-            ServiceCompat.startForeground(this, IonNotifications.LIVE_ID,
-                IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
-                    graph.monitor.reconnecting.value, graph.monitor.attempt.value),
-                if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0)
-            true
-        } catch (_: Exception) { false }
-    } catch (_: Exception) { false }
+            ServiceCompat.startForeground(this, id, notification, type)
+        } catch (_: SecurityException) {
+            if (!location) return false
+            try {
+                ServiceCompat.startForeground(this, id, notification, connectedDevice)
+            } catch (_: Exception) {
+                return false
+            }
+        } catch (_: Exception) {
+            return false
+        }
+        foregroundId?.takeIf { it != id }?.let(NotificationManagerCompat.from(this)::cancel)
+        foregroundId = id
+        return true
+    }
+
+    private fun linkActive(state: WheelState, reconnecting: Boolean): Boolean =
+        reconnecting || state.phase !in listOf(Phase.OFFLINE, Phase.ERROR, Phase.SCANNING)
 
     private suspend fun observe(graph: IonGraph) {
-        var idleSince: Long? = null
-        combine(graph.ble.state, graph.trips.stats, graph.monitor.reconnecting, graph.prefs.background) { s, trip, retry, bg ->
-            Snapshot(s, trip, retry, bg)
+        combine(graph.ble.state, graph.trips.stats, graph.monitor.reconnecting, graph.prefs.background) { s, trip, retry, _ ->
+            Snapshot(s, trip, retry)
         }.conflate().collect { snap ->
-            val active = snap.state.phase !in listOf(Phase.OFFLINE, Phase.ERROR, Phase.SCANNING) || snap.reconnecting
-            val now = android.os.SystemClock.elapsedRealtime()
-            if (!active || !snap.background.keepAlive) {
-                idleSince = idleSince ?: now
-                if (now - idleSince!! >= IDLE_STOP_MS || !snap.background.keepAlive) { shutdown(); return@collect }
-            } else { idleSince = null; holdWakeLock() }
-            if (snap.background.liveNotification || !active) refresh(graph, snap)
+            val background = graph.prefs.background.value
+            if (!background.keepAlive) {
+                shutdown()
+                return@collect
+            }
+            if (linkActive(snap.state, snap.reconnecting)) {
+                idleStop?.cancel()
+                idleStop = null
+                holdWakeLock()
+            } else if (idleStop == null) {
+                idleStop = graph.scope.launch {
+                    delay(IDLE_STOP_MS)
+                    idleStop = null
+                    if (!linkActive(graph.ble.state.value, graph.monitor.reconnecting.value)) shutdown()
+                }
+            }
+            val id = notificationId(background)
+            if (foregroundId != id) {
+                if (!promote(graph)) shutdown()
+            } else if (id == IonNotifications.LIVE_ID) {
+                refresh(graph, snap)
+            }
             delay(UPDATE_INTERVAL_MS)
         }
     }
@@ -113,6 +142,7 @@ class WheelService : Service() {
 
     private fun shutdown() {
         observer?.cancel(); observer = null
+        idleStop?.cancel(); idleStop = null
         releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -120,6 +150,7 @@ class WheelService : Service() {
 
     override fun onDestroy() {
         observer?.cancel(); observer = null
+        idleStop?.cancel(); idleStop = null
         releaseWakeLock()
         running = false
         super.onDestroy()
@@ -131,5 +162,5 @@ class WheelService : Service() {
         super.onTaskRemoved(rootIntent)
     }
 
-    private data class Snapshot(val state: WheelState, val trip: TripStats, val reconnecting: Boolean, val background: BackgroundConfig)
+    private data class Snapshot(val state: WheelState, val trip: TripStats, val reconnecting: Boolean)
 }

@@ -109,7 +109,7 @@ object Samples {
         val settings = V12Protocol.Frame(0x14, 0xa0, s)
         val trip = TripStats(startedAt = 1_000, lastAt = 2_000_000, samples = 4000, distanceKm = 12.34, maxSpeed = 41.2,
             movingMs = 1_800_000, energyWh = 380.0, regenWh = 30.0, startBattery = 96.0, lastBattery = 78.0, maxTemp = 50, maxPower = 2900.0)
-        return VelaUi(WheelState(phase = Phase.CONNECTED, message = "Данные с колеса", verifiedHt = true,
+        return VelaUi(WheelState(phase = Phase.CONNECTED, message = "Данные с колеса", model = V12Protocol.Model(7, 2),
             telemetry = V12Protocol.telemetry(telemetry), settings = V12Protocol.settings(settings), settingsAt = 9500, lastPacketAt = 9500,
             packets = 128, stationaryPackets = 0),
             WheelDevice("AA:BB:CC:DD:EE:FF", "V12HT-1234", -55), 10_000, trip = trip,

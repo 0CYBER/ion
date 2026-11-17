@@ -1,6 +1,6 @@
-# Ion 0.9.3-ai — INMOTION V12 HT companion
+# Ion 0.9.3-ai — INMOTION V12 companion
 
-Native Kotlin / Jetpack Compose / Material 3 Expressive personal app for one INMOTION V12 HT. Not an official INMOTION app.
+Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V12 HT and HS.
 
 - Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
 - Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode.
@@ -9,18 +9,18 @@ Native Kotlin / Jetpack Compose / Material 3 Expressive personal app for one INM
 - Appearance: light, dark or "Match system" (follows the phone's dark mode).
 
 ## What it does
-- BLE (Nordic UART) link to a verified V12 HT (series 7 / variant 2); the wheel is remembered after the first valid telemetry.
+- BLE (Nordic UART) link to a verified V12 HT or HS (series 7, variants 2 and 1). Ion remembers the wheel after the first valid telemetry.
 - Ride: speed, battery, voltage, trip distance (telemetry u16[22], distance since power-on), odometer (statistics), remaining range, current, MOS/motor temperature.
 - Data: decoded fields and full raw payloads for nine read requests, plus JSON export of raw frames for before/after diffs.
 - Trips: ride log grouped by month (with monthly distance), trip detail with map, timeline scrubber and GPX/CSV export with dated file names; "All rides to CSV" on the trips screen (one row per ride: distance, speeds, energy, battery, temperature, power, PWM, current, minimum voltage, UTC start time).
 - Voice alerts: danger alerts (critical battery, overheating, wheel error, speed) are spoken first and cut any queued phrase.
-- Controls: lights, auto-light, brightness, mute, sound wave, volume, play sound, ride modes (Off-road / Advanced), split mode and split accel/brake, pedal sensitivity and tilt, alarm thresholds, handle button, transport mode, wheel lock, standby timer.
+- Controls include the headlight, side lights (off or follow music), sound previews, ride modes, pedal settings with Split Mode, alarm thresholds, handle button, transport mode, wheel lock and standby timer.
 
 ## Write safeguards
 - Two tiers: SAFE (lights/sound) needs a live verified link; STATIONARY (modes, pedals, service) also needs fresh telemetry and a still wheel. Rechecked right before sending.
 - Switches write immediately (no confirmation dialog). Sliders sit inside expandable rows and are sent with Apply.
 - Success is decided only by a fresh read-back; failures are shown, there is no automatic retry.
-- Lock uses the observed V12 HT security exchange before the lock frame (see `docs/rolling-handoff.md`).
+- Wheel lock is available on the V12 HT and uses the observed security exchange before sending the lock frame (see `docs/rolling-handoff.md`).
 - Pedal tilt is in 0.01° on the wire (1° = 100) for both read and write.
 
 This is not a certified safety interlock. Stop the wheel before changing ride settings.

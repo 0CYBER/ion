@@ -191,16 +191,11 @@ internal class SliderSpec(val label: String,value: Int,val range: IntRange,val t
 @Composable internal fun SoundButtons(enabled: Boolean,play: (Int)->Unit) {
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow).padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.sound_preview),style=MaterialTheme.typography.titleMedium)
-        MetricPair(first={m -> SoundPair(1,enabled,m,play)},second={m -> SoundPair(3,enabled,m,play)})
-    }
-}
-@Composable private fun SoundPair(first: Int,enabled: Boolean,modifier: Modifier,play: (Int)->Unit) {
-    Row(modifier,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-        (first..first+1).forEach {number ->
-            FilledTonalButton(onClick={play(number)},enabled=enabled,modifier=Modifier.weight(1f).heightIn(min=48.dp),
-                shape=RoundedCornerShape(topStart=if(number==first) 24.dp else 8.dp,topEnd=if(number==first) 8.dp else 24.dp,
-                    bottomEnd=if(number==first) 8.dp else 24.dp,bottomStart=if(number==first) 24.dp else 8.dp),contentPadding=PaddingValues(8.dp)) {
-                Text(stringResource(R.string.sound_number,number),style=MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            V12Protocol.soundIds.forEach { number ->
+                FilledTonalButton(onClick = { play(number) }, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(if (number == 24) stringResource(R.string.sound_horn) else stringResource(R.string.sound_number, number))
+                }
             }
         }
     }

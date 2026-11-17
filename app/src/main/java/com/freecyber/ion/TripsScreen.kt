@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
@@ -93,26 +97,38 @@ import java.util.Date
 }
 
 @Composable private fun TripCard(trip: TripSummary,open: ()->Unit,delete: ()->Unit) {
-    val date=remember(trip.startedAt) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(trip.startedAt))}
-    Surface(onClick=open,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
-        Column(Modifier.fillMaxWidth().padding(start=20.dp,end=8.dp,top=12.dp,bottom=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(date,style=MaterialTheme.typography.titleMedium)
-                    Text(V12Protocol.formatDuration(trip.durationMs/1000),style=MaterialTheme.typography.labelLarge,fontFamily=IonSans,
-                        color=MaterialTheme.colorScheme.onSurfaceVariant)
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val date = remember(trip.startedAt, locale) {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(trip.startedAt))
+    }
+    val expansion = stringResource(if (expanded) R.string.trips_expanded else R.string.trips_collapsed)
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
+        Column {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                    .semantics { stateDescription = expansion }
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(date, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text("${trip.distanceKm.fmt(2)}\u00A0${stringResource(R.string.unit_km)}",
+                    style = MaterialTheme.typography.titleSmall, maxLines = 1, softWrap = false)
+                Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null)
+            }
+            if (expanded) Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TripFigure(stringResource(R.string.trip_duration), V12Protocol.formatDuration(trip.durationMs / 1000), "", Modifier.weight(1f))
+                    TripFigure(stringResource(R.string.trip_max), trip.maxSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
+                    TripFigure(stringResource(R.string.trip_avg), trip.avgSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
                 }
-                IconButton(onClick=delete) {Icon(Icons.Rounded.DeleteOutline,stringResource(R.string.trips_delete_one,date))}
-            }
-            Row(Modifier.padding(end=12.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_distance),trip.distanceKm.fmt(2),stringResource(R.string.unit_km),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_max),trip.maxSpeed.fmt(1),stringResource(R.string.unit_kmh),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_avg),trip.avgSpeed.fmt(1),stringResource(R.string.unit_kmh),Modifier.weight(1f))
-            }
-            Row(Modifier.padding(end=12.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_consumption),trip.consumption?.fmt(1) ?: "—",stringResource(R.string.unit_wh_km),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_battery_used),trip.batteryUsed?.fmt(0) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_max_temp),trip.maxTemp?.toString() ?: "—",stringResource(R.string.unit_celsius),Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = open) { Text(stringResource(R.string.trips_details)) }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = delete) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.trips_delete_one, date)) }
+                }
             }
         }
     }
