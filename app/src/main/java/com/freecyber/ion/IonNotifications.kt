@@ -15,20 +15,22 @@ import kotlin.math.roundToInt
 /** Separate channels for ride updates, the background link service and alerts. */
 object IonNotifications {
     const val CHANNEL_LIVE = "ride_live"
-    const val CHANNEL_SERVICE = "wheel_service"
+    const val CHANNEL_GPS = "ride_gps"
     const val CHANNEL_ALERTS = "ride_alerts"
     const val CHANNEL_LINK = "link_state"
     const val LIVE_ID = 1
-    const val SERVICE_ID = 2
+    const val GPS_ID = 3
     private const val ALERT_BASE_ID = 100
 
     fun createChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
+        nm.cancel(2)
+        nm.deleteNotificationChannel("wheel_service")
         nm.createNotificationChannels(listOf(
             NotificationChannel(CHANNEL_LIVE, context.getString(R.string.channel_live), NotificationManager.IMPORTANCE_LOW).apply {
                 description = context.getString(R.string.channel_live_hint); setShowBadge(false)
             },
-            NotificationChannel(CHANNEL_SERVICE, context.getString(R.string.bg_keep_alive), NotificationManager.IMPORTANCE_LOW).apply {
+            NotificationChannel(CHANNEL_GPS, context.getString(R.string.gps_recording_notification), NotificationManager.IMPORTANCE_LOW).apply {
                 setSound(null, null)
                 setShowBadge(false)
             },
@@ -50,10 +52,10 @@ object IonNotifications {
     internal fun serviceAction(context: Context, action: String, code: Int): PendingIntent = PendingIntent.getService(context, code,
         Intent(context, WheelService::class.java).setAction(action), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-    fun backgroundLink(context: Context): android.app.Notification =
-        NotificationCompat.Builder(context, CHANNEL_SERVICE)
+    fun gpsRecording(context: Context): android.app.Notification =
+        NotificationCompat.Builder(context, CHANNEL_GPS)
             .setSmallIcon(R.drawable.ic_stat_ion)
-            .setContentTitle(context.getString(R.string.bg_keep_alive))
+            .setContentTitle(context.getString(R.string.gps_recording_notification))
             .setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(openApp(context))

@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -54,11 +53,6 @@ class WheelService : Service() {
     private var observer: Job? = null
     private var idleStop: Job? = null
     private var foregroundId: Int? = null
-    /** The wheel is polled, not streaming: if the CPU suspends between polls the session silently stalls.
-     * A non-counted partial wake lock, renewed while the link is active, keeps polling and alerts alive in a pocket. */
-    private val wakeLock by lazy {
-        (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ion:wheel-link").apply { setReferenceCounted(false) }
-    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -66,22 +60,27 @@ class WheelService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val graph = ionGraph
+        if (!graph.companionWheel.usesForegroundService()) {
+            dispatch(graph, intent?.action)
+            shutdown()
+            return START_NOT_STICKY
+        }
         if (!promote(graph)) { stopSelf(); return START_NOT_STICKY }
         dispatch(graph, intent?.action)
         if (observer == null) observer = graph.scope.launch { observe(graph) }
         return START_NOT_STICKY
     }
 
-    private fun notificationId(background: BackgroundConfig) =
-        if (background.liveNotification && background.keepAlive) IonNotifications.LIVE_ID else IonNotifications.SERVICE_ID
+    private fun notificationId(graph: IonGraph, background: BackgroundConfig) =
+        if (graph.companionWheel.showsLiveCard(background)) IonNotifications.LIVE_ID else IonNotifications.GPS_ID
 
     private fun promote(graph: IonGraph): Boolean {
-        val id = notificationId(graph.prefs.background.value)
+        val id = notificationId(graph, graph.prefs.background.value)
         val notification = if (id == IonNotifications.LIVE_ID) {
             IonNotifications.live(this, graph.ble.state.value, graph.trips.stats.value,
                 graph.monitor.reconnecting.value, graph.monitor.attempt.value)
         } else {
-            IonNotifications.backgroundLink(this)
+            IonNotifications.gpsRecording(this)
         }
         val connectedDevice = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
         // Request the location type while waiting for GPS too. Upgrading can require a resumed Activity.
@@ -90,7 +89,7 @@ class WheelService : Service() {
         try {
             ServiceCompat.startForeground(this, id, notification, type)
         } catch (_: SecurityException) {
-            if (!location) return false
+            if (!location || id == IonNotifications.GPS_ID) return false
             try {
                 ServiceCompat.startForeground(this, id, notification, connectedDevice)
             } catch (_: Exception) {
@@ -119,7 +118,6 @@ class WheelService : Service() {
             if (linkActive(snap.state, snap.reconnecting)) {
                 idleStop?.cancel()
                 idleStop = null
-                holdWakeLock()
             } else if (idleStop == null) {
                 idleStop = graph.scope.launch {
                     delay(IDLE_STOP_MS)
@@ -127,7 +125,7 @@ class WheelService : Service() {
                     if (!linkActive(graph.ble.state.value, graph.monitor.reconnecting.value)) shutdown()
                 }
             }
-            val id = notificationId(background)
+            val id = notificationId(graph, background)
             if (foregroundId != id) {
                 if (!promote(graph)) shutdown()
             } else if (id == IonNotifications.LIVE_ID) {
@@ -143,13 +141,10 @@ class WheelService : Service() {
         try { NotificationManagerCompat.from(this).notify(IonNotifications.LIVE_ID, n) } catch (_: SecurityException) { }
     }
 
-    private fun holdWakeLock() { runCatching { wakeLock.acquire(WAKE_LOCK_MS) } }
-    private fun releaseWakeLock() { runCatching { if (wakeLock.isHeld) wakeLock.release() } }
 
     private fun shutdown() {
         observer?.cancel(); observer = null
         idleStop?.cancel(); idleStop = null
-        releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -157,7 +152,6 @@ class WheelService : Service() {
     override fun onDestroy() {
         observer?.cancel(); observer = null
         idleStop?.cancel(); idleStop = null
-        releaseWakeLock()
         running = false
         super.onDestroy()
     }

@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
+import androidx.compose.foundation.text.TextAutoSize
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -229,7 +231,7 @@ import kotlin.math.roundToInt
 }
 
 /** Compact reading: a row when wide, a small card when half width. Read aloud as one item. */
-@Composable private fun MetricTile(label: String,value: String?,unit: String,icon: ImageVector,wide: Boolean,modifier: Modifier) {
+@Composable internal fun MetricTile(label: String,value: String?,unit: String,icon: ImageVector,wide: Boolean,modifier: Modifier) {
     // TalkBack read a missing value as "dash"; announce "no data" instead.
     val spoken=if(value==null || value=="—") "$label, ${stringResource(R.string.no_data)}" else "$label, $value $unit"
     Surface(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.l)) {
@@ -237,7 +239,8 @@ import kotlin.math.roundToInt
             Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary)
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
             Text("${value ?: "—"}\u00A0$unit",style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),
-                fontFamily=IonSans,softWrap=false,maxLines=1)
+                fontFamily=IonSans,softWrap=false,maxLines=1,
+                autoSize=TextAutoSize.StepBased(minFontSize=8.sp,maxFontSize=MaterialTheme.typography.titleMedium.fontSize))
         } else Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 Icon(icon,null,Modifier.size(18.dp),tint=MaterialTheme.colorScheme.primary)
@@ -245,6 +248,7 @@ import kotlin.math.roundToInt
             }
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                 Text(value ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,softWrap=false,maxLines=1,
+                    autoSize=TextAutoSize.StepBased(minFontSize=8.sp,maxFontSize=MaterialTheme.typography.headlineSmall.fontSize),
                     modifier=Modifier.weight(1f,fill=false))
                 Text(unit,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,
                     softWrap=false,maxLines=1,modifier=Modifier.padding(bottom=3.dp))

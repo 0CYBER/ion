@@ -66,13 +66,11 @@ class CompanionWheel(private val graph: IonGraph) {
 
     fun covers(address: String?): Boolean = observed?.address == address?.uppercase() && ready.value
 
-    fun canRunWithoutCard(config: BackgroundConfig = graph.prefs.background.value): Boolean =
-        config.keepAlive && covers(graph.monitor.linkAddress ?: graph.saved.value?.address) &&
-            !(config.liveNotification && IonNotifications.canPost(graph.context)) &&
-            !(config.gpsTrack && graph.track.granted())
-
     fun usesForegroundService(config: BackgroundConfig = graph.prefs.background.value): Boolean =
-        config.keepAlive && !canRunWithoutCard(config)
+        config.keepAlive && (showsLiveCard(config) || (config.gpsTrack && graph.track.granted()))
+
+    fun showsLiveCard(config: BackgroundConfig): Boolean =
+        config.liveNotification && IonNotifications.canPost(graph.context)
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     fun associate(address: String, launch: (IntentSender) -> Unit, failed: () -> Unit) {

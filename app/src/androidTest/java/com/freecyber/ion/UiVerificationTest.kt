@@ -3,6 +3,8 @@ package com.freecyber.ion
 import android.graphics.Bitmap
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Timeline
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -150,27 +152,46 @@ class UiVerificationTest {
         rule.onNodeWithText("Блокировка колеса").assertIsDisplayed();shot("system-dark")
     }
 
-    @Test fun onboardingRequestsBluetoothBeforeAddingWheel() {
+    @Test fun onboardingOffersBatteryNotificationsAndLocationBeforeAddingWheel() {
         val allowed = mutableStateOf(false)
+        val battery = mutableStateOf(false)
+        val notifications = mutableStateOf(false)
+        val location = mutableStateOf(false)
         var additions = 0
         rule.runOnUiThread {
             rule.activity.setContent {
                 IonTheme(true) {
-                    ConnectionOnboarding(allowed.value, false, false, true,
-                        requestBluetooth = { allowed.value = true }, requestNotifications = {},
-                        requestLocation = {}, requestBattery = {}, addWheel = { additions++ }, later = {})
+                    ConnectionOnboarding(allowed.value, notifications.value, location.value, battery.value,
+                        requestBluetooth = { allowed.value = true }, requestNotifications = { notifications.value = true },
+                        requestLocation = { location.value = true }, requestBattery = { battery.value = true },
+                        addWheel = { additions++ }, later = {})
                 }
             }
         }
-        val add = rule.activity.getString(R.string.setup_add_wheel)
-        scroll(add)
-        rule.onNodeWithText(add).assertIsNotEnabled()
-        val bluetooth = rule.activity.getString(R.string.setup_bluetooth)
-        scroll(bluetooth)
-        rule.onNodeWithText(bluetooth).performClick()
-        scroll(add)
-        rule.onNodeWithText(add).assertIsEnabled().performClick()
+        listOf(R.string.setup_bluetooth, R.string.battery_unrestricted, R.string.notif_permission,
+            R.string.location_permission, R.string.setup_add_wheel).forEach { resource ->
+            val label = rule.activity.getString(resource)
+            scroll(label)
+            rule.onNodeWithText(label).performClick()
+        }
         rule.runOnIdle { assertEquals(1, additions) }
+    }
+
+    @Test fun longOdometerFitsBesideItsUnitOnANarrowCard() {
+        val reading = "42 949 672,9"
+        rule.runOnUiThread {
+            rule.activity.setContent {
+                IonTheme(true) {
+                    MetricTile("Пробег", reading, "км", Icons.Rounded.Timeline, false, Modifier.width(132.dp))
+                }
+            }
+        }
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        rule.onNodeWithText(reading, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertEquals(1, layouts.single().lineCount)
+        assertFalse(layouts.single().hasVisualOverflow)
+        rule.onNodeWithText("км", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test fun liveRideCardIsEligibleForAndroidPromotion() {
@@ -178,7 +199,7 @@ class UiVerificationTest {
         val ui = sample()
         val card = IonNotifications.live(rule.activity, ui.wheel, ui.trip, reconnecting = false, attempt = 0)
         assertTrue(card.hasPromotableCharacteristics())
-        assertFalse(IonNotifications.backgroundLink(rule.activity).hasPromotableCharacteristics())
+        assertFalse(IonNotifications.gpsRecording(rule.activity).hasPromotableCharacteristics())
     }
     @Test fun appearanceShowsRealSelectionsAndOnlyRequestsAChangeOnce() {
         var toggles=0

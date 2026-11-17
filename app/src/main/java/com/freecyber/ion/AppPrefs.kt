@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class AppPrefs(context: Context) {
     private val prefs = context.getSharedPreferences("vela_preferences", Context.MODE_PRIVATE)
     var onboardingDone: Boolean
-        get() = prefs.getBoolean("connection_onboarding_done", false)
-        set(value) { prefs.edit { putBoolean("connection_onboarding_done", value) } }
+        get() = prefs.getBoolean("connection_permissions_reviewed", false)
+        set(value) { prefs.edit { putBoolean("connection_permissions_reviewed", value) } }
     var companionReconnectArmed: Boolean
         get() = prefs.getBoolean("companion_reconnect_armed", false)
         set(value) { prefs.edit { putBoolean("companion_reconnect_armed", value) } }

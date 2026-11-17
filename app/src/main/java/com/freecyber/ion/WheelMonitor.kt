@@ -27,7 +27,6 @@ class WheelMonitor(private val graph: IonGraph) {
     private var lastPhase = Phase.OFFLINE
     private var userStopped = true
     private var requestedAddress: String? = null
-    internal val linkAddress get() = requestedAddress
     private var lastWidgetAt = 0L
     private var lastWidgetPhase: Phase? = null
     private var lastCheckpointAt = 0L
@@ -54,8 +53,8 @@ class WheelMonitor(private val graph: IonGraph) {
         }
         graph.scope.launch { graph.companionWheel.ready.collect { refreshRecording() } }
         graph.scope.launch {
-            combine(graph.ble.state, reconnecting, graph.companionWheel.ready, graph.prefs.background) { state, retry, ready, config ->
-                ready && config.keepAlive && graph.companionWheel.covers(requestedAddress) && (state.phase.holdsLink || retry)
+            combine(graph.ble.state, reconnecting, graph.prefs.background) { state, retry, config ->
+                config.keepAlive && (state.phase.holdsLink || retry)
             }.distinctUntilChanged().collectLatest { hold ->
                 if (hold) {
                     val lock = companionWakeLock ?: return@collectLatest

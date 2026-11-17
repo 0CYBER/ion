@@ -48,8 +48,9 @@ class NotificationTest {
     }
 
     @Config(application = IonApplication::class)
-    @Test fun switchingLiveOffReplacesTheForegroundRideCardUntilReenabled() {
+    @Test fun switchingLiveOffStopsForegroundServiceWithoutAReplacementCard() {
         val graph = context.ionGraph
+        shadowOf(context).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
         graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = true))
         val controller = Robolectric.buildService(WheelService::class.java).create()
         try {
@@ -61,15 +62,8 @@ class NotificationTest {
 
             graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = false))
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(WheelService.UPDATE_INTERVAL_MS))
-            assertEquals(IonNotifications.SERVICE_ID, shadow.lastForegroundNotificationId)
-            assertEquals(IonNotifications.CHANNEL_SERVICE, shadow.lastForegroundNotification.channelId)
-            assertFalse(NotificationCompat.isRequestPromotedOngoing(shadow.lastForegroundNotification))
-
-            service.onStartCommand(start, 0, 2)
-            assertEquals(IonNotifications.SERVICE_ID, shadow.lastForegroundNotificationId)
-
-            graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = true))
-            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(WheelService.UPDATE_INTERVAL_MS))
+            assertTrue(shadow.isStoppedBySelf)
+            assertFalse(graph.companionWheel.usesForegroundService())
             assertEquals(IonNotifications.LIVE_ID, shadow.lastForegroundNotificationId)
         } finally {
             controller.destroy()

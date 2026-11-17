@@ -32,8 +32,8 @@ class WidgetWheelAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val action = parameters[Command] ?: return
         val graph = context.ionGraph
-        if (graph.companionWheel.canRunWithoutCard()) WheelService.dispatch(graph, action)
-        else WheelService.start(context, action)
+        if (graph.companionWheel.usesForegroundService()) WheelService.start(context, action)
+        else WheelService.dispatch(graph, action)
     }
 
     companion object {

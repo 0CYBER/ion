@@ -9,6 +9,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.location.LocationManager
+import androidx.core.location.LocationManagerCompat
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -95,12 +97,16 @@ class MainActivity : ComponentActivity() {
             var batteryUnrestricted by remember { mutableStateOf(batteryUnrestricted()) }
             var locationAllowed by remember { mutableStateOf(model.ble.grantedLocation()) }
             var bluetoothAllowed by remember { mutableStateOf(model.ble.hasPermissions()) }
+            fun locationServicesEnabled() = getSystemService(LocationManager::class.java)
+                ?.let(LocationManagerCompat::isLocationEnabled) == true
+            var locationServicesAllowed by remember { mutableStateOf(locationServicesEnabled()) }
             val dark=systemDark(preference)
             // Permission may change in system settings while we are away.
             LifecycleResumeEffect(Unit) {
                 notificationsAllowed=IonNotifications.canPost(this@MainActivity); batteryUnrestricted=batteryUnrestricted()
                 locationAllowed=model.ble.grantedLocation()
                 bluetoothAllowed=model.ble.hasPermissions()
+                locationServicesAllowed=locationServicesEnabled()
                 companionWheel.refresh()
                 model.refreshRecording()
                 model.resumeSavedLink()
@@ -155,6 +161,8 @@ class MainActivity : ComponentActivity() {
                     requestLocation = { locationAskedAt = SystemClock.elapsedRealtime()
                         location.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) },
                     requestBattery = ::requestBatteryUnrestricted,
+                    locationServicesEnabled = !companionWheel.supported || locationServicesAllowed,
+                    requestLocationServices = { runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                     addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
                 ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
                     themeFollowsSystem=preference==null),Actions(scan={permitted(null)},connect={permitted(it)},
@@ -204,6 +212,9 @@ class MainActivity : ComponentActivity() {
         val direct=Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:$packageName"))
         try { startActivity(direct) }
         catch(_: ActivityNotFoundException) {
+            runCatching { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+        }
+        catch(_: SecurityException) {
             runCatching { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
         }
     }
