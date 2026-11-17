@@ -1,6 +1,12 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -103,6 +110,8 @@ import java.util.Date
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(trip.startedAt))
     }
     val expansion = stringResource(if (expanded) R.string.trips_expanded else R.string.trips_collapsed)
+    val motion = MaterialTheme.motionScheme
+    val arrow by animateFloatAsState(if (expanded) 180f else 0f, motion.fastSpatialSpec(), label = "trip-chevron")
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
         Column {
             Row(
@@ -116,18 +125,24 @@ import java.util.Date
                 Text(date, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Text("${trip.distanceKm.fmt(2)}\u00A0${stringResource(R.string.unit_km)}",
                     style = MaterialTheme.typography.titleSmall, maxLines = 1, softWrap = false)
-                Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null)
+                Icon(Icons.Rounded.ExpandMore, null, Modifier.rotate(arrow))
             }
-            if (expanded) Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TripFigure(stringResource(R.string.trip_duration), V12Protocol.formatDuration(trip.durationMs / 1000), "", Modifier.weight(1f))
-                    TripFigure(stringResource(R.string.trip_max), trip.maxSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
-                    TripFigure(stringResource(R.string.trip_avg), trip.avgSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
-                }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = open) { Text(stringResource(R.string.trips_details)) }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = delete) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.trips_delete_one, date)) }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(motion.defaultSpatialSpec(), expandFrom = Alignment.Top) + fadeIn(motion.fastEffectsSpec()),
+                exit = shrinkVertically(motion.defaultSpatialSpec(), shrinkTowards = Alignment.Top) + fadeOut(motion.fastEffectsSpec()),
+            ) {
+                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TripFigure(stringResource(R.string.trip_duration), V12Protocol.formatDuration(trip.durationMs / 1000), "", Modifier.weight(1f))
+                        TripFigure(stringResource(R.string.trip_max), trip.maxSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
+                        TripFigure(stringResource(R.string.trip_avg), trip.avgSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = open) { Text(stringResource(R.string.trips_details)) }
+                        Spacer(Modifier.weight(1f))
+                        IconButton(onClick = delete) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.trips_delete_one, date)) }
+                    }
                 }
             }
         }

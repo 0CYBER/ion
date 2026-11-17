@@ -234,21 +234,24 @@ import kotlin.math.roundToInt
 @Composable internal fun MetricTile(label: String,value: String?,unit: String,icon: ImageVector,wide: Boolean,modifier: Modifier) {
     // TalkBack read a missing value as "dash"; announce "no data" instead.
     val spoken=if(value==null || value=="—") "$label, ${stringResource(R.string.no_data)}" else "$label, $value $unit"
+    val readingStyle = if (wide) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall
+    val readingHeight = with(LocalDensity.current) { readingStyle.lineHeight.toDp() }
     Surface(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.l)) {
         if(wide) Row(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary)
             Text(label,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
-            Text("${value ?: "—"}\u00A0$unit",style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),
+            Text("${value ?: "—"}\u00A0$unit",style=readingStyle.copy(fontFeatureSettings="tnum"),
                 fontFamily=IonSans,softWrap=false,maxLines=1,
-                autoSize=TextAutoSize.StepBased(minFontSize=8.sp,maxFontSize=MaterialTheme.typography.titleMedium.fontSize))
+                modifier=Modifier.heightIn(min=readingHeight),
+                autoSize=TextAutoSize.StepBased(minFontSize=8.sp,maxFontSize=readingStyle.fontSize))
         } else Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 Icon(icon,null,Modifier.size(18.dp),tint=MaterialTheme.colorScheme.primary)
                 Text(label,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2)
             }
-            Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                Text(value ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,softWrap=false,maxLines=1,
-                    autoSize=TextAutoSize.StepBased(minFontSize=8.sp,maxFontSize=MaterialTheme.typography.headlineSmall.fontSize),
+            Row(Modifier.heightIn(min=readingHeight),verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                Text(value ?: "—",style=readingStyle.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,softWrap=false,maxLines=1,
+                    autoSize=TextAutoSize.StepBased(minFontSize=8.sp,maxFontSize=readingStyle.fontSize),
                     modifier=Modifier.weight(1f,fill=false))
                 Text(unit,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,
                     softWrap=false,maxLines=1,modifier=Modifier.padding(bottom=3.dp))

@@ -70,7 +70,7 @@ class CompanionWheel(private val graph: IonGraph) {
         config.keepAlive && (showsLiveCard(config) || graph.track.listening)
 
     fun showsLiveCard(config: BackgroundConfig): Boolean =
-        config.liveNotification && IonNotifications.canPost(graph.context)
+        config.liveNotification && IonNotifications.canPostLive(graph.context)
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     fun associate(address: String, launch: (IntentSender) -> Unit, failed: () -> Unit) {

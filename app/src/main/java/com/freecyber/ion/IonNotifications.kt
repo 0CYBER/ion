@@ -45,6 +45,10 @@ object IonNotifications {
     fun canPost(context: Context): Boolean = Build.VERSION.SDK_INT < 33 ||
         context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
+    fun canPostLive(context: Context): Boolean = canPost(context) &&
+        context.getSystemService(NotificationManager::class.java)
+            ?.getNotificationChannel(CHANNEL_LIVE)?.importance != NotificationManager.IMPORTANCE_NONE
+
     internal fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(context, 0,
         Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)

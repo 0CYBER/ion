@@ -98,7 +98,7 @@ class WheelService : Service() {
         } catch (_: Exception) {
             return false
         }
-        foregroundId?.takeIf { it != id }?.let(NotificationManagerCompat.from(this)::cancel)
+        NotificationManagerCompat.from(this).cancel(if (id == IonNotifications.LIVE_ID) IonNotifications.GPS_ID else IonNotifications.LIVE_ID)
         foregroundId = id
         return true
     }
@@ -143,7 +143,7 @@ class WheelService : Service() {
     }
 
     private fun refresh(graph: IonGraph, snap: Snapshot) {
-        if (!IonNotifications.canPost(this)) return
+        if (!IonNotifications.canPostLive(this)) return
         val n = IonNotifications.live(this, snap.state, snap.trip, snap.reconnecting, graph.monitor.attempt.value)
         try { NotificationManagerCompat.from(this).notify(IonNotifications.LIVE_ID, n) } catch (_: SecurityException) { }
     }

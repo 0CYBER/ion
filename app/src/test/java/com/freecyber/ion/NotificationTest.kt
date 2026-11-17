@@ -70,6 +70,35 @@ class NotificationTest {
         }
     }
 
+    @Config(application = IonApplication::class)
+    @Test fun liveCardReplacesGpsCardWithoutStoppingGps() {
+        val app = context as IonApplication
+        val graph = app.ionGraph
+        shadowOf(context).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS,
+            android.Manifest.permission.ACCESS_FINE_LOCATION)
+        graph.prefs.setBackground(graph.prefs.background.value.copy(gpsTrack = true))
+        graph.track.start(android.os.SystemClock.elapsedRealtime())
+        val controller = Robolectric.buildService(WheelService::class.java).create()
+        try {
+            val service = controller.get()
+            val shadow = shadowOf(service)
+            val notifications = context.getSystemService(android.app.NotificationManager::class.java)
+            val start = Intent(context, WheelService::class.java).setAction(WheelService.ACTION_START)
+            service.onStartCommand(start, 0, 1)
+            assertEquals(IonNotifications.GPS_ID, shadow.lastForegroundNotificationId)
+            notifications.notify(IonNotifications.GPS_ID, shadow.lastForegroundNotification)
+
+            graph.prefs.setBackground(graph.prefs.background.value.copy(liveNotification = true))
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(WheelService.UPDATE_INTERVAL_MS))
+            assertEquals(IonNotifications.LIVE_ID, shadow.lastForegroundNotificationId)
+            assertFalse(notifications.activeNotifications.any { it.id == IonNotifications.GPS_ID })
+            assertTrue(graph.track.listening)
+        } finally {
+            controller.destroy()
+            graph.track.stop()
+        }
+    }
+
     @Test fun voicePhrasesUseRussianPlurals() {
         fun battery(v: Int) = VoiceAnnouncer.phrase(context, Alert(AlertKind.BATTERY_LOW, v))
         assertEquals("Низкий заряд, 21 процент", battery(21))
