@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: a lowercase i beside a half-disc with a round notch facing it. Drawn on a 120 grid, scaled 0.6 into the 72dp visible area so it stays inside the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="0.6" android:scaleY="0.6" android:translateX="18" android:translateY="18">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M32.5,37a7.5,7.5 0,1 0,15 0a7.5,7.5 0,1 0,-15 0Z M33.5,56.5A6.5,6.5 0,0 1,46.5 56.5L46.5,79.5A6.5,6.5 0,0 1,33.5 79.5Z M60,28A32,32 0,0 1,60 92L60,74A14,14 0,0 0,60 46Z" />
+    </group>
+</vector>

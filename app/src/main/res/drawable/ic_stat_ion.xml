@@ -1,6 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar, notification and quick-settings mark: the launcher glyph alone (white on transparent). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <!-- Monochrome status-bar mark: a wheel ring with a hub. -->
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M12,2A10,10 0,1 1,2 12A10,10 0,0 1,12 2M12,5A7,7 0,1 0,19 12A7,7 0,0 0,12 5M12,9A3,3 0,1 1,9 12A3,3 0,0 1,12 9Z" />
+    <group android:scaleX="0.3125" android:scaleY="0.3125" android:translateX="-7.45" android:translateY="-6.75">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M32.5,37a7.5,7.5 0,1 0,15 0a7.5,7.5 0,1 0,-15 0Z M33.5,56.5A6.5,6.5 0,0 1,46.5 56.5L46.5,79.5A6.5,6.5 0,0 1,33.5 79.5Z M60,28A32,32 0,0 1,60 92L60,74A14,14 0,0 0,60 46Z" />
+    </group>
 </vector>
