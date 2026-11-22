@@ -32,6 +32,22 @@ class ProtocolTest {
         assertEquals(0.0, t.speed, 0.0001); assertEquals(-10.46, t.roll, 0.0001)
         assertEquals(29, t.mosTemp); assertEquals(30, t.motorTemp)
     }
+    /** Owner's V12 HT, 2026-11-22: the vendor app's range estimate on, then off, Ion export after each switch. */
+    @Test fun rangeEstimateBitAndRangeFieldMatchOwnerExports() {
+        fun frame(command: Int, hex: String) = V12Protocol.Frame(0x14, command, hex.hex())
+        val settingsOn = V12Protocol.settings(frame(0xA0, "20000000000000000070178A1381150000080710464605010F32646428AC0D2F2F800C0000000005700100"))!!
+        val settingsOff = V12Protocol.settings(frame(0xA0, "20000000000000000070178A1381150000080710464605010F32646428AC0D2F2F800C0000000005300100"))!!
+        assertTrue(settingsOn.rangeEstimate); assertFalse(settingsOff.rangeEstimate)
+        assertEquals(settingsOn.copy(rangeEstimate = false), settingsOff)
+        val on = V12Protocol.telemetry(frame(0x84, "D42601000000000000000000000000004EEE4EEE4200000010271C25C0127017800C000000000000CDC300D4D2D1B02B646400000000840000000000000000000000"))!!
+        val off = V12Protocol.telemetry(frame(0x84, "D42602000000000000000000000000004EEE4EEE4100000010271C2550467017800C000000000000CDC300D4D2D1B021646400000000840000000000000000000000"))!!
+        assertEquals(48.0, on.rangeKm, 0.0001); assertEquals(180.0, off.rangeKm, 0.0001)
+        assertEquals(100.0, on.battery, 0.0001)
+        val write = V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE, 1)
+        assertEquals(true, write.confirmed(frame(0xA0, "20000000000000000070178A1381150000080710464605010F32646428AC0D2F2F800C0000000005700100")))
+        assertEquals(false, write.confirmed(frame(0xA0, "20000000000000000070178A1381150000080710464605010F32646428AC0D2F2F800C0000000005300100")))
+    }
+
     @Test fun htIdentityIsSyntheticNotRealCapture() {
         val bytes = V12Protocol.frame(0x11, 0x82, byteArrayOf(1, 2, 7, 2, 1, 3, 0))
         val m = V12Protocol.model(V12Protocol.Decoder().feed(bytes).single())!!

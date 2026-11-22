@@ -102,17 +102,21 @@ object V12Protocol {
     fun telemetry(f: Frame): Telemetry? {
         if (f.flags != 0x14 || f.command != 4 || !f.response || f.payload.size < 56) return null
         val p = f.payload
+        // Remaining range is u16[28] (km/100): on the owner's V12 HT it read 48.00 with the wheel's range estimate on and
+        // 180.00 with it off, matching the wheel display. u16[26] stays 95.00 at full charge and is not a range.
         return Telemetry(p.u16(0)/100.0, p.s16(2)/100.0, p.s16(4)/100.0, p.u16(24)/100.0,
             p[40].u()-176, p[41].u()-176, p.s16(16)/100.0, p.s16(20)/100.0,
             p[54].u() and 0x80 != 0, p[55].u() and 1 != 0, p[55].u() and 2 != 0, p[54].u() and 0x40 != 0, p[55].u() and 0x20 != 0,
-            p.u16(22)/100.0, p.u16(26)/100.0, p.s16(8)/100.0, p.s16(10), p.s16(12))
+            p.u16(22)/100.0, p.u16(28)/100.0, p.s16(8)/100.0, p.s16(10), p.s16(12))
     }
     data class Settings(val speedLimit: Double, val comfortable: Int, val classic: Int, val standbySeconds: Int,
         val alarm1: Double, val alarm2: Double, val pedalTilt: Double, val classicMode: Boolean,
         val fancier: Boolean, val volume: Int, val lowBrightness: Int, val highBrightness: Int,
         val splitAccel: Int, val splitBrake: Int, val muted: Boolean, val handleEnabled: Boolean,
         val autoLight: Boolean, val transport: Boolean, val soundWave: Boolean, val splitMode: Boolean,
-        val locked: Boolean = false)
+        val locked: Boolean = false,
+        /** Wheel-side remaining range estimate (vendor "remainder range estimate"); off = nominal 180 km. */
+        val rangeEstimate: Boolean = false)
     fun settings(f: Frame): Settings? {
         if (f.flags != 0x14 || f.command != 0x20 || !f.response || f.payload.size < 42 || f.payload[0].u() != 0x20) return null
         val p = f.payload
@@ -122,7 +126,9 @@ object V12Protocol {
             p[39].u() and 1 == 0, p[39].u() and 4 != 0, p[39].u() and 8 != 0,
             p[39].u() and 64 != 0, p[40].u() and 4 != 0, p[41].u() and 1 != 0,
             // bit5 of byte39: observed flipping exactly when the vendor app toggles the wheel lock.
-            p[39].u() and 0x20 != 0)
+            p[39].u() and 0x20 != 0,
+            // bit6 of byte40: 0x70 with the vendor app's range estimate on, 0x30 with it off (owner's before/after export).
+            p[40].u() and 0x40 != 0)
     }
     /** WheelLog parseTotalStats (0x14/0x11): u32LE ×6; distance in 10 m units, energies /100, times in seconds. */
     data class Statistics(val totalKm: Double, val dischargedKwh: Double, val recoveredKwh: Double,
@@ -189,7 +195,9 @@ object V12Protocol {
         VOLUME(Tier.SAFE), MUTE(Tier.SAFE), SOUND_WAVE(Tier.SAFE), PLAY_SOUND(Tier.SAFE),
         CLASSIC(Tier.STATIONARY), FANCIER(Tier.STATIONARY), SPLIT_MODE(Tier.STATIONARY), SPLIT_ACCEL_BRAKE(Tier.STATIONARY),
         PEDAL_SENS(Tier.STATIONARY), PEDAL_TILT(Tier.STATIONARY), ALARMS(Tier.STATIONARY),
-        HANDLE_BUTTON(Tier.STATIONARY), LOCK(Tier.STATIONARY), TRANSPORT(Tier.STATIONARY), STANDBY(Tier.STATIONARY)
+        HANDLE_BUTTON(Tier.STATIONARY), LOCK(Tier.STATIONARY), TRANSPORT(Tier.STATIONARY), STANDBY(Tier.STATIONARY),
+        /** Only changes how the wheel estimates remaining range, so it is safe while riding. */
+        RANGE_ESTIMATE(Tier.SAFE)
     }
     data class Write(val kind: Control, val a: Int, val b: Int = 0) {
         init {
@@ -234,6 +242,7 @@ object V12Protocol {
                 Control.LOCK -> tr("Блокировка колеса: ${on(a)}","Wheel lock: ${on(a)}")
                 Control.TRANSPORT -> tr("Транспортный режим: ${on(a)}","Transport mode: ${on(a)}")
                 Control.STANDBY -> tr("Ожидание: $a мин","Standby: $a min")
+                Control.RANGE_ESTIMATE -> tr("Оценка остатка пробега: ${on(a)}","Range estimate: ${on(a)}")
             }
         }
         fun bytes(): ByteArray {
@@ -259,6 +268,9 @@ object V12Protocol {
                 Control.LOCK -> byteArrayOf(0x31, a.toByte())
                 Control.TRANSPORT -> byteArrayOf(0x32, a.toByte())
                 Control.STANDBY -> byteArrayOf(0x28) + le16(a*60)
+                // INMOTION app: _V12Cmd.remainderRangeEstimateCmd getter returns 0x3f (same dispatch lookup gives
+                // the known 0x31 lock and 0x39 sound-wave bytes); see tools/re/dispatch_range_estimate.py.
+                Control.RANGE_ESTIMATE -> byteArrayOf(0x3f, a.toByte())
             }
             // V12 HT lock frames observed in INMOTION 8.1.34 on this wheel. The
             // address can be session-dependent; this test path requires hardware verification.
@@ -290,6 +302,7 @@ object V12Protocol {
                 Control.HANDLE_BUTTON -> s.handleEnabled == (a==1)
                 Control.TRANSPORT -> s.transport == (a==1)
                 Control.LOCK -> s.locked == (a==1)
+                Control.RANGE_ESTIMATE -> s.rangeEstimate == (a==1)
                 else -> null
             }
         }
@@ -349,6 +362,7 @@ object V12Protocol {
             add("mute",tr("Без звука","Mute"),yes(s.muted)); add("handle",tr("Кнопка ручки","Handle button"),yes(s.handleEnabled))
             add("autoLight",tr("Автосвет","Auto light"),yes(s.autoLight)); add("transport",tr("Транспортный режим","Transport mode"),yes(s.transport))
             add("soundWave",tr("Звук движения","Riding sound"),yes(s.soundWave)); add("splitMode","Split mode",yes(s.splitMode))
+            add("rangeEstimate",tr("Оценка остатка пробега","Range estimate"),yes(s.rangeEstimate))
             add("locked",tr("Блокировка","Lock"),yes(s.locked))
         }
         model(f)?.let { add("model",tr("Модель","Model"),it.label); add("series",tr("Серия","Series"),"${it.series}"); add("variant",tr("Вариант","Variant"),"${it.variant}") }

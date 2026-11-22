@@ -5,7 +5,7 @@ import org.junit.Test
 class ControlsTest {
     private fun unpack(w: V12Protocol.Write) = V12Protocol.Decoder().feed(w.bytes()).single()
     @Test fun allowlistMatchesReferencePayloads() {
-        assertEquals(19,V12Protocol.Control.entries.size)
+        assertEquals(20,V12Protocol.Control.entries.size)
         val samples=listOf(
             V12Protocol.Write(V12Protocol.Control.LIGHTS,1,0) to byteArrayOf(0x50,1,0),
             V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,25,75) to byteArrayOf(0x2b,25,75),
@@ -13,6 +13,7 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.VOLUME,42) to byteArrayOf(0x26,42),
             V12Protocol.Write(V12Protocol.Control.MUTE,1) to byteArrayOf(0x2c,0),
             V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,0) to byteArrayOf(0x39,0),
+            V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE,1) to byteArrayOf(0x3f,1),
             V12Protocol.Write(V12Protocol.Control.STANDBY,10) to byteArrayOf(0x28,0x58,0x02),
             V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,2) to byteArrayOf(0x51,2,0x01),
             V12Protocol.Write(V12Protocol.Control.CLASSIC,1) to byteArrayOf(0x23,1),
@@ -174,7 +175,7 @@ class ControlsTest {
     @Test fun telemetryMileageAndErrorNamesDecode() {
         val p=ByteArray(66)
         fun u16(i: Int,v: Int){p[i]=v.toByte();p[i+1]=(v ushr 8).toByte()}
-        u16(22,12345);u16(26,6789);p[59]=1 // err_iPhaseSensorState
+        u16(22,12345);u16(26,9500);u16(28,6789);p[59]=1 // err_iPhaseSensorState
         val f=V12Protocol.Frame(0x14,0x84,p)
         val t=V12Protocol.telemetry(f)!!
         assertEquals(123.45,t.tripKm,0.0001);assertEquals(67.89,t.rangeKm,0.0001)

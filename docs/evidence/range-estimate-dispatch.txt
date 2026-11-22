@@ -1,0 +1,7 @@
+lock (known 0x31): cid=2109 slot=108529 ci=18407 -> 0x31
+lock (known 0x31): cid=2110 slot=108530 ci=18407 -> 0x31
+soundWave (known 0x39): cid=2109 slot=109422 ci=2313 -> 0x39
+soundWave (known 0x39): cid=2110 slot=109423 ci=2313 -> 0x39
+remainderRangeEstimate: cid=2109 slot=109440 ci=5829 -> 0x3f
+remainderRangeEstimate: cid=2110 slot=109441 ci=5829 -> 0x3f
+Static result only: polarity and read-back are confirmed by the settings byte40 bit6 diff.

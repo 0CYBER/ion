@@ -39,6 +39,7 @@ internal val DashToggle.titleRes: Int get() = when(this) {
     DashToggle.HANDLE -> R.string.control_handle
     DashToggle.TRANSPORT -> R.string.control_transport
     DashToggle.LOCK -> R.string.control_lock
+    DashToggle.RANGE_ESTIMATE -> R.string.control_range_estimate
 }
 internal val DashToggle.icon get() = when(this) {
     DashToggle.LOW_BEAM -> Icons.Rounded.Lightbulb
@@ -52,6 +53,7 @@ internal val DashToggle.icon get() = when(this) {
     DashToggle.HANDLE -> Icons.Rounded.TouchApp
     DashToggle.TRANSPORT -> Icons.Rounded.LocalShipping
     DashToggle.LOCK -> Icons.Rounded.Lock
+    DashToggle.RANGE_ESTIMATE -> Icons.Rounded.Navigation
 }
 internal val TileSlot.titleRes get() = toggleTarget?.titleRes ?: tile.titleRes
 internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon

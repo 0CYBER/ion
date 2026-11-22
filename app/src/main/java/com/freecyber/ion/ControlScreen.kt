@@ -111,6 +111,12 @@ import kotlin.math.roundToInt
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.STANDBY,v[0]))}
             } }
         }
+        // Range estimate only changes the wheel's range calculation, so unlike the group above it works while riding.
+        if(category==ControlCategory.SERVICE) animatedItem(key="range-estimate",contentType="controls") { GroupColumn {
+            SwitchRow(Icons.Rounded.Navigation,stringResource(R.string.control_range_estimate),s?.rangeEstimate,
+                hint=stringResource(R.string.control_range_estimate_hint),enabled=settingsSafe) {
+                request(V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE,if(it)1 else 0))}
+        } }
         animatedItem(key="read-settings",contentType="action") { OutlinedButton(onClick={readSettings()},enabled=ui.connected && !ui.wheel.workPending,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) {
             // While a read is in flight the button says so instead of just greying out.
             if(ui.connected && ui.wheel.workPending) LoadingIndicator(Modifier.size(20.dp)) else Icon(Icons.Rounded.Refresh,null)

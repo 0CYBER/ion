@@ -40,13 +40,13 @@ enum class DashToggle(val control: V12Protocol.Control) {
     SOUND_WAVE(V12Protocol.Control.SOUND_WAVE), OFF_ROAD(V12Protocol.Control.CLASSIC),
     ADVANCED(V12Protocol.Control.FANCIER), SPLIT(V12Protocol.Control.SPLIT_MODE),
     HANDLE(V12Protocol.Control.HANDLE_BUTTON), TRANSPORT(V12Protocol.Control.TRANSPORT),
-    LOCK(V12Protocol.Control.LOCK);
+    LOCK(V12Protocol.Control.LOCK), RANGE_ESTIMATE(V12Protocol.Control.RANGE_ESTIMATE);
 
     fun value(t: V12Protocol.Telemetry?, s: V12Protocol.Settings?): Boolean? = when(this) {
         LOW_BEAM -> t?.lowBeam; HIGH_BEAM -> t?.highBeam; AUTO_LIGHT -> s?.autoLight
         MUTE -> s?.muted; SOUND_WAVE -> s?.soundWave; OFF_ROAD -> s?.classicMode
         ADVANCED -> s?.fancier; SPLIT -> s?.splitMode; HANDLE -> s?.handleEnabled
-        TRANSPORT -> s?.transport; LOCK -> s?.locked
+        TRANSPORT -> s?.transport; LOCK -> s?.locked; RANGE_ESTIMATE -> s?.rangeEstimate
     }
     fun write(enabled: Boolean, t: V12Protocol.Telemetry?): V12Protocol.Write = when(this) {
         LOW_BEAM -> V12Protocol.Write(control, if(enabled) 1 else 0, if(t?.highBeam==true) 1 else 0)

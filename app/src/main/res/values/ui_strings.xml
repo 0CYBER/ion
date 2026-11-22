@@ -97,4 +97,6 @@
     <string name="setup_step">Шаг %1$d из %2$d</string>
     <string name="dash_removed">Плитка «%1$s» убрана</string>
     <string name="common_undo">Вернуть</string>
+    <string name="control_range_estimate">Оценка остатка пробега</string>
+    <string name="control_range_estimate_hint">Колесо считает остаток пути по заряду и стилю езды. Без оценки оно показывает условные 180 км</string>
 </resources>
