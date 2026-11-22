@@ -27,6 +27,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
+/** Dock order. Ride history is a destination of its own, between the ride screen and settings. */
+internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETTINGS = 2; const val WHEEL = 3 }
+
 /** The activity owns platform wiring; this shell owns only saveable presentation destinations. */
 @Composable internal fun IonApp(ui: VelaUi,dark: Boolean,prefs: PrefsUi,actions: Actions,initialTab: Int=0) =
     IonAppContent({ui},dark,prefs,actions,initialTab)
@@ -45,11 +48,11 @@ import androidx.compose.ui.unit.dp
     val motion=MaterialTheme.motionScheme
     BackHandler(detail!=null) {back()}
     // Back on the Settings or Wheel tab returns to Ride first, the usual pattern for bottom navigation.
-    BackHandler(detail==null && tab!=0) {tab=0}
+    BackHandler(detail==null && tab!=Tabs.RIDE) {tab=Tabs.RIDE}
     // Pass writes straight through: BleController.apply guards the tier itself and reports a refusal
     // through writeMessage. The old silent drop left taps with no feedback at all.
     fun write(command: V12Protocol.Write) {actions.write(command)}
-    fun connect() {ui().saved?.let(actions.connect) ?: run {tab=2;actions.scan()}}
+    fun connect() {ui().saved?.let(actions.connect) ?: run {tab=Tabs.WHEEL;actions.scan()}}
     // A phone on its side has little height: the dock becomes a rail at the start edge.
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().preferredFrameRate(FrameRateCategory.High)) {
     val rail=maxWidth>maxHeight && maxHeight<480.dp
@@ -81,17 +84,17 @@ import androidx.compose.ui.unit.dp
                         route=="diagnostics" -> DiagnosticsScreen(ui(),actions) {back()}
                         route=="dashboard" -> DashboardEditorScreen(ui(),prefs.dashboard,actions.setDashboard) {back()}
                         route=="background" -> BackgroundScreen(prefs,actions) {back()}
-                        route=="trips" -> TripsScreen(prefs.trips,actions,{trip -> open("trip:${trip.startedAt}")}) {back()}
                         route.startsWith("trip:") -> TripDetailRoute(route.substringAfter(':').toLongOrNull(),prefs.trips,actions) {back()}
                         route=="app" -> AppScreen({open("appearance")},{open("background")},{back()}) {open("updates")}
                         route=="updates" -> UpdatesScreen(prefs.update,actions.update) {back()}
                         route.startsWith("control:") && ControlCategory.entries.any {it.name==route.substringAfter(':')} ->
                             ControlScreen(ui(),ControlCategory.valueOf(route.substringAfter(':')),
                             {actions.read(V12Protocol.Read.SETTINGS)},::write) {back()}
-                        route=="tab:1" -> SettingsScreen({open("app")}) {open("control:${it.name}")}
-                        route=="tab:2" -> WheelScreen(ui(),actions,actions.connect,{forget=true},{open("diagnostics")})
-                        else -> RideScreen(ui(),prefs.dashboard,::connect,::write,{tab=2},{tab=1},{open("dashboard")},{open("control:${ControlCategory.RIDE.name}")},
-                            {open("trips")},actions.resetTrip)
+                        route=="tab:${Tabs.HISTORY}" -> TripsScreen(prefs.trips,actions,{trip -> open("trip:${trip.startedAt}")},onBack=null)
+                        route=="tab:${Tabs.SETTINGS}" -> SettingsScreen({open("app")}) {open("control:${it.name}")}
+                        route=="tab:${Tabs.WHEEL}" -> WheelScreen(ui(),actions,actions.connect,{forget=true},{open("diagnostics")})
+                        else -> RideScreen(ui(),prefs.dashboard,::connect,::write,{tab=Tabs.WHEEL},{tab=Tabs.SETTINGS},{open("dashboard")},{open("control:${ControlCategory.RIDE.name}")},
+                            {tab=Tabs.HISTORY;routes=emptyList()},actions.resetTrip)
                     }
                 }
             }
@@ -109,8 +112,8 @@ import androidx.compose.ui.unit.dp
         dismissButton={TextButton(onClick={forget=false}) {Text(stringResource(R.string.cancel))}})
 }
 
-private val DockLabels=listOf(R.string.nav_ride,R.string.nav_settings,R.string.nav_wheel)
-private val DockIcons=listOf(Icons.Rounded.Home,Icons.Rounded.Tune,Icons.Rounded.TripOrigin)
+private val DockLabels=listOf(R.string.nav_ride,R.string.nav_history,R.string.nav_settings,R.string.nav_wheel)
+private val DockIcons=listOf(Icons.Rounded.Home,Icons.Rounded.History,Icons.Rounded.Tune,Icons.Rounded.TripOrigin)
 
 /** Landscape counterpart of [IonDock]: icon-only pills stacked at the start edge, names kept for TalkBack. */
 @Composable private fun IonRail(tab: Int,select: (Int)->Unit) {

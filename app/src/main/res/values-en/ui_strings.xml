@@ -3,6 +3,7 @@
     <string name="nav_ride">Ride</string>
     <string name="nav_settings">Settings</string>
     <string name="nav_wheel">Wheel</string>
+    <string name="nav_history">History</string>
     <string name="ride_title">Ion</string>
     <string name="back">Back</string>
     <string name="appearance">Appearance</string>

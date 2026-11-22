@@ -1,4 +1,4 @@
-# Ion 0.9.3-ai — INMOTION V12 companion
+# Ion 1.0 — INMOTION V12 companion
 
 Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V12 HT, HS and PRO.
 

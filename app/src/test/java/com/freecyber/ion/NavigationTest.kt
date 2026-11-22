@@ -18,17 +18,24 @@ class NavigationTest {
     @get:Rule val rule = createComposeRule()
 
     @Test fun appChildBackReturnsToAppMenu() {
-        rule.setContent { IonTheme(false) { IonApp(VelaUi(), false, PrefsUi(), Actions(), initialTab = 1) } }
+        rule.setContent { IonTheme(false) { IonApp(VelaUi(), false, PrefsUi(), Actions(), initialTab = Tabs.SETTINGS) } }
         rule.onNodeWithContentDescription("Приложение").performClick()
         rule.onNodeWithText("Оформление").performClick()
         rule.onNodeWithText("Назад").performClick()
         rule.onNodeWithText("Обновления").assertIsDisplayed()
     }
 
+    @Test fun historyIsTheSecondDockTabWithoutBack() {
+        rule.setContent { IonTheme(false) { IonApp(VelaUi(), false, PrefsUi(), Actions()) } }
+        rule.onNodeWithContentDescription("История").performClick()
+        rule.onNodeWithText("Пока нет завершённых поездок", substring = true).assertExists()
+        rule.onAllNodesWithText("Назад").assertCountEquals(0)
+    }
+
     @Test fun staticSettingsDoNotReadOrObserveLiveTelemetry() {
         val live=mutableStateOf(VelaUi())
         var reads=0
-        rule.setContent { IonTheme(false) { IonAppContent({reads++;live.value}, false, PrefsUi(), Actions(), initialTab=1) } }
+        rule.setContent { IonTheme(false) { IonAppContent({reads++;live.value}, false, PrefsUi(), Actions(), initialTab=Tabs.SETTINGS) } }
         rule.runOnIdle {
             org.junit.Assert.assertEquals(0,reads)
             live.value=VelaUi(now=10_000)

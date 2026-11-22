@@ -186,7 +186,7 @@ class MainActivity : ComponentActivity() {
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
                     tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,update=updateActions),
-                    initialTab=if (startOnWheel) 2 else 0)
+                    initialTab=if (startOnWheel) Tabs.WHEEL else Tabs.RIDE)
                 // One silent check per launch, never on top of the first-run setup.
                 LaunchedEffect(onboarding) { if (!onboarding) updater.checkOnLaunch() }
                 if (!onboarding) UpdateDialog(updateUi, updateActions)
