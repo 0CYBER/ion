@@ -9,6 +9,7 @@
     <string name="channel_link_hint">Обрыв и восстановление связи с колесом</string>
     <!-- Live notification -->
     <string name="live_title_speed">%1$s км/ч · %2$d%%</string>
+    <string name="live_title_charging">Зарядка · %1$d%%</string>
     <string name="live_title_reconnecting">Переподключаюсь к колесу…</string>
     <string name="live_title_lost">Связь с колесом потеряна</string>
     <string name="live_title_connecting">Подключаюсь к колесу…</string>

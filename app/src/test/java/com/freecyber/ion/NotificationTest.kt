@@ -39,6 +39,14 @@ class NotificationTest {
         assertTrue(n.flags and Notification.FLAG_ONGOING_EVENT != 0)
     }
 
+    @Test fun chargingWheelTitleShowsChargeInsteadOfZeroSpeed() {
+        val ui = Samples.live()
+        val charging = ui.wheel.copy(telemetry = ui.wheel.telemetry!!.copy(speed = 0.0, battery = 87.0, charging = true))
+        val title = IonNotifications.live(context, charging, ui.trip, reconnecting = false, attempt = 0)
+            .extras.getCharSequence(Notification.EXTRA_TITLE).toString()
+        assertEquals("Зарядка · 87%", title)
+    }
+
     @Test fun reconnectingCardHasNoLiveExtras() {
         val ui = Samples.live()
         val n = IonNotifications.live(context, ui.wheel.copy(phase = Phase.CONNECTING), ui.trip, reconnecting = true, attempt = 2)

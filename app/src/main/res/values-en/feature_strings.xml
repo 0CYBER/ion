@@ -9,6 +9,7 @@
     <string name="channel_link_hint">Losing and restoring the link to the wheel</string>
     <!-- Live notification -->
     <string name="live_title_speed">%1$s km/h · %2$d%%</string>
+    <string name="live_title_charging">Charging · %1$d%%</string>
     <string name="live_title_reconnecting">Reconnecting to the wheel…</string>
     <string name="live_title_lost">Lost connection to the wheel</string>
     <string name="live_title_connecting">Connecting to the wheel…</string>

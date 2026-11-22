@@ -77,6 +77,8 @@ object IonNotifications {
         val connected = s.verifiedV12 && s.phase == Phase.CONNECTED
         val battery = t?.battery?.takeIf { it.isFinite() }?.roundToInt()?.coerceIn(0, 100) ?: 0
         val title = when {
+            // Standing on the charger: "0.0 km/h" says nothing, the charge does.
+            connected && t != null && t.charging && kotlin.math.abs(t.speed) < 1.0 -> context.getString(R.string.live_title_charging, battery)
             connected && t != null -> context.getString(R.string.live_title_speed, kotlin.math.abs(t.speed).fmt(1), battery)
             reconnecting -> context.getString(R.string.live_title_reconnecting)
             s.phase == Phase.ERROR -> context.getString(R.string.live_title_lost)
