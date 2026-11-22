@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 internal val DashToggle.titleRes: Int get() = when(this) {
     DashToggle.LOW_BEAM -> R.string.quick_light
@@ -62,6 +63,12 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
     var reset by rememberSaveable { mutableStateOf(false) }
     var reveal by remember { mutableStateOf<String?>(null) }
     val listState=rememberLazyListState()
+    // Removing a tile is one tap; the snackbar offers it back instead of a confirmation dialog.
+    val snackbar=remember {SnackbarHostState()}
+    val scope=rememberCoroutineScope()
+    val latestLayout by rememberUpdatedState(layout)
+    val removedTemplate=stringResource(R.string.dash_removed,"%s")
+    val undoLabel=stringResource(R.string.common_undo)
     val slot = layout.slots.firstOrNull { it.id == selected }
     // Frozen preview: telemetry updates must not move the editor while the rider arranges it.
     val preview = remember { if(ui.wheel.telemetry != null) ui else EditorSample.ui }
@@ -79,9 +86,10 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                 item(key="heading", contentType="heading") { DetailHeading(stringResource(R.string.dash_editor_title), stringResource(R.string.dash_tap_hint), onBack) }
                 if(rows.isEmpty()) item(key="empty", contentType="empty") { Banner(stringResource(R.string.dash_empty)) }
                 items(rows, key={ it.joinToString("+") { s -> s.id } }, contentType={ if(it.size==2) "pair" else "single" }) { row ->
-                    TilePair(
+                    // animateItem: Up/Down moves visibly slide the tile instead of teleporting it.
+                    Box(Modifier.fillMaxWidth().animateItem()) { TilePair(
                         first={ m -> PreviewTile(row[0],env,m) { selected=row[0].id } },
-                        second=if(row.size==2) ({ m -> PreviewTile(row[1],env,m) { selected=row[1].id } }) else null)
+                        second=if(row.size==2) ({ m -> PreviewTile(row[1],env,m) { selected=row[1].id } }) else null) }
                 }
             }
             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal=20.dp, vertical=8.dp),
@@ -94,6 +102,7 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                 }
             }
         }
+        SnackbarHost(snackbar,Modifier.align(Alignment.BottomCenter).padding(bottom=LocalDockClearance.current+64.dp))
         if(catalog || slot!=null) ModalBottomSheet(onDismissRequest={catalog=false;selected=null}, sheetState=rememberBottomSheetState(initialValue=SheetValue.Hidden,enabledValues=setOf(SheetValue.Hidden,SheetValue.Expanded))) {
             Column(Modifier.fillMaxWidth().heightIn(max=sheetHeight).padding(horizontal=20.dp)) {
                 if(catalog) {
@@ -157,7 +166,17 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                         } }
                     }
                     Row(Modifier.fillMaxWidth().padding(vertical=12.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(onClick={selected=null;change(layout.remove(slot.id))},modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
+                        val removedTitle=stringResource(slot.titleRes)
+                        OutlinedButton(onClick={
+                            val before=layout
+                            selected=null;change(layout.remove(slot.id))
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                val result=snackbar.showSnackbar(removedTemplate.format(removedTitle),undoLabel,withDismissAction=true,duration=SnackbarDuration.Long)
+                                // Only restore if nothing else was edited meanwhile; otherwise undo would discard newer changes.
+                                if(result==SnackbarResult.ActionPerformed && latestLayout==before.remove(slot.id)) change(before)
+                            }
+                        },modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
                             Icon(Icons.Rounded.DeleteOutline,null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.dash_remove))
                         }
                         Button(onClick={selected=null},modifier=Modifier.weight(1f).heightIn(min=48.dp)) { Text(stringResource(R.string.dash_done)) }

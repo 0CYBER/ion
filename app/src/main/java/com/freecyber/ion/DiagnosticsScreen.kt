@@ -60,7 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
                 }
             }
         }
-        if(selectedReads.isEmpty()) item(key="empty",contentType="empty") {
+        if(selectedReads.isEmpty()) animatedItem(key="empty",contentType="empty") {
             Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
                 Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.data_no_results),style=MaterialTheme.typography.titleLarge)
@@ -71,7 +71,8 @@ import androidx.compose.ui.text.style.TextAlign
         items(selectedReads,key={it.name},contentType={it.command}) {read ->
             val record=ui.wheel.records[read]
             val fields=record?.frame?.let(V12Protocol::fields).orEmpty().filter {query.isBlank() || read.label.contains(query,true) || (it.key+it.label+it.value).contains(query,true)}
-            PacketCard(read,record,ui.now,fields,mode==3,ui.connected && !ui.wheel.workPending) {actions.read(read)}
+            // Filtering and searching animate cards out and in instead of reshuffling the list at once.
+            Box(Modifier.fillMaxWidth().animateItem()) {PacketCard(read,record,ui.now,fields,mode==3,ui.connected && !ui.wheel.workPending) {actions.read(read)}}
         }
     }
 }
