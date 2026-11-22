@@ -103,9 +103,7 @@ import kotlin.math.roundToInt
             animatedItem(key="service",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.Rounded.TouchApp,stringResource(R.string.control_handle),s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.LocalShipping,stringResource(R.string.control_transport),s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
-                if (ui.wheel.model?.isHt == true) {
-                    SwitchRow(Icons.Rounded.Lock,stringResource(R.string.control_lock),s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
-                }
+                SwitchRow(Icons.Rounded.Lock,stringResource(R.string.control_lock),s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
                 // Only changes the wheel's range calculation, so it stays available while riding (SAFE tier).
                 SwitchRow(Icons.Rounded.Navigation,stringResource(R.string.control_range_estimate),s?.rangeEstimate,enabled=settingsSafe) {
                     request(V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE,if(it)1 else 0))}

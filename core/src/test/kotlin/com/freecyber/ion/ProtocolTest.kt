@@ -55,7 +55,18 @@ class ProtocolTest {
         val hs = V12Protocol.model(V12Protocol.Decoder().feed("aaaa110882010207010103009c".hex()).single())!!
         assertFalse(hs.isHt)
         assertTrue(hs.isSupported)
-        assertFalse(V12Protocol.Model(7, 3).isSupported)
+        assertFalse(V12Protocol.Model(7, 4).isSupported)
+    }
+
+    /** WheelLog InmotionAdapterV2Test "decode with v12 pro full data" (GPL-3.0 fixture, not a user capture). */
+    @Test fun v12ProIsSupportedAndDecodesWithTheV12Layout() {
+        val frames = V12Protocol.Decoder().feed(("aaaa110882010207030101009c" +
+            "aaaa144384b7261100000085ff5c00000000000000fcff0000eafe000076266d26803ee015581b000000000000c8c800c9b0c7b0b700000000000049000000000000000000000081").hex())
+        val model = V12Protocol.model(frames[0])!!
+        assertTrue(model.isSupported); assertFalse(model.isHt); assertEquals("V12 Pro", model.label)
+        val t = V12Protocol.telemetry(frames[1])!!
+        assertEquals(99.11, t.voltage, 0.0001); assertEquals(0.17, t.current, 0.0001)
+        assertEquals(-2.78, t.roll, 0.0001); assertEquals(24, t.mosTemp); assertEquals(24, t.motorTemp)
     }
     @Test fun readOnlyRequestsMatchReferenceAndExposeNoControlEnum() {
         assertArrayEquals("aaaa1102020110".hex(), V12Protocol.request(V12Protocol.Read.MODEL))

@@ -37,7 +37,6 @@
     <string name="ble_no_telemetry">No telemetry answer. Check the wheel and reconnect.</string>
     <string name="ble_not_sent_link">Not sent: no connection to the wheel</string>
     <string name="ble_not_sent_moving">Not sent: the wheel is moving</string>
-    <string name="ble_lock_unsupported">Wheel lock is supported on the V12 HT</string>
     <string name="ble_lock_refused">Lock failed: the wheel rejected the secure exchange</string>
     <string name="ble_lock_moving">Lock failed: the wheel is moving</string>
     <string name="ble_apply_no_answer">Not applied: the wheel did not answer</string>

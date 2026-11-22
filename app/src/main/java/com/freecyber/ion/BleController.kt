@@ -115,10 +115,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     fun readAll() = enqueue(Work.ReadAll)
     fun read(read: V12Protocol.Read) = enqueue(Work.ReadOne(read))
     fun apply(command: V12Protocol.Write) {
-        if (command.kind == V12Protocol.Control.LOCK && mutable.value.model?.isHt != true) {
-            mutable.update { it.copy(writeMessage = str(R.string.ble_lock_unsupported)) }
-            return
-        }
+        // The lock is offered on every supported V12 (only proven on the HT); its security exchange and read-back
+        // still refuse to report success unless the wheel confirms the new state.
         // Only an in-flight write blocks a new one; queued reads must not reject the tap.
         if(!mayWrite(command.kind.tier, mutable.value.writeInFlight)) { mutable.update { it.copy(writeMessage=if(command.kind.tier == V12Protocol.Tier.SAFE)
             str(R.string.ble_write_no_link) else

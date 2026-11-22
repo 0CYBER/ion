@@ -37,7 +37,6 @@
     <string name="ble_no_telemetry">Нет ответа телеметрии. Проверь колесо и подключись заново.</string>
     <string name="ble_not_sent_link">Не отправлено: нет связи с колесом</string>
     <string name="ble_not_sent_moving">Не отправлено: колесо движется</string>
-    <string name="ble_lock_unsupported">Замок поддерживается на V12 HT</string>
     <string name="ble_lock_refused">Блокировка не выполнена: колесо не приняло защитный обмен</string>
     <string name="ble_lock_moving">Блокировка не выполнена: колесо движется</string>
     <string name="ble_apply_no_answer">Не применилось: колесо не ответило</string>

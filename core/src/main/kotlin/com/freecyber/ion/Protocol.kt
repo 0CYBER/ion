@@ -80,7 +80,9 @@ object V12Protocol {
         }
     }
     data class Model(val series: Int, val variant: Int) {
-        val isSupported get() = series == 7 && variant in 1..2
+        /** V12 HS (7/1), HT (7/2) and PRO (7/3): WheelLog decodes and drives all three with the same V12 code
+         * (same realtime/settings layout and command bytes, 24 cells). Only the HT is tested on real hardware. */
+        val isSupported get() = series == 7 && variant in 1..3
         val isHt get() = series == 7 && variant == 2
         val label get() = when { isHt -> "INMOTION V12 HT"; series == 7 && variant == 1 -> "V12 HS"; series == 7 && variant == 3 -> "V12 Pro"; else -> tr("Неизвестная модель ($series/$variant)","Unknown model ($series/$variant)") }
     }

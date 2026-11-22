@@ -1,6 +1,6 @@
 # Ion 0.9.3-ai — INMOTION V12 companion
 
-Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V12 HT and HS.
+Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V12 HT, HS and PRO.
 
 - Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
 - Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode.
@@ -9,7 +9,7 @@ Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V
 - Appearance: light, dark or "Match system" (follows the phone's dark mode).
 
 ## What it does
-- BLE (Nordic UART) link to a verified V12 HT or HS (series 7, variants 2 and 1). Ion remembers the wheel after the first valid telemetry.
+- BLE (Nordic UART) link to a verified V12 HS, HT or PRO (series 7, variants 1–3; same protocol as in WheelLog, hardware-tested on the HT only). Ion remembers the wheel after the first valid telemetry.
 - Ride: speed, battery, voltage, trip distance (telemetry u16[22], distance since power-on), odometer (statistics), remaining range, current, MOS/motor temperature.
 - Data: decoded fields and full raw payloads for nine read requests, plus JSON export of raw frames for before/after diffs.
 - Trips: ride log grouped by month (with monthly distance), trip detail with map, timeline scrubber and GPX/CSV export with dated file names; "All rides to CSV" on the trips screen (one row per ride: distance, speeds, energy, battery, temperature, power, PWM, current, minimum voltage, UTC start time).
@@ -20,7 +20,7 @@ Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V
 - Two tiers: SAFE (lights/sound) needs a live verified link; STATIONARY (modes, pedals, service) also needs fresh telemetry and a still wheel. Rechecked right before sending.
 - Switches write immediately (no confirmation dialog). Sliders sit inside expandable rows and are sent with Apply.
 - Success is decided only by a fresh read-back; failures are shown, there is no automatic retry.
-- Wheel lock is available on the V12 HT and uses the observed security exchange before sending the lock frame (see `docs/rolling-handoff.md`).
+- Wheel lock is offered on every supported V12 (proven on the HT only) and uses the observed security exchange before sending the lock frame (see `docs/rolling-handoff.md`).
 - Pedal tilt is in 0.01° on the wire (1° = 100) for both read and write.
 
 This is not a certified safety interlock. Stop the wheel before changing ride settings.
