@@ -16,6 +16,19 @@ val ionVersionCode: Int = providers.gradleProperty("ionVersionCode").orNull?.toI
             .standardOutput.asText.get().trim().toInt()
     }.getOrNull()?.takeIf { it > 21 } ?: 21
 
+/**
+ * Robolectric's own downloader fetches its Android framework jar from Maven Central on every CI run, without
+ * retries, and Central rate-limits GitHub runners (HTTP 429 failed every Robolectric test). Gradle resolves the
+ * same jar instead, with its retries and dependency cache, and the tests run Robolectric in offline mode.
+ * Keep the version in step with the Robolectric release when it is upgraded (SDK 35 is the only one used).
+ */
+val robolectricRuntime: Configuration by configurations.creating { isTransitive = false }
+val robolectricJarsDir = layout.buildDirectory.dir("robolectric-jars")
+val robolectricJars = tasks.register<Copy>("robolectricJars") {
+    from(robolectricRuntime)
+    into(robolectricJarsDir)
+}
+
 android {
     namespace = "com.freecyber.ion"
     compileSdk = 37
@@ -62,6 +75,10 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             it.systemProperty("roborazzi.test.record", "true")
+            // Robolectric runs offline from the jar Gradle resolved (see robolectricJars below).
+            it.dependsOn(robolectricJars)
+            it.systemProperty("robolectric.offline", "true")
+            it.systemProperty("robolectric.dependency.dir", robolectricJarsDir.get().asFile.absolutePath)
             it.maxHeapSize = "1g"
             if (providers.gradleProperty("skipScreenshots").isPresent) {
                 it.filter { excludeTestsMatching("com.freecyber.ion.ScreenshotTest") }
@@ -71,6 +88,7 @@ android {
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 dependencies {
+    robolectricRuntime("org.robolectric:android-all-instrumented:15-robolectric-13954326-i7")
     implementation(project(":core"))
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.activity:activity-compose:1.12.4")
