@@ -83,8 +83,10 @@ import kotlin.math.roundToInt
     val on=value==true
     val bg by animateColorAsState(if(on && enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
         MaterialTheme.motionScheme.fastEffectsSpec(),label="setting-state")
+    val haptics=LocalHapticFeedback.current
     Surface(color=bg,shape=RoundedCornerShape(IonShapes.xs)) {
-        Row(Modifier.fillMaxWidth().heightIn(min=76.dp).toggleable(value=on,enabled=enabled && value!=null,role=Role.Switch,onValueChange=change)
+        Row(Modifier.fillMaxWidth().heightIn(min=76.dp).toggleable(value=on,enabled=enabled && value!=null,role=Role.Switch,onValueChange={
+                haptics.performHapticFeedback(if(it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff);change(it)})
             .padding(horizontal=18.dp,vertical=14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             SettingIcon(icon,on && enabled)
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
@@ -154,8 +156,9 @@ internal class SliderSpec(val label: String,value: Int,val range: IntRange,val t
                     spec.range.first.toFloat()..spec.range.last.toFloat(),enabled,
                     sliderTag="slider-$index",change={new -> drafts=drafts.toMutableList().also {it[index]=new}})
             }
+            val haptics=LocalHapticFeedback.current
             ApplyButton(stringResource(R.string.common_apply),enabled && drafts.any {it!=null},
-                modifier=Modifier.testTag("apply"),click={onApply(current); sent.value=current})
+                modifier=Modifier.testTag("apply"),click={haptics.performHapticFeedback(HapticFeedbackType.Confirm);onApply(current); sent.value=current})
         }
     }
 }
@@ -195,3 +198,8 @@ internal class SliderSpec(val label: String,value: Int,val range: IntRange,val t
         }
     }
 }
+
+/** A lazy item that fades in and out and slides into place when neighbours appear, e.g. a banner above it. */
+internal fun androidx.compose.foundation.lazy.LazyListScope.animatedItem(key: Any,contentType: Any?=null,
+    content: @Composable androidx.compose.foundation.lazy.LazyItemScope.()->Unit) =
+    item(key=key,contentType=contentType) {Box(Modifier.fillMaxWidth().animateItem()) {content()}}
