@@ -44,13 +44,13 @@ class RidePresentationTest {
         assertTrue(bounds.bottom-bounds.top<220.dp)
     }
 
-    @Test fun chargingUsesNativeIndeterminateWaveEvenAtFullChargeAndStopsOnDisconnect() {
+    @Test fun chargingWaveShowsRealLevelEvenAtFullChargeAndStopsOnDisconnect() {
         val sample=Samples.live()
         var ui by mutableStateOf(sample.copy(wheel=sample.wheel.copy(telemetry=sample.wheel.telemetry!!.copy(battery=100.0,charging=true))))
         rule.setContent { IonTheme(false) {
             DashTileView(TileSlot(DashTile.BATTERY,true,false),TileEnv(ui,{},{}),Modifier.width(180.dp))
         } }
-        rule.onNodeWithTag("battery-charge-wave",useUnmergedTree=true).assert(SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo,ProgressBarRangeInfo.Indeterminate))
+        rule.onNodeWithTag("battery-charge-wave",useUnmergedTree=true).assert(SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo,ProgressBarRangeInfo(1f,0f..1f)))
         rule.onNodeWithContentDescription("Зарядка").assertExists()
         // The tile is one TalkBack stop: label, value and charging state are read together.
         rule.onNode(hasText("Заряд").and(hasContentDescription("Зарядка"))).assertExists()

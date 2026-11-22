@@ -114,13 +114,8 @@ import kotlin.math.roundToInt
 @Composable internal fun MissingSetting(text: String) {
     Text(text,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(vertical=12.dp))
 }
-@Composable internal fun MetricPair(first: @Composable (Modifier)->Unit,second: @Composable (Modifier)->Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if(maxWidth<300.dp || LocalDensity.current.fontScale>1.2f)
-            Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {first(Modifier.fillMaxWidth());second(Modifier.fillMaxWidth())}
-        else Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {first(Modifier.weight(1f));second(Modifier.weight(1f))}
-    }
-}
+/** Same adaptive pair as the ride tiles, without a nested subcomposition (see [TilePair]). */
+@Composable internal fun MetricPair(first: @Composable (Modifier)->Unit,second: @Composable (Modifier)->Unit)=TilePair(first,second)
 @Composable internal fun ReadAllButton(ui: VelaUi,actions: Actions,modifier: Modifier) {
     FilledTonalButton(onClick=actions.readAll,enabled=ui.connected && !ui.wheel.workPending,modifier=modifier.heightIn(min=48.dp)) {
         if(ui.wheel.workPending) LoadingIndicator(Modifier.size(20.dp)) else Icon(Icons.Rounded.Refresh,null,Modifier.size(20.dp))

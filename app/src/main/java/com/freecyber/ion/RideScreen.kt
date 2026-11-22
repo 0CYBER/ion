@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,19 +40,22 @@ import kotlin.math.roundToInt
             ScreenHeading(stringResource(R.string.ride_title),stringResource(R.string.open_connection),Icons.Rounded.Bluetooth,openWheel,
                 secondaryLabel=stringResource(R.string.dash_edit),secondaryIcon=Icons.Rounded.DashboardCustomize,onSecondary=editDashboard)
         }
-        if(t==null) item(key="start",contentType="instrument") {StartRideCard(ui,connect)}
-        if(ui.reconnecting) item(key="reconnecting",contentType="banner") {Banner(stringResource(R.string.live_title_reconnecting),Icons.Rounded.Autorenew,warning=true)}
-        else if(ui.wheel.phase==Phase.ERROR) item(key="error",contentType="banner") {Banner(ui.wheel.message,error=true)}
-        ui.wheel.writeMessage?.let {message -> item(key="write-error",contentType="banner") {Banner(message,Icons.Rounded.ErrorOutline,error=true)}}
-        if(t?.firmwareUpdate==true) item(key="firmware",contentType="banner") {Banner(stringResource(R.string.firmware_busy),Icons.Rounded.Lock,warning=true)}
-        if(ui.staleConfirmed) item(key="stale",contentType="banner") {Banner(stringResource(R.string.telemetry_stale),Icons.Rounded.Update,warning=true)}
+        if(t==null) item(key="start",contentType="instrument") {Box(Modifier.fillMaxWidth().animateItem()) {StartRideCard(ui,connect)}}
+        if(ui.reconnecting) item(key="reconnecting",contentType="banner") {Box(Modifier.fillMaxWidth().animateItem()) {Banner(stringResource(R.string.live_title_reconnecting),Icons.Rounded.Autorenew,warning=true)}}
+        else if(ui.wheel.phase==Phase.ERROR) item(key="error",contentType="banner") {Box(Modifier.fillMaxWidth().animateItem()) {Banner(ui.wheel.message,error=true)}}
+        ui.wheel.writeMessage?.let {message -> item(key="write-error",contentType="banner") {Box(Modifier.fillMaxWidth().animateItem()) {Banner(message,Icons.Rounded.ErrorOutline,error=true)}}}
+        if(t?.firmwareUpdate==true) item(key="firmware",contentType="banner") {Box(Modifier.fillMaxWidth().animateItem()) {Banner(stringResource(R.string.firmware_busy),Icons.Rounded.Lock,warning=true)}}
+        if(ui.staleConfirmed) item(key="stale",contentType="banner") {Box(Modifier.fillMaxWidth().animateItem()) {Banner(stringResource(R.string.telemetry_stale),Icons.Rounded.Update,warning=true)}}
         // Without any readings a wall of dashes helps nobody: only an unfinished session stays visible.
         val visibleRows=if(t!=null) rows else rows.flatten().filter {it.tile==DashTile.TRIP_SESSION && ui.trip.samples>0}.map {listOf(it)}
-        if(visibleRows.isEmpty() && t!=null) item(key="dash-empty",contentType="note") {Banner(stringResource(R.string.dash_empty),Icons.Rounded.DashboardCustomize)}
+        if(visibleRows.isEmpty() && t!=null) item(key="dash-empty",contentType="note") {Box(Modifier.fillMaxWidth().animateItem()) {Banner(stringResource(R.string.dash_empty),Icons.Rounded.DashboardCustomize)}}
         items(visibleRows,key={row -> row.joinToString("+") {it.id}},contentType={row -> if(row.size==2) "pair" else "single"}) {row ->
             val env=TileEnv(ui,write,openRideMode,openTrips,finishTrip)
-            if(row.size==2) TilePair({m -> DashTileView(row[0],env,m)},{m -> DashTileView(row[1],env,m)})
-            else DashTileView(row[0],env,Modifier.fillMaxWidth())
+            // animateItem: banners above appear and leave smoothly instead of making the tiles jump.
+            Box(Modifier.fillMaxWidth().animateItem()) {
+                if(row.size==2) TilePair({m -> DashTileView(row[0],env,m)},{m -> DashTileView(row[1],env,m)})
+                else DashTileView(row[0],env,Modifier.fillMaxWidth())
+            }
         }
         item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,openTrips)}
         item(key="settings",contentType="link") {ActionRow(stringResource(R.string.wheel_settings),stringResource(R.string.wheel_settings_hint),Icons.Rounded.Tune,openSettings)}
@@ -71,14 +75,34 @@ import kotlin.math.roundToInt
     }
 }
 
-/** Half tiles grow with their contents; avoid intrinsics because speed uses BoxWithConstraints. */
+/**
+ * Half tiles grow with their contents; avoid intrinsics because speed uses BoxWithConstraints.
+ * A plain [Layout] instead of BoxWithConstraints: a nested subcomposition inside a reused LazyColumn item
+ * did not restart the tiles' infinite animations after the row scrolled off screen and back (frozen charge wave).
+ */
 @Composable internal fun TilePair(first: @Composable (Modifier)->Unit,second: (@Composable (Modifier)->Unit)?) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if(second==null) first(Modifier.fillMaxWidth())
-        else if(maxWidth<300.dp || LocalDensity.current.fontScale>1.2f)
-            Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {first(Modifier.fillMaxWidth());second(Modifier.fillMaxWidth())}
-        else Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            first(Modifier.weight(1f));second(Modifier.weight(1f))
+    if(second==null) { first(Modifier.fillMaxWidth()); return }
+    val fontScale=LocalDensity.current.fontScale
+    androidx.compose.ui.layout.Layout(content={first(Modifier);second(Modifier)},modifier=Modifier.fillMaxWidth()) {measurables,constraints ->
+        val gap=12.dp.roundToPx()
+        val width=constraints.maxWidth
+        val stacked=width<300.dp.roundToPx() || fontScale>1.2f
+        val free=constraints.copy(minHeight=0,maxHeight=androidx.compose.ui.unit.Constraints.Infinity)
+        if(stacked) {
+            val placeables=measurables.map {it.measure(free.copy(minWidth=width,maxWidth=width))}
+            val height=placeables.sumOf {it.height}+gap*(placeables.size-1).coerceAtLeast(0)
+            layout(width,height) {
+                var y=0
+                placeables.forEach {it.placeRelative(0,y);y+=it.height+gap}
+            }
+        } else {
+            val half=((width-gap)/2).coerceAtLeast(0)
+            val placeables=measurables.mapIndexed {i,m -> val w=if(i==0) half else width-gap-half; m.measure(free.copy(minWidth=w,maxWidth=w))}
+            val height=placeables.maxOf {it.height}
+            layout(width,height) {
+                placeables[0].placeRelative(0,0)
+                placeables.getOrNull(1)?.placeRelative(half+gap,0)
+            }
         }
     }
 }
@@ -201,15 +225,64 @@ import kotlin.math.roundToInt
     val missing=if(valid==null) "${stringResource(R.string.metric_battery)}, ${stringResource(R.string.no_data)}" else null
     Surface(modifier.semantics(mergeDescendants=true) {missing?.let {contentDescription=it}},color=if(valid!=null) ion.accent else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor=if(valid!=null) ion.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,shape=IonShapes.discovery) {
-        Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        // Same minimum height as the range tile it is usually paired with, so the pair reads as one row.
+        Column(Modifier.fillMaxWidth().heightIn(min=156.dp).padding(20.dp),verticalArrangement=Arrangement.SpaceBetween) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                 Text(stringResource(R.string.metric_battery),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
                 if(charging) Icon(Icons.Rounded.Bolt,stringResource(R.string.battery_charging),Modifier.size(20.dp))
             }
-            Text(valid?.let {stringResource(R.string.battery_value,it.roundToInt())} ?: "—",style=IonType.figure)
-            if(valid!=null && charging) LinearWavyProgressIndicator(modifier=Modifier.fillMaxWidth().testTag("battery-charge-wave"),color=ion.onAccent,trackColor=ion.onAccent.copy(alpha=.15f))
-            else if(valid!=null) LinearWavyProgressIndicator(progress={progress.value},modifier=Modifier.fillMaxWidth().testTag("battery-level-wave"),color=ion.onAccent,trackColor=ion.onAccent.copy(alpha=.15f))
-            else Text(stringResource(R.string.no_data),style=MaterialTheme.typography.bodySmall)
+            Column(Modifier.padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                Text(valid?.let {stringResource(R.string.battery_value,it.roundToInt())} ?: "—",style=IonType.figure,maxLines=1)
+                if(valid!=null) BatteryWave({progress.value},charging,ion.onAccent,
+                    Modifier.fillMaxWidth().testTag(if(charging) "battery-charge-wave" else "battery-level-wave"))
+                else Text(stringResource(R.string.no_data),style=MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+/**
+ * Charge bar drawn by hand: the wave always ends at the real level, and while charging it flows towards
+ * the full end. The phase is driven by a LaunchedEffect frame loop, which restarts cleanly every time the
+ * tile (re)enters composition — the stock indeterminate indicator froze after the tile scrolled off screen,
+ * and it also hid the actual level while charging.
+ */
+@Composable private fun BatteryWave(level: ()->Float,charging: Boolean,color: androidx.compose.ui.graphics.Color,modifier: Modifier) {
+    val phase=remember {mutableFloatStateOf(0f)}
+    if(charging) LaunchedEffect(Unit) {
+        var last=0L
+        while(true) androidx.compose.animation.core.withInfiniteAnimationFrameNanos {now ->
+            if(last!=0L) phase.floatValue=(phase.floatValue+(now-last)/1_000_000_000f*.9f)%1f
+            last=now
+        }
+    }
+    // The wave calms down to a gentle static ripple when not charging; the glow pulse marks the charging tip.
+    val amplitude by animateFloatAsState(if(charging) 1f else .55f,MaterialTheme.motionScheme.slowEffectsSpec(),label="battery-amplitude")
+    val path=remember {androidx.compose.ui.graphics.Path()}
+    androidx.compose.foundation.Canvas(modifier.height(14.dp).semantics {
+        progressBarRangeInfo=androidx.compose.ui.semantics.ProgressBarRangeInfo(level().coerceIn(0f,1f),0f..1f)}) {
+        val stroke=4.dp.toPx(); val mid=size.height/2; val gap=6.dp.toPx()
+        val end=(size.width*level().coerceIn(0f,1f)).coerceAtLeast(stroke)
+        val wavelength=28.dp.toPx(); val amp=3.dp.toPx()*amplitude
+        val cap=androidx.compose.ui.graphics.StrokeCap.Round
+        // Track: flat remainder after a small gap, like the Material wavy indicator.
+        if(end+gap<size.width-stroke/2) drawLine(color.copy(alpha=.18f),androidx.compose.ui.geometry.Offset(end+gap,mid),
+            androidx.compose.ui.geometry.Offset(size.width-stroke/2,mid),stroke,cap)
+        path.reset()
+        val start=stroke/2; val shift=phase.floatValue*wavelength
+        var x=start
+        path.moveTo(x,mid+amp*kotlin.math.sin(((x-shift)/wavelength)*2f*Math.PI.toFloat()))
+        val step=2.dp.toPx()
+        while(x<end) {
+            x=minOf(x+step,end)
+            // Taper the amplitude at both ends so the rounded caps sit on the axis.
+            val taper=minOf(1f,(x-start)/wavelength*2f,(end-x)/wavelength*2f+.15f).coerceIn(0f,1f)
+            path.lineTo(x,mid+amp*taper*kotlin.math.sin(((x-shift)/wavelength)*2f*Math.PI.toFloat()))
+        }
+        drawPath(path,color,style=androidx.compose.ui.graphics.drawscope.Stroke(stroke,cap=cap,join=androidx.compose.ui.graphics.StrokeJoin.Round))
+        if(charging) {
+            val pulse=.5f+.5f*kotlin.math.sin(phase.floatValue*2f*Math.PI.toFloat())
+            drawCircle(color.copy(alpha=.18f+.22f*pulse),radius=stroke*(1.1f+.5f*pulse),center=androidx.compose.ui.geometry.Offset(end,mid))
         }
     }
 }
@@ -349,7 +422,9 @@ import kotlin.math.roundToInt
 }
 
 @Composable private fun ActionTile(title: String,icon: ImageVector,enabled: Boolean,modifier: Modifier,click: ()->Unit) {
-    Surface(onClick=click,enabled=enabled,modifier=modifier,color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.row)) {
+    val haptics=androidx.compose.ui.platform.LocalHapticFeedback.current
+    Surface(onClick={haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.Confirm);click()},enabled=enabled,modifier=modifier,
+        color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.row)) {
         Row(Modifier.fillMaxWidth().heightIn(min=88.dp).padding(16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Icon(icon,null,Modifier.size(26.dp),tint=if(enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
             Text(title,style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
@@ -362,8 +437,11 @@ import kotlin.math.roundToInt
     val color by animateColorAsState(if(checked && enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
         MaterialTheme.motionScheme.fastEffectsSpec(),label="quick-color")
     val radius by animateDpAsState(if(checked && enabled) 32.dp else 20.dp,MaterialTheme.motionScheme.fastSpatialSpec(),label="quick-shape")
+    val haptics=androidx.compose.ui.platform.LocalHapticFeedback.current
     Surface(modifier,color=color,shape=RoundedCornerShape(radius)) {
-        Row(Modifier.fillMaxWidth().heightIn(min=88.dp).toggleable(value=checked,enabled=enabled && value!=null,role=Role.Switch,onValueChange=change)
+        Row(Modifier.fillMaxWidth().heightIn(min=88.dp).toggleable(value=checked,enabled=enabled && value!=null,role=Role.Switch,onValueChange={
+                haptics.performHapticFeedback(if(it) androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn else androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOff)
+                change(it)})
             .padding(16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             Icon(icon,null,Modifier.size(26.dp),tint=MaterialTheme.colorScheme.primary)
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
