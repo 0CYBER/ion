@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -75,7 +77,11 @@ internal fun ConnectionOnboarding(
     }
     val stepsLeft = listOf(bluetoothAllowed, batteryReady, locationServicesReady, notificationsReady, locationReady)
         .count { !it }
-    val progress = (6 - stepsLeft) / 6f
+    val stepNumber = (6 - stepsLeft).coerceIn(1, 6)
+    // The bar glides to the next step instead of jumping when a permission is granted.
+    val progress by androidx.compose.animation.core.animateFloatAsState((6 - stepsLeft) / 6f,
+        MaterialTheme.motionScheme.slowSpatialSpec(), label = "setup-progress")
+    val motion = MaterialTheme.motionScheme
     val colors = ionColors()
     Surface(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
@@ -85,12 +91,21 @@ internal fun ConnectionOnboarding(
                     Surface(shape = IonShapes.hero, color = colors.hero, contentColor = colors.onHero) {
                         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                             Text(stringResource(R.string.setup_connection), style = MaterialTheme.typography.headlineLarge)
+                            Text(stringResource(R.string.setup_step, stepNumber, 6), style = MaterialTheme.typography.labelLarge,
+                                color = colors.onHero.copy(alpha = 0.8f))
                             LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth(),
                                 color = colors.accent, trackColor = colors.onHero.copy(alpha = 0.19f))
                         }
                     }
                 }
-                item { PermissionStep(step) }
+                item {
+                    // Each granted step slides away and the next one comes in, so the change is noticed.
+                    androidx.compose.animation.AnimatedContent(step, contentKey = { it.title }, transitionSpec = {
+                        (androidx.compose.animation.fadeIn(motion.defaultEffectsSpec()) +
+                            androidx.compose.animation.slideInHorizontally(motion.defaultSpatialSpec()) { it / 8 }) togetherWith
+                            androidx.compose.animation.fadeOut(motion.fastEffectsSpec())
+                    }, label = "setup-step") { shown -> PermissionStep(shown) }
+                }
             }
         }
     }
@@ -115,7 +130,7 @@ private fun PermissionStep(step: SetupStep) {
             Text(stringResource(step.hint), style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Button(onClick = step.request, modifier = Modifier.fillMaxWidth()) { Text(stringResource(step.label)) }
+                Button(onClick = step.request, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(step.label)) }
                 TextButton(onClick = step.skip) { Text(stringResource(R.string.setup_later)) }
             }
         }

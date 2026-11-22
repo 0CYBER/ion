@@ -46,7 +46,7 @@ import kotlinx.coroutines.CancellationException
             if(failed) {
                 Banner(stringResource(R.string.trip_load_failed),Icons.Rounded.ErrorOutline,warning=true)
                 TextButton(onClick={retry++}) {Text(stringResource(R.string.trip_retry))}
-            } else CircularProgressIndicator()
+            } else LoadingIndicator()
         }
     } else TripDetailScreen(trip,loaded,{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack,
         shareCsv={actions.shareCsv(trip)},hasCsv=hasCsv)
@@ -122,7 +122,7 @@ import kotlinx.coroutines.CancellationException
         Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.trip_distance),style=MaterialTheme.typography.labelLarge)
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMedium,fontFamily=IonSans)
+                Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
                 Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
             }
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {

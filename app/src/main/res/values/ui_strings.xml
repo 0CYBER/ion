@@ -94,4 +94,5 @@
     <string name="signal_strong">Сильный сигнал</string>
     <string name="signal_medium">Средний сигнал</string>
     <string name="signal_weak">Слабый сигнал</string>
+    <string name="setup_step">Шаг %1$d из %2$d</string>
 </resources>

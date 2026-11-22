@@ -94,4 +94,5 @@
     <string name="signal_strong">Strong signal</string>
     <string name="signal_medium">Medium signal</string>
     <string name="signal_weak">Weak signal</string>
+    <string name="setup_step">Step %1$d of %2$d</string>
 </resources>
