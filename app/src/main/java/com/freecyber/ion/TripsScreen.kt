@@ -54,9 +54,10 @@ import java.util.Date
             }
         }
         months.forEach {month ->
-            item(key="month-${month.month}",contentType="month") {MonthHeader(month)}
+            item(key="month-${month.month}",contentType="month") {Box(Modifier.animateItem()) {MonthHeader(month)}}
             items(month.trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip ->
-                TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt})}
+                // animateItem: a deleted ride collapses away and the rest close the gap smoothly.
+                TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt},modifier=Modifier.animateItem())}
         }
     }
     if(confirmClear) AlertDialog(onDismissRequest={confirmClear=false},title={Text(stringResource(R.string.trips_clear_title))},
@@ -86,7 +87,7 @@ import java.util.Date
         Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.trips_total),style=MaterialTheme.typography.labelLarge)
             Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.displayMedium,fontFamily=IonSans)
+                Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.displayMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
                 Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
             }
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -103,7 +104,7 @@ import java.util.Date
     }
 }
 
-@Composable private fun TripCard(trip: TripSummary,open: ()->Unit,delete: ()->Unit) {
+@Composable private fun TripCard(trip: TripSummary,open: ()->Unit,delete: ()->Unit,modifier: Modifier=Modifier) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val date = remember(trip.startedAt, locale) {
@@ -112,7 +113,7 @@ import java.util.Date
     val expansion = stringResource(if (expanded) R.string.trips_expanded else R.string.trips_collapsed)
     val motion = MaterialTheme.motionScheme
     val arrow by animateFloatAsState(if (expanded) 180f else 0f, motion.fastSpatialSpec(), label = "trip-chevron")
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
+    Surface(modifier, color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
         Column {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 56.dp)

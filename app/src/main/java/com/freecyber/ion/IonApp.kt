@@ -36,8 +36,10 @@ import androidx.compose.ui.unit.dp
     var tab by rememberSaveable {mutableIntStateOf(initialTab)}
     var routes by rememberSaveable {mutableStateOf(emptyList<String>())}
     val detail=routes.lastOrNull()
-    fun open(route: String) { if(routes.lastOrNull()!=route) routes=routes+route }
-    fun back() {routes=routes.dropLast(1)}
+    // Direction of the last stack move: pushing slides the new page in from the end edge, Back from the start edge.
+    var pushed by remember {mutableStateOf(true)}
+    fun open(route: String) { if(routes.lastOrNull()!=route) {pushed=true;routes=routes+route} }
+    fun back() {pushed=false;routes=routes.dropLast(1)}
     var forget by rememberSaveable {mutableStateOf(false)}
     val savedPages=rememberSaveableStateHolder()
     val motion=MaterialTheme.motionScheme
@@ -61,7 +63,18 @@ import androidx.compose.ui.unit.dp
         if(rail) IonRail(tab) {tab=it;routes=emptyList()}
         Box(Modifier.weight(1f).fillMaxHeight().testTag("app-content"),contentAlignment=Alignment.TopCenter) {
             AnimatedContent(targetState=detail ?: "tab:$tab",modifier=Modifier.widthIn(max=840.dp).fillMaxSize(),
-                transitionSpec={(fadeIn(motion.defaultEffectsSpec())+slideInHorizontally(motion.defaultSpatialSpec()) {it/12}) togetherWith fadeOut(motion.fastEffectsSpec())},label="destination") {route ->
+                transitionSpec={
+                    val from=initialState; val to=targetState
+                    val forward=when {
+                        from.startsWith("tab:") && to.startsWith("tab:") -> to.substringAfter(':') > from.substringAfter(':')
+                        from.startsWith("tab:") -> true
+                        to.startsWith("tab:") -> false
+                        else -> pushed
+                    }
+                    val sign=if(forward) 1 else -1
+                    (fadeIn(motion.defaultEffectsSpec())+slideInHorizontally(motion.defaultSpatialSpec()) {sign*it/12}) togetherWith
+                        (fadeOut(motion.fastEffectsSpec())+slideOutHorizontally(motion.fastSpatialSpec()) {-sign*it/24})
+                },label="destination") {route ->
                 savedPages.SaveableStateProvider(route) {
                     when {
                         route=="appearance" -> AppearanceScreen(dark,prefs.themeFollowsSystem,actions.theme,actions.followSystemTheme) {back()}

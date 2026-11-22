@@ -91,4 +91,7 @@
     <string name="data_no_export">Нечего экспортировать</string>
     <string name="data_refresh">Перечитать %1$s</string>
     <string name="data_age"> · %1$d с назад</string>
+    <string name="signal_strong">Сильный сигнал</string>
+    <string name="signal_medium">Средний сигнал</string>
+    <string name="signal_weak">Слабый сигнал</string>
 </resources>

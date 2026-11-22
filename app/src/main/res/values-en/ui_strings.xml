@@ -91,4 +91,7 @@
     <string name="data_no_export">Nothing to export</string>
     <string name="data_refresh">Re-read %1$s</string>
     <string name="data_age"> · %1$d s ago</string>
+    <string name="signal_strong">Strong signal</string>
+    <string name="signal_medium">Medium signal</string>
+    <string name="signal_weak">Weak signal</string>
 </resources>

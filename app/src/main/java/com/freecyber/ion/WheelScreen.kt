@@ -66,11 +66,14 @@ import androidx.compose.ui.unit.dp
             }
         }
         if(ui.wheel.devices.isEmpty()) item(key="empty",contentType="empty") {
-            Text(stringResource(R.string.wheel_search_empty),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(horizontal=4.dp,vertical=8.dp))
+            Text(text=stringResource(R.string.wheel_search_empty),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.animateItem().padding(horizontal=4.dp,vertical=8.dp))
         }
         items(ui.wheel.devices,key={it.address},contentType={"device"}) {device ->
-            Surface(onClick={select(device)},enabled=!ui.busy && !ui.connected,shape=RoundedCornerShape(IonShapes.l),color=MaterialTheme.colorScheme.surfaceContainerLow) {
-                Row(Modifier.fillMaxWidth().padding(20.dp),verticalAlignment=Alignment.CenterVertically) {
+            // Wheels found during a scan slide in instead of popping into the list.
+            Surface(onClick={select(device)},enabled=!ui.busy && !ui.connected,shape=RoundedCornerShape(IonShapes.l),
+                color=MaterialTheme.colorScheme.surfaceContainerLow,modifier=Modifier.animateItem()) {
+                Row(Modifier.fillMaxWidth().padding(20.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                    SignalBadge(device.rssi)
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                         Text(device.name,style=MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.wheel_signal,device.address.takeLast(8),device.rssi),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -80,5 +83,19 @@ import androidx.compose.ui.unit.dp
             }
         }
         item(key="permissions",contentType="action") {TextButton(onClick=actions.permissions) {Text(stringResource(R.string.bluetooth_permissions))}}
+    }
+}
+
+/** Signal strength at a glance: which of several nearby wheels is the rider's own is usually the closest one. */
+@Composable private fun SignalBadge(rssi: Int) {
+    val (icon,label,strong)=when {
+        rssi>=-65 -> Triple(Icons.Rounded.SignalCellularAlt,R.string.signal_strong,true)
+        rssi>=-80 -> Triple(Icons.Rounded.SignalCellularAlt2Bar,R.string.signal_medium,false)
+        else -> Triple(Icons.Rounded.SignalCellularAlt1Bar,R.string.signal_weak,false)
+    }
+    Box(Modifier.size(44.dp).clip(RoundedCornerShape(IonShapes.m))
+        .background(if(strong) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh),contentAlignment=Alignment.Center) {
+        Icon(icon,stringResource(label),Modifier.size(22.dp),
+            tint=if(strong) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary)
     }
 }
