@@ -57,13 +57,14 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
 }
 
 /** App-level settings in one place: appearance, ride screen, ride history and the background link. */
-@Composable internal fun AppScreen(appearance: ()->Unit,dashboard: ()->Unit,trips: ()->Unit,background: ()->Unit,onBack: ()->Unit) {
+@Composable internal fun AppScreen(appearance: ()->Unit,dashboard: ()->Unit,trips: ()->Unit,background: ()->Unit,onBack: ()->Unit,updates: ()->Unit={}) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.app_title),stringResource(R.string.app_hint),onBack)}
         item(key="appearance",contentType="link") {ActionRow(stringResource(R.string.appearance),stringResource(R.string.appearance_hint),Icons.Rounded.Palette,appearance)}
         item(key="dashboard",contentType="link") {ActionRow(stringResource(R.string.dash_editor_title),stringResource(R.string.dash_editor_hint),Icons.Rounded.DashboardCustomize,dashboard)}
         item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,trips)}
         item(key="background",contentType="link") {ActionRow(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),Icons.Rounded.Notifications,background)}
+        item(key="updates",contentType="link") {ActionRow(stringResource(R.string.updates_title),stringResource(R.string.updates_hint),Icons.Rounded.SystemUpdate,updates)}
     }
 }
 

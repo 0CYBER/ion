@@ -20,6 +20,7 @@ internal data class Actions(
     /** GPS fixes stored for a finished ride, keyed by its startedAt. */
     val tripTrack: (Long) -> List<TrackPoint> = { emptyList() },
     val tripHasTelemetry: (Long) -> Boolean = { false },
+    val update: UpdateActions = UpdateActions(),
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */
@@ -29,4 +30,5 @@ internal data class PrefsUi(
     val background: BackgroundConfig = BackgroundConfig(),
     val trips: List<TripSummary> = emptyList(),
     val themeFollowsSystem: Boolean = false,
+    val update: UpdateUi = UpdateUi(),
 )

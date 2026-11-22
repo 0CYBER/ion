@@ -1,0 +1,68 @@
+name: Release
+
+# Manual full release: Actions -> Release -> Run workflow. Pushes only ever publish prereleases.
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: Release notes (empty = list of commits since the previous release)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-37.0 build-tools;36.0.0 platform-tools"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew --no-configuration-cache -PskipScreenshots :core:test :app:testDebugUnitTest
+      - name: Assemble signed release APK
+        id: apk
+        uses: ./.github/actions/signed-apk
+        with:
+          keystore-base64: ${{ secrets.ION_RELEASE_KEYSTORE_BASE64 }}
+          store-password: ${{ secrets.ION_RELEASE_STORE_PASSWORD }}
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD: ${{ steps.apk.outputs.build }}
+          VERSION: ${{ steps.apk.outputs.version-name }}
+          APK: ${{ steps.apk.outputs.apk }}
+          NOTES: ${{ inputs.notes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v${VERSION}-b${BUILD}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::$tag already exists: this commit is already released"; exit 1
+          fi
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > notes.md
+          else
+            previous="$(git tag --list 'v*' --sort=-creatordate | head -n1)"
+            range="${previous:+${previous}..}HEAD"
+            { echo "Ion ${VERSION}, сборка ${BUILD}."; echo
+              git log --no-merges --format='- %s' -n 40 "$range"; } > notes.md
+          fi
+          gh release create "$tag" "$APK" --latest --target "$GITHUB_SHA" \
+            --title "Ion ${VERSION} · сборка ${BUILD}" --notes-file notes.md

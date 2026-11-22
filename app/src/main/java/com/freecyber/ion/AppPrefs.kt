@@ -55,6 +55,22 @@ class AppPrefs(context: Context) {
             .putBoolean("bg_connect_on_launch", value.connectOnLaunch).putBoolean("bg_gps_track", value.gpsTrack) }
     }
 
+    private val updatesState = MutableStateFlow(UpdateConfig(
+        UpdateChannel.entries.firstOrNull { it.name == prefs.getString("update_channel", null) } ?: UpdateChannel.STABLE,
+        prefs.getBoolean("update_auto_check", true)))
+    val updates: StateFlow<UpdateConfig> = updatesState.asStateFlow()
+    fun setUpdates(value: UpdateConfig) {
+        updatesState.value = value
+        prefs.edit { putString("update_channel", value.channel.name).putBoolean("update_auto_check", value.autoCheck) }
+    }
+    /** Build the rider declined with "Skip"; the automatic check offers only newer ones. */
+    var skippedBuild: Int?
+        get() = prefs.getInt("update_skipped_build", -1).takeIf { it >= 0 }
+        set(value) { prefs.edit { if (value == null) remove("update_skipped_build") else putInt("update_skipped_build", value) } }
+    private val updateCheckedState = MutableStateFlow(prefs.getLong("update_checked_at", 0L))
+    val updateCheckedAt: StateFlow<Long> = updateCheckedState.asStateFlow()
+    fun setUpdateCheckedAt(value: Long) { updateCheckedState.value = value; prefs.edit { putLong("update_checked_at", value) } }
+
     private val dashboardState = MutableStateFlow(DashboardLayout.decode(prefs.getString("dashboard", null)))
     val dashboard: StateFlow<DashboardLayout> = dashboardState.asStateFlow()
     fun setDashboard(value: DashboardLayout) {

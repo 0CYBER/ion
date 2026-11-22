@@ -8,6 +8,14 @@ plugins {
 val releaseCredentials = providers.fileContents(rootProject.layout.projectDirectory.file("keystore.properties"))
     .asText.orNull?.let { contents -> Properties().apply { contents.reader().use(::load) } }
 
+/** Build number = commits on the checked-out branch, so CI prereleases and manual releases share one rising
+ * counter the in-app updater can compare. CI passes it explicitly; local builds ask git, 21 if git is missing. */
+val ionVersionCode: Int = providers.gradleProperty("ionVersionCode").orNull?.toIntOrNull()
+    ?: runCatching {
+        providers.exec { commandLine("git", "rev-list", "--count", "HEAD"); isIgnoreExitValue = true }
+            .standardOutput.asText.get().trim().toInt()
+    }.getOrNull()?.takeIf { it > 21 } ?: 21
+
 android {
     namespace = "com.freecyber.ion"
     compileSdk = 37
@@ -16,7 +24,7 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 21
+        versionCode = ionVersionCode
         versionName = "0.9.3-ai"
     }
     signingConfigs {

@@ -48,6 +48,7 @@ class IonGraph(val context: Context) {
         companionWheel.pruneAssociations(device.address)
     }
     val monitor = WheelMonitor(this)
+    val updater = Updater(context, prefs, scope)
     val companionWheel: CompanionWheel = CompanionWheel(this)
     fun forget() {
         monitor.userDisconnect()

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_title">Доступно обновление</string>
+    <string name="update_installed_build">Установлена сборка %1$d</string>
+    <string name="update_prerelease">Предварительная версия</string>
+    <string name="update_install">Обновить</string>
+    <string name="update_later">Позже</string>
+    <string name="update_skip">Пропустить</string>
+    <string name="update_downloading">Загрузка обновления…</string>
+    <string name="update_permission_title">Разрешите установку</string>
+    <string name="update_permission_text">Android просит разрешить Ion устанавливать приложения. Включите разрешение и вернитесь — установка продолжится сама.</string>
+    <string name="update_permission_open">Открыть настройки</string>
+    <string name="update_failed_title">Обновление не установлено</string>
+    <string name="update_failed_network">Не удалось проверить обновления. Проверьте подключение к интернету.</string>
+    <string name="update_failed_download">Не удалось скачать обновление.</string>
+    <string name="update_failed_apk">Скачанный файл не совпал с ожидаемой сборкой Ion, установка отменена.</string>
+    <string name="update_open_github">Открыть на GitHub</string>
+    <string name="update_retry">Повторить</string>
+    <string name="updates_title">Обновления</string>
+    <string name="updates_hint">Новые версии Ion с GitHub</string>
+    <string name="updates_channel">Канал</string>
+    <string name="updates_channel_stable">Стабильные</string>
+    <string name="updates_channel_stable_hint">Только полноценные релизы</string>
+    <string name="updates_channel_pre">Предварительные</string>
+    <string name="updates_channel_pre_hint">Каждая новая сборка, раньше всех, но с риском ошибок</string>
+    <string name="updates_auto">Проверять при запуске</string>
+    <string name="updates_auto_hint">Один раз при открытии приложения, с предложением обновиться</string>
+    <string name="updates_check_now">Проверить сейчас</string>
+    <string name="updates_checking">Проверяю…</string>
+    <string name="updates_up_to_date">Установлена последняя версия</string>
+    <string name="updates_last_checked">Последняя проверка: %1$s</string>
+    <string name="updates_never">Ещё не проверялось</string>
+    <string name="updates_installed">Ion %1$s · сборка %2$d</string>
+    <string name="updates_releases">Все релизы на GitHub</string>
+    <string name="updates_found">Найдена сборка %1$d</string>
+</resources>

@@ -1,0 +1,48 @@
+name: Signed release APK
+description: Builds app-release.apk signed with the Ion key and copies it to ion-<build>.apk.
+inputs:
+  keystore-base64:
+    description: Base64 of the PKCS12 release keystore
+    required: true
+  store-password:
+    description: Keystore and key password
+    required: true
+outputs:
+  build:
+    description: Build number (versionCode) = commits on HEAD
+    value: ${{ steps.version.outputs.build }}
+  version-name:
+    description: versionName from app/build.gradle.kts
+    value: ${{ steps.version.outputs.name }}
+  apk:
+    description: Path of the renamed APK
+    value: ${{ steps.build.outputs.apk }}
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "build=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+        echo "name=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts | head -n1)" >> "$GITHUB_OUTPUT"
+    - id: build
+      shell: bash
+      env:
+        ION_RELEASE_KEYSTORE_BASE64: ${{ inputs.keystore-base64 }}
+        ION_RELEASE_STORE_PASSWORD: ${{ inputs.store-password }}
+        BUILD: ${{ steps.version.outputs.build }}
+      run: |
+        set -euo pipefail
+        : "${ION_RELEASE_KEYSTORE_BASE64:?Missing release keystore secret}"
+        : "${ION_RELEASE_STORE_PASSWORD:?Missing release password secret}"
+        umask 077
+        keystore="$(mktemp "${RUNNER_TEMP}/ion-release.XXXXXX")"
+        trap 'rm -f -- "$keystore" keystore.properties' EXIT
+        printf '%s' "$ION_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+        printf 'storeFile=%s\nstorePassword=%s\n' "$keystore" "$ION_RELEASE_STORE_PASSWORD" > keystore.properties
+        unset ION_RELEASE_KEYSTORE_BASE64 ION_RELEASE_STORE_PASSWORD
+        ./gradlew --no-configuration-cache -PionVersionCode="$BUILD" :app:assembleRelease
+        # The updater finds the build number in this exact asset name.
+        cp app/build/outputs/apk/release/app-release.apk "ion-${BUILD}.apk"
+        echo "apk=ion-${BUILD}.apk" >> "$GITHUB_OUTPUT"

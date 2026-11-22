@@ -53,6 +53,14 @@ class MainActivity : ComponentActivity() {
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
             val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
             val background by model.prefs.background.collectAsStateWithLifecycle()
+            val updater = ionGraph.updater
+            val updateState by updater.state.collectAsStateWithLifecycle()
+            val updateConfig by model.prefs.updates.collectAsStateWithLifecycle()
+            val updateCheckedAt by model.prefs.updateCheckedAt.collectAsStateWithLifecycle()
+            val updateUi = UpdateUi(updateState, updateConfig, updateCheckedAt, updater.currentVersion, updater.currentBuild)
+            val updateActions = remember(updater) { UpdateActions(setConfig = model.prefs::setUpdates, check = { updater.check(manual = true) },
+                download = updater::download, dismiss = updater::dismiss, skip = updater::skip, cancelDownload = updater::cancelDownload,
+                openInstallSettings = updater::openInstallPermissionSettings, openPage = updater::openReleasePage) }
             val companionWheel = ionGraph.companionWheel
             var onboarding by rememberSaveable { mutableStateOf(!model.prefs.onboardingDone) }
             var startOnWheel by rememberSaveable { mutableStateOf(false) }
@@ -110,6 +118,7 @@ class MainActivity : ComponentActivity() {
                 companionWheel.refresh()
                 model.refreshRecording()
                 model.resumeSavedLink()
+                updater.resumeInstall()
                 onPauseOrDispose { }
             }
             var notificationsAskedAt by remember { mutableLongStateOf(0L) }
@@ -165,7 +174,7 @@ class MainActivity : ComponentActivity() {
                     requestLocationServices = { runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                     addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
                 ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
-                    themeFollowsSystem=preference==null),Actions(scan={permitted(null)},connect={permitted(it)},
+                    themeFollowsSystem=preference==null,update=updateUi),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
@@ -176,8 +185,11 @@ class MainActivity : ComponentActivity() {
                     },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
-                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry),
+                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,update=updateActions),
                     initialTab=if (startOnWheel) 2 else 0)
+                // One silent check per launch, never on top of the first-run setup.
+                LaunchedEffect(onboarding) { if (!onboarding) updater.checkOnLaunch() }
+                if (!onboarding) UpdateDialog(updateUi, updateActions)
                 if (pendingPair != null && !pairingDialogLaunched) AlertDialog(
                     onDismissRequest = {}, title = { Text(stringResource(R.string.bg_companion_pairing)) },
                     confirmButton = { androidx.compose.material3.TextButton(onClick = { finishPair(true) }) {
