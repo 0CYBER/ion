@@ -57,11 +57,6 @@ import kotlin.math.roundToInt
                 else DashTileView(row[0],env,Modifier.fillMaxWidth())
             }
         }
-        item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,openTrips)}
-        item(key="settings",contentType="link") {ActionRow(stringResource(R.string.wheel_settings),stringResource(R.string.wheel_settings_hint),Icons.Rounded.Tune,openSettings)}
-        item(key="connection",contentType="link") {
-            ActionRow(stringResource(R.string.nav_wheel),stringResource(if(ui.connected) R.string.connection_active else R.string.connection_choose),Icons.Rounded.Bluetooth,openWheel)
-        }
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Landscape: the speed stays in view on the left while the other tiles scroll on the right.
@@ -146,7 +141,7 @@ import kotlin.math.roundToInt
         DashTile.TILT -> MetricTile(stringResource(R.string.tile_tilt),t?.let {"${it.pitch.fmt(1)} / ${it.roll.fmt(1)}"},stringResource(R.string.unit_degrees),Icons.Rounded.ScreenRotation,wide,modifier)
         DashTile.MODE -> ModeTile(s,modifier,env.openRideMode)
         DashTile.CHART -> ChartTile(ui.chart,modifier)
-        DashTile.TOGGLE, DashTile.QUICK_LIGHT, DashTile.QUICK_HIGH_BEAM, DashTile.QUICK_MUTE,
+        DashTile.TOGGLE, DashTile.QUICK_LIGHT, DashTile.QUICK_HIGH_BEAM, DashTile.QUICK_MUTE, DashTile.QUICK_LOCK,
         DashTile.QUICK_AUTO_LIGHT, DashTile.QUICK_SOUND_WAVE -> Unit // Rendered through toggleTarget.
         DashTile.MAX_SPEED -> MetricTile(stringResource(R.string.trip_max),ui.trip.takeIf {it.samples>0}?.maxSpeed?.fmt(1),stringResource(R.string.unit_kmh),Icons.Rounded.Speed,wide,modifier)
         DashTile.AVG_SPEED -> MetricTile(stringResource(R.string.trip_avg),ui.trip.takeIf {it.samples>0}?.avgMovingSpeed?.fmt(1),stringResource(R.string.unit_kmh),Icons.Rounded.AvTimer,wide,modifier)

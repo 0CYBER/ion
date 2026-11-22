@@ -5,7 +5,6 @@
     <string name="update_prerelease">Предварительная версия</string>
     <string name="update_install">Обновить</string>
     <string name="update_later">Позже</string>
-    <string name="update_skip">Пропустить</string>
     <string name="update_downloading">Загрузка обновления…</string>
     <string name="update_permission_title">Разрешите установку</string>
     <string name="update_permission_text">Android просит разрешить Ion устанавливать приложения. Включите разрешение и вернитесь — установка продолжится сама.</string>

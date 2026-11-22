@@ -84,6 +84,9 @@ object V12Protocol {
          * (same realtime/settings layout and command bytes, 24 cells). Only the HT is tested on real hardware. */
         val isSupported get() = series == 7 && variant in 1..3
         val isHt get() = series == 7 && variant == 2
+        /** Upper end of the max speed setting: the HT is the high-torque, lower-speed variant (60 km/h);
+         * WheelLog offers 70 km/h for every V12, which matches the HS and PRO. */
+        val maxSpeedKmh get() = if (isHt) 60 else 70
         val label get() = when { isHt -> "INMOTION V12 HT"; series == 7 && variant == 1 -> "V12 HS"; series == 7 && variant == 3 -> "V12 Pro"; else -> tr("Неизвестная модель ($series/$variant)","Unknown model ($series/$variant)") }
     }
     fun model(f: Frame): Model? = if (f.flags == 0x11 && f.command == 2 && f.response && f.payload.size >= 7 && f.payload[0].u() == 1)
@@ -188,6 +191,9 @@ object V12Protocol {
         listOf("err_batteryTempState","err_overBoardTempState","err_overSpeedState","err_outputSaturationState","err_motorSpinState","err_motorBlockState","err_postureState","err_riskBehaviourState"),
         listOf("err_motorNoLoadState","err_noSelfTestState","err_compatibilityState","err_powerKeyLongPressState","err_forceDfuState","err_deviceLockState","err_cpuOverTempState","err_imuOverTempState"),
         listOf("","err_hwCompatibilityState","err_fanLowSpeedState","err_notKnown2"))
+    const val MAX_SPEED_MIN = 10
+    /** Standby timer upper end in minutes, as offered by the vendor app (240 = 4 h). */
+    const val STANDBY_MAX_MIN = 240
     enum class Tier { SAFE, STATIONARY }
     val soundIds = (0..15).toList() + 24
     enum class LightEffect(val id: Int) { OFF(0), MUSIC(2) }
@@ -199,7 +205,9 @@ object V12Protocol {
         PEDAL_SENS(Tier.STATIONARY), PEDAL_TILT(Tier.STATIONARY), ALARMS(Tier.STATIONARY),
         HANDLE_BUTTON(Tier.STATIONARY), LOCK(Tier.STATIONARY), TRANSPORT(Tier.STATIONARY), STANDBY(Tier.STATIONARY),
         /** Only changes how the wheel estimates remaining range, so it is safe while riding. */
-        RANGE_ESTIMATE(Tier.SAFE)
+        RANGE_ESTIMATE(Tier.SAFE),
+        /** Wheel speed limit in km/h; changes how the wheel rides, so only with the wheel standing still. */
+        MAX_SPEED(Tier.STATIONARY)
     }
     data class Write(val kind: Control, val a: Int, val b: Int = 0) {
         init {
@@ -207,7 +215,8 @@ object V12Protocol {
                 Control.LIGHTS -> require(a in 0..1 && b in 0..1)
                 Control.BRIGHTNESS -> require(a in 0..100 && b in 0..100)
                 Control.VOLUME, Control.PEDAL_SENS, Control.SPLIT_ACCEL_BRAKE -> require(a in 0..100 && b in 0..100)
-                Control.STANDBY -> require(a in 1..30)
+                Control.STANDBY -> require(a in 1..STANDBY_MAX_MIN)
+                Control.MAX_SPEED -> require(a in MAX_SPEED_MIN..70)
                 Control.PEDAL_TILT -> require(a in -100..100) // tenths of a degree
                 Control.ALARMS -> require(a in 0..70 && b in 0..70)
                 Control.PLAY_SOUND -> require(a in soundIds)
@@ -245,6 +254,7 @@ object V12Protocol {
                 Control.TRANSPORT -> tr("Транспортный режим: ${on(a)}","Transport mode: ${on(a)}")
                 Control.STANDBY -> tr("Ожидание: $a мин","Standby: $a min")
                 Control.RANGE_ESTIMATE -> tr("Оценка остатка пробега: ${on(a)}","Range estimate: ${on(a)}")
+                Control.MAX_SPEED -> tr("Максимальная скорость: $a км/ч","Max speed: $a km/h")
             }
         }
         fun bytes(): ByteArray {
@@ -273,6 +283,8 @@ object V12Protocol {
                 // INMOTION app: _V12Cmd.remainderRangeEstimateCmd getter returns 0x3f (same dispatch lookup gives
                 // the known 0x31 lock and 0x39 sound-wave bytes); see tools/re/dispatch_range_estimate.py.
                 Control.RANGE_ESTIMATE -> byteArrayOf(0x3f, a.toByte())
+                // WheelLog InmotionAdapterV2.Message.setMaxSpeed (V12 path): 0x21 + u16LE km/h×100, read back as settings u16[9].
+                Control.MAX_SPEED -> byteArrayOf(0x21) + le16(a*100)
             }
             // V12 HT lock frames observed in INMOTION 8.1.34 on this wheel. The
             // address can be session-dependent; this test path requires hardware verification.
@@ -305,6 +317,7 @@ object V12Protocol {
                 Control.TRANSPORT -> s.transport == (a==1)
                 Control.LOCK -> s.locked == (a==1)
                 Control.RANGE_ESTIMATE -> s.rangeEstimate == (a==1)
+                Control.MAX_SPEED -> kotlin.math.abs(s.speedLimit - a) < 0.005
                 else -> null
             }
         }

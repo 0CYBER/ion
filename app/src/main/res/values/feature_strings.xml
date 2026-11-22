@@ -190,8 +190,8 @@
     <string name="trip_max_temp">Макс. темп.</string>
     <string name="bg_connect_launch">Подключаться при запуске</string>
     <string name="bg_connect_launch_hint">При открытии приложения сразу соединяться с сохранённым колесом</string>
-    <string name="alert_setting_voice">Голосовые оповещения</string>
-    <string name="alert_setting_voice_hint">Произносить предупреждения вслух — удобно в наушниках</string>
+    <string name="alert_setting_voice">Звуковые оповещения</string>
+    <string name="alert_setting_voice_hint">Писк в ритме вибрации: три длинных — опасность, два коротких — скорость, один — заряд или связь</string>
     <string name="alert_setting_voice_battery">Озвучивать заряд</string>
     <string name="alert_setting_voice_battery_hint">Каждые потраченные 10 %</string>
     <string name="alert_setting_vibrate">Вибрация</string>

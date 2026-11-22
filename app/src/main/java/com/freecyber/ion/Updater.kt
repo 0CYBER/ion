@@ -73,7 +73,7 @@ class Updater(private val context: Context, private val prefs: AppPrefs, private
                 return@launch
             }
             val config = prefs.updates.value
-            val found = Updates.pick(releases, config.channel, currentBuild, if (manual) null else prefs.skippedBuild)
+            val found = Updates.pick(releases, config.channel, currentBuild)
             mutable.value = when {
                 found != null -> UpdateState.Available(found, manual)
                 manual -> UpdateState.UpToDate
@@ -84,8 +84,6 @@ class Updater(private val context: Context, private val prefs: AppPrefs, private
 
     /** Closes the dialog; a running download is only stopped through [cancelDownload]. */
     fun dismiss() { if (mutable.value !is UpdateState.Downloading) mutable.value = UpdateState.Idle }
-
-    fun skip(release: ReleaseInfo) { prefs.skippedBuild = release.build; mutable.value = UpdateState.Idle }
 
     fun cancelDownload() { job?.cancel(); mutable.value = UpdateState.Idle }
 

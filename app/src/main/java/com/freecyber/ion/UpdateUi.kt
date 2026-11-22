@@ -36,7 +36,6 @@ internal data class UpdateActions(
     val check: () -> Unit = {},
     val download: (ReleaseInfo) -> Unit = {},
     val dismiss: () -> Unit = {},
-    val skip: (ReleaseInfo) -> Unit = {},
     val cancelDownload: () -> Unit = {},
     val openInstallSettings: () -> Unit = {},
     val openPage: (ReleaseInfo?) -> Unit = {},
@@ -50,12 +49,7 @@ internal data class UpdateActions(
             title = { Text(stringResource(R.string.update_title)) },
             text = { ReleaseSummary(s.release, ui.build) },
             confirmButton = { Button(onClick = { actions.download(s.release) }) { Text(stringResource(R.string.update_install)) } },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = { actions.skip(s.release) }) { Text(stringResource(R.string.update_skip)) }
-                    TextButton(onClick = actions.dismiss) { Text(stringResource(R.string.update_later)) }
-                }
-            })
+            dismissButton = { TextButton(onClick = actions.dismiss) { Text(stringResource(R.string.update_later)) } })
         is UpdateState.Downloading -> AlertDialog(onDismissRequest = {},
             icon = { Icon(Icons.Rounded.Download, null) },
             title = { Text(stringResource(R.string.update_downloading)) },

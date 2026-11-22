@@ -32,6 +32,7 @@ internal val DashTile.titleRes: Int get() = when(this) {
     DashTile.RANGE -> R.string.tile_range
     DashTile.QUICK_LIGHT -> R.string.tile_quick_light
     DashTile.QUICK_MUTE -> R.string.tile_quick_mute
+    DashTile.QUICK_LOCK -> R.string.control_lock
     DashTile.TRIP_SESSION -> R.string.tile_trip_session
     DashTile.TRIP -> R.string.tile_trip
     DashTile.ODOMETER -> R.string.tile_odometer
@@ -61,6 +62,7 @@ internal val DashTile.icon: ImageVector get() = when(this) {
     DashTile.RANGE -> Icons.Rounded.Navigation
     DashTile.QUICK_LIGHT -> Icons.Rounded.Lightbulb
     DashTile.QUICK_MUTE -> Icons.AutoMirrored.Rounded.VolumeOff
+    DashTile.QUICK_LOCK -> Icons.Rounded.Lock
     DashTile.TRIP_SESSION -> Icons.Rounded.Timer
     DashTile.TRIP -> Icons.Rounded.Route
     DashTile.ODOMETER -> Icons.Rounded.Timeline
@@ -124,6 +126,7 @@ internal object EditorSample {
         }
         item(key="alerts-title",contentType="section") {SectionHeader(stringResource(R.string.alerts_section))}
         item(key="alerts",contentType="group") {
+            val context=androidx.compose.ui.platform.LocalContext.current
             GroupColumn {
                 ThresholdSlider(stringResource(R.string.alert_setting_battery),al.batteryLowPercent,AlertConfig.BATTERY_RANGE,
                     {stringResource(R.string.alert_below,it)}) {actions.setAlerts(al.copy(batteryLowPercent=it))}
@@ -137,11 +140,12 @@ internal object EditorSample {
                     actions.setAlerts(al.copy(disconnect=it))}
                 SwitchRow(Icons.Rounded.ReportProblem,stringResource(R.string.alert_setting_errors),al.wheelErrors,stringResource(R.string.alert_setting_errors_hint),true) {
                     actions.setAlerts(al.copy(wheelErrors=it))}
-                SwitchRow(Icons.Rounded.RecordVoiceOver,stringResource(R.string.alert_setting_voice),al.voice,stringResource(R.string.alert_setting_voice_hint),true) {
-                    actions.setAlerts(al.copy(voice=it))}
+                SwitchRow(Icons.Rounded.NotificationsActive,stringResource(R.string.alert_setting_voice),al.voice,stringResource(R.string.alert_setting_voice_hint),true) {
+                    actions.setAlerts(al.copy(voice=it))
+                    // Let the rider hear the beep right away, as with the vibration switch below.
+                    if(it) context.ionGraph.beeper.play(AlertKind.SPEED_HIGH)}
                 SwitchRow(Icons.Rounded.BatteryChargingFull,stringResource(R.string.alert_setting_voice_battery),al.voiceBattery,stringResource(R.string.alert_setting_voice_battery_hint),true) {
                     actions.setAlerts(al.copy(voiceBattery=it))}
-                val context=androidx.compose.ui.platform.LocalContext.current
                 SwitchRow(Icons.Rounded.Vibration,stringResource(R.string.alert_setting_vibrate),al.vibrate,stringResource(R.string.alert_setting_vibrate_hint),true) {
                     actions.setAlerts(al.copy(vibrate=it))
                     // Let the rider feel the rhythm right away instead of waiting for a real alert.

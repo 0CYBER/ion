@@ -34,6 +34,11 @@ jobs:
         with:
           packages: "platforms;android-37.0 build-tools;36.0.0 platform-tools"
       - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('app/build.gradle.kts') }}
+          restore-keys: robolectric-
       - name: Unit tests
         run: ./gradlew --no-configuration-cache -PskipScreenshots :core:test :app:testDebugUnitTest
       - name: Assemble signed release APK

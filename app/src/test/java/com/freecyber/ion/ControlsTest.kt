@@ -5,7 +5,7 @@ import org.junit.Test
 class ControlsTest {
     private fun unpack(w: V12Protocol.Write) = V12Protocol.Decoder().feed(w.bytes()).single()
     @Test fun allowlistMatchesReferencePayloads() {
-        assertEquals(20,V12Protocol.Control.entries.size)
+        assertEquals(21,V12Protocol.Control.entries.size)
         val samples=listOf(
             V12Protocol.Write(V12Protocol.Control.LIGHTS,1,0) to byteArrayOf(0x50,1,0),
             V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,25,75) to byteArrayOf(0x2b,25,75),
@@ -14,6 +14,8 @@ class ControlsTest {
             V12Protocol.Write(V12Protocol.Control.MUTE,1) to byteArrayOf(0x2c,0),
             V12Protocol.Write(V12Protocol.Control.SOUND_WAVE,0) to byteArrayOf(0x39,0),
             V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE,1) to byteArrayOf(0x3f,1),
+            V12Protocol.Write(V12Protocol.Control.MAX_SPEED,55) to byteArrayOf(0x21,0x7c,0x15),
+            V12Protocol.Write(V12Protocol.Control.STANDBY,240) to byteArrayOf(0x28,0x40,0x38),
             V12Protocol.Write(V12Protocol.Control.STANDBY,10) to byteArrayOf(0x28,0x58,0x02),
             V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,2) to byteArrayOf(0x51,2,0x01),
             V12Protocol.Write(V12Protocol.Control.CLASSIC,1) to byteArrayOf(0x23,1),
@@ -50,7 +52,7 @@ class ControlsTest {
     @Test fun invalidValuesNeverBuildACommand() {
         listOf({V12Protocol.Write(V12Protocol.Control.VOLUME,101)}, {V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,-1,0)},
             {V12Protocol.Write(V12Protocol.Control.LIGHTS,1,2)},{V12Protocol.Write(V12Protocol.Control.MUTE,2)},
-            {V12Protocol.Write(V12Protocol.Control.STANDBY,0)},{V12Protocol.Write(V12Protocol.Control.STANDBY,31)},
+            {V12Protocol.Write(V12Protocol.Control.STANDBY,0)},{V12Protocol.Write(V12Protocol.Control.STANDBY,241)},{V12Protocol.Write(V12Protocol.Control.MAX_SPEED,71)},{V12Protocol.Write(V12Protocol.Control.MAX_SPEED,9)},
             {V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,101)},{V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-101)},
             {V12Protocol.Write(V12Protocol.Control.ALARMS,71)},{V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,16)},
             {V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,101)}).forEach { factory ->

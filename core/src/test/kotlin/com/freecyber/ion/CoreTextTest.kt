@@ -34,7 +34,11 @@ class CoreTextTest {
         val cyrillic = Regex("[\u0400-\u04FF]")
         inLocale("en") {
             V12Protocol.Control.entries.forEach { c ->
-                val value = if (c == V12Protocol.Control.LIGHT_EFFECT) V12Protocol.LightEffect.MUSIC.id else 1
+                val value = when (c) {
+                    V12Protocol.Control.LIGHT_EFFECT -> V12Protocol.LightEffect.MUSIC.id
+                    V12Protocol.Control.MAX_SPEED -> 50
+                    else -> 1
+                }
                 val label = V12Protocol.Write(c, value).label
                 assertFalse(label, cyrillic.containsMatchIn(label))
             }

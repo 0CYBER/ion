@@ -159,16 +159,16 @@ class WheelMonitor(private val graph: IonGraph) {
         val config = graph.prefs.alerts.value
         val fired = engine.evaluate(input, config, now)
         fired.forEach { IonNotifications.alert(graph.context, it) }
-        if (config.voice) AlertHaptics.voiceOrder(fired).forEach { (alert, interrupt) ->
-            graph.voice.speak(VoiceAnnouncer.phrase(graph.context, alert), interrupt)
-        }
+        // Sound alerts are beeps in the vibration rhythm, the most severe one per evaluation (spoken phrases were
+        // replaced at the owner's request; the battery steps below are still spoken).
+        if (config.voice) AlertHaptics.strongest(fired)?.let { graph.beeper.play(it.kind) }
         // One rhythm per evaluation (the most severe), played after the channel's own buzz so it is not cut off.
         if (config.vibrate) AlertHaptics.strongest(fired)?.let { alert ->
             graph.scope.launch { delay(VIBRATE_AFTER_MS); graph.vibrator.play(alert.kind) }
         }
         if (connected && config.voiceBattery) stepper.next(s.telemetry?.battery, s.telemetry?.charging ?: false)
             ?.let { graph.voice.speak(graph.context.resources.getQuantityString(R.plurals.voice_battery_step, it, it)) }
-        if (!config.voice && !config.voiceBattery) graph.voice.shutdown()
+        if (!config.voiceBattery) graph.voice.shutdown()
 
         if ((s.phase.holdsLink || reconnectingState.value) && graph.companionWheel.usesForegroundService())
             WheelService.ensureRunning(graph.context)

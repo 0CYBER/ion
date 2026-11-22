@@ -29,9 +29,9 @@ class RidePresentationTest {
         val content=rule.onNodeWithTag("app-content").getUnclippedBoundsInRoot()
         val dock=rule.onNodeWithTag("navigation-dock").getUnclippedBoundsInRoot()
         assertTrue("Content must continue behind the dock instead of ending in a rectangular band",content.bottom>dock.bottom)
-        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Соединение активно"))
+        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("График"))
         rule.onNode(hasScrollToIndexAction()).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {it(0f,10_000f)}
-        val last=rule.onNodeWithText("Соединение активно").getUnclippedBoundsInRoot()
+        val last=rule.onNodeWithText("График").getUnclippedBoundsInRoot()
         assertTrue("Last link $last must clear floating dock $dock at the end of the list",last.bottom<=dock.top)
     }
 

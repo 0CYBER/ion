@@ -76,6 +76,12 @@ import kotlin.math.roundToInt
             animatedItem(key="modes",contentType="controls") { GroupColumn {
                 SwitchRow(Icons.Rounded.Terrain,stringResource(R.string.control_off_road),s?.classicMode,hint=stringResource(R.string.control_classic_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.CLASSIC,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.Spa,stringResource(R.string.control_advanced),s?.fancier,hint=stringResource(R.string.control_advanced_hint),enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.FANCIER,if(it)1 else 0))}
+                // Upper end follows the connected model (HT 60, HS/PRO 70 km/h); an odd reading is clamped into the slider.
+                val topSpeed=ui.wheel.model?.maxSpeedKmh ?: 60
+                val kmh=stringResource(R.string.unit_kmh)
+                ExpandSliders(Icons.Rounded.Speed,stringResource(R.string.control_max_speed),s?.let { "${it.speedLimit.roundToInt()} $kmh" } ?: "—",settingsStopped,
+                    s?.let { listOf(SliderSpec(stringResource(R.string.control_max_speed_label),it.speedLimit.roundToInt(),V12Protocol.MAX_SPEED_MIN..topSpeed) {v -> "$v $kmh"}) }
+                ) {v -> request(V12Protocol.Write(V12Protocol.Control.MAX_SPEED,v[0]))}
             } }
         }
         if(category==ControlCategory.PEDALS) {
@@ -108,7 +114,7 @@ import kotlin.math.roundToInt
                 SwitchRow(Icons.Rounded.Navigation,stringResource(R.string.control_range_estimate),s?.rangeEstimate,enabled=settingsSafe) {
                     request(V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE,if(it)1 else 0))}
                 ExpandSliders(Icons.Rounded.Timer,stringResource(R.string.control_standby),s?.let { "${(it.standbySeconds/60f).roundToInt()} ${stringResource(R.string.unit_min)}" } ?: "—",settingsStopped,
-                    s?.let { listOf(SliderSpec(stringResource(R.string.control_timer_label),(it.standbySeconds/60f).roundToInt(),1..30) {v -> "$v ${stringResource(R.string.unit_min)}"}) }
+                    s?.let { listOf(SliderSpec(stringResource(R.string.control_timer_label),(it.standbySeconds/60f).roundToInt(),1..V12Protocol.STANDBY_MAX_MIN) {v -> "$v ${stringResource(R.string.unit_min)}"}) }
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.STANDBY,v[0]))}
             } }
         }

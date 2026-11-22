@@ -59,7 +59,7 @@ class MainActivity : ComponentActivity() {
             val updateCheckedAt by model.prefs.updateCheckedAt.collectAsStateWithLifecycle()
             val updateUi = UpdateUi(updateState, updateConfig, updateCheckedAt, updater.currentVersion, updater.currentBuild)
             val updateActions = remember(updater) { UpdateActions(setConfig = model.prefs::setUpdates, check = { updater.check(manual = true) },
-                download = updater::download, dismiss = updater::dismiss, skip = updater::skip, cancelDownload = updater::cancelDownload,
+                download = updater::download, dismiss = updater::dismiss, cancelDownload = updater::cancelDownload,
                 openInstallSettings = updater::openInstallPermissionSettings, openPage = updater::openReleasePage) }
             val companionWheel = ionGraph.companionWheel
             var onboarding by rememberSaveable { mutableStateOf(!model.prefs.onboardingDone) }

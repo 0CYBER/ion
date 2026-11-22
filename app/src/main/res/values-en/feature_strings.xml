@@ -190,8 +190,8 @@
     <string name="trip_max_temp">Max temp.</string>
     <string name="bg_connect_launch">Connect on launch</string>
     <string name="bg_connect_launch_hint">Connect to the saved wheel as soon as the app opens</string>
-    <string name="alert_setting_voice">Voice alerts</string>
-    <string name="alert_setting_voice_hint">Speak warnings out loud — handy with headphones</string>
+    <string name="alert_setting_voice">Sound alerts</string>
+    <string name="alert_setting_voice_hint">Beeps in the vibration rhythm: three long for danger, two short for speed, one for battery or link</string>
     <string name="alert_setting_voice_battery">Announce battery</string>
     <string name="alert_setting_voice_battery_hint">Every 10 % used</string>
     <string name="alert_setting_vibrate">Vibration</string>

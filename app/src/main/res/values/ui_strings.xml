@@ -98,4 +98,6 @@
     <string name="dash_removed">Плитка «%1$s» убрана</string>
     <string name="common_undo">Вернуть</string>
     <string name="control_range_estimate">Оценка остатка пробега</string>
+    <string name="control_max_speed">Максимальная скорость</string>
+    <string name="control_max_speed_label">Ограничение скорости</string>
 </resources>

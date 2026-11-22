@@ -11,7 +11,9 @@ enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val c
     PWM(true, false),
     RANGE(false, false),
     QUICK_LIGHT(true, false),
-    QUICK_MUTE(true, false),
+    // Default pair with the headlight is the wheel lock; mute stays in the catalogue.
+    QUICK_LOCK(true, false),
+    QUICK_MUTE(false, false),
     TRIP_SESSION(true, true, canBeHalf = false),
     TRIP(true, false),
     ODOMETER(true, false),
@@ -65,6 +67,7 @@ data class TileSlot(val tile: DashTile, val visible: Boolean, val wide: Boolean,
         DashTile.QUICK_LIGHT -> DashToggle.LOW_BEAM
         DashTile.QUICK_HIGH_BEAM -> DashToggle.HIGH_BEAM
         DashTile.QUICK_MUTE -> DashToggle.MUTE
+        DashTile.QUICK_LOCK -> DashToggle.LOCK
         DashTile.QUICK_AUTO_LIGHT -> DashToggle.AUTO_LIGHT
         DashTile.QUICK_SOUND_WAVE -> DashToggle.SOUND_WAVE
         else -> null
