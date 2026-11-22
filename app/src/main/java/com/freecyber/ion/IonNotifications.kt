@@ -85,7 +85,7 @@ object IonNotifications {
             else -> context.getString(R.string.live_title_connecting)
         }
         val text = when {
-            connected && t != null -> context.getString(R.string.live_text, maxOf(t.mosTemp, t.motorTemp), t.rangeKm.fmt(1), trip.distanceKm.fmt(1))
+            connected && t != null -> context.getString(R.string.live_text, maxOf(t.mosTemp, t.motorTemp), t.rangeKm.roundToInt().toString(), trip.distanceKm.fmt(1))
             reconnecting -> context.getString(R.string.live_text_reconnecting, attempt + 1)
             else -> s.message
         }

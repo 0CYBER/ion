@@ -97,7 +97,11 @@ import kotlin.math.roundToInt
             }
         } else {
             val half=((width-gap)/2).coerceAtLeast(0)
-            val placeables=measurables.mapIndexed {i,m -> val w=if(i==0) half else width-gap-half; m.measure(free.copy(minWidth=w,maxWidth=w))}
+            val widths=measurables.indices.map {i -> if(i==0) half else width-gap-half}
+            // Both cards take the taller one's height, so a two-line label does not leave its neighbour short.
+            // The speed tile (BoxWithConstraints) cannot answer intrinsics; such pairs keep their natural heights.
+            val row=runCatching {measurables.mapIndexed {i,m -> m.minIntrinsicHeight(widths[i])}.max()}.getOrDefault(0)
+            val placeables=measurables.mapIndexed {i,m -> m.measure(free.copy(minWidth=widths[i],maxWidth=widths[i],minHeight=row))}
             val height=placeables.maxOf {it.height}
             layout(width,height) {
                 placeables[0].placeRelative(0,0)
@@ -127,7 +131,7 @@ import kotlin.math.roundToInt
     when(slot.tile) {
         DashTile.SPEED -> SpeedInstrument(ui,modifier)
         DashTile.BATTERY -> BatteryTile(t?.battery,ui.connected && ui.fresh && t?.charging==true,modifier)
-        DashTile.RANGE -> FigureTile(stringResource(R.string.metric_range),t?.rangeKm?.takeIf {it>0}?.fmt(1) ?: "—",
+        DashTile.RANGE -> FigureTile(stringResource(R.string.metric_range),t?.rangeKm?.takeIf {it>0}?.roundToInt()?.toString() ?: "—",
             stringResource(R.string.unit_km),Icons.Rounded.Navigation,ion.blue,modifier)
         DashTile.PLAY_SOUND -> ActionTile(stringResource(R.string.tile_play_sound),Icons.Rounded.Campaign,ui.safeWrite,modifier) {
             // The rider picks the horn sound in the editor; 4 is the classic signal on the V12 HT.
@@ -296,7 +300,9 @@ import kotlin.math.roundToInt
                 Icon(icon,null,Modifier.size(20.dp))
             }
             Column(Modifier.padding(top=8.dp)) {
-                Text(value,style=IonType.figure,maxLines=1)
+                // Shrinks instead of clipping ("180," with the last digit cut off) when a value is long for a half tile.
+                Text(value,style=IonType.figure,maxLines=1,softWrap=false,
+                    autoSize=TextAutoSize.StepBased(minFontSize=20.sp,maxFontSize=IonType.figure.fontSize))
                 Text(unit,style=MaterialTheme.typography.labelLarge)
             }
         }

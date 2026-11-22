@@ -1,7 +1,8 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.freecyber.ion
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -79,7 +80,8 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
     LaunchedEffect(layout,reveal) {
         val id=reveal ?: return@LaunchedEffect
         val index=rows.indexOfFirst { row -> row.any {it.id==id} }
-        if(index>=0) {listState.scrollToItem(index+1);reveal=null}
+        // Smooth scroll so the moved or added tile ends up at the top, in view above the sheet.
+        if(index>=0) {listState.animateScrollToItem(index+1);reveal=null}
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val sheetHeight = maxHeight * .9f
@@ -87,11 +89,13 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
             LazyColumn(Modifier.weight(1f).testTag("dashboard-preview"), state=listState, contentPadding=PaddingValues(start=20.dp,end=20.dp,top=12.dp,bottom=20.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 item(key="heading", contentType="heading") { DetailHeading(stringResource(R.string.dash_editor_title), stringResource(R.string.dash_tap_hint), onBack) }
                 if(rows.isEmpty()) item(key="empty", contentType="empty") { Banner(stringResource(R.string.dash_empty)) }
-                items(rows, key={ it.joinToString("+") { s -> s.id } }, contentType={ if(it.size==2) "pair" else "single" }) { row ->
+                // Keyed by the first tile: half tiles re-pair after a move, and a key made of both ids made every
+                // affected row vanish and reappear instead of sliding to its new place.
+                items(rows, key={ it.first().id }, contentType={ if(it.size==2) "pair" else "single" }) { row ->
                     // animateItem: Up/Down moves visibly slide the tile instead of teleporting it.
                     Box(Modifier.fillMaxWidth().animateItem()) { TilePair(
-                        first={ m -> PreviewTile(row[0],env,m) { selected=row[0].id } },
-                        second=if(row.size==2) ({ m -> PreviewTile(row[1],env,m) { selected=row[1].id } }) else null) }
+                        first={ m -> PreviewTile(row[0],env,m,row[0].id==selected) { selected=row[0].id } },
+                        second=if(row.size==2) ({ m -> PreviewTile(row[1],env,m,row[1].id==selected) { selected=row[1].id } }) else null) }
                 }
             }
             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal=20.dp, vertical=8.dp),
@@ -129,13 +133,13 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
                     Text(stringResource(slot.titleRes),style=MaterialTheme.typography.headlineSmall,modifier=Modifier.testTag("tile-editor-title"))
                     val index=layout.visible.indexOfFirst {it.id==slot.id}
                     Row(Modifier.fillMaxWidth().padding(vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick={change(layout.moveVisible(slot.id,-1))},enabled=index>0,modifier=Modifier.weight(1f)) {
+                        OutlinedButton(onClick={change(layout.moveVisible(slot.id,-1));reveal=slot.id},enabled=index>0,modifier=Modifier.weight(1f)) {
                             Icon(Icons.Rounded.ArrowUpward,stringResource(R.string.dash_move_up,stringResource(slot.titleRes)))
                         }
                         val position=stringResource(R.string.dash_position,index+1,layout.visible.size)
                         Text("${index+1} / ${layout.visible.size}",style=MaterialTheme.typography.labelLarge,
                             modifier=Modifier.clearAndSetSemantics {contentDescription=position})
-                        OutlinedButton(onClick={change(layout.moveVisible(slot.id,1))},enabled=index<layout.visible.lastIndex,modifier=Modifier.weight(1f)) {
+                        OutlinedButton(onClick={change(layout.moveVisible(slot.id,1));reveal=slot.id},enabled=index<layout.visible.lastIndex,modifier=Modifier.weight(1f)) {
                             Icon(Icons.Rounded.ArrowDownward,stringResource(R.string.dash_move_down,stringResource(slot.titleRes)))
                         }
                     }
@@ -192,14 +196,20 @@ internal val TileSlot.icon get() = toggleTarget?.icon ?: tile.icon
         dismissButton={TextButton(onClick={reset=false}) {Text(stringResource(R.string.cancel))}})
 }
 
-@Composable private fun PreviewTile(slot: TileSlot,env: TileEnv,modifier: Modifier,tap: ()->Unit) {
+@Composable private fun PreviewTile(slot: TileSlot,env: TileEnv,modifier: Modifier,selected: Boolean,tap: ()->Unit) {
     val title=stringResource(slot.titleRes)
-    Box(modifier) {
+    // The tile being edited is outlined, so it can be followed while it moves up and down.
+    val outline by androidx.compose.animation.animateColorAsState(
+        if(selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
+        MaterialTheme.motionScheme.fastEffectsSpec(),label="tile-selected")
+    Box(modifier.border(3.dp,outline,androidx.compose.foundation.shape.RoundedCornerShape(IonShapes.l))) {
         Box(Modifier.clearAndSetSemantics { }) { DashTileView(slot,env,Modifier.fillMaxWidth()) }
         // One touch target overlays all interactive content, so editing never sends commands.
         Box(Modifier.matchParentSize().testTag("preview-${slot.id}").semantics {contentDescription=title}
             .clickable(role=Role.Button,onClickLabel=stringResource(R.string.dash_edit_tile,title),onClick=tap))
-        Surface(Modifier.align(Alignment.TopEnd).padding(6.dp),shape=MaterialTheme.shapes.small,color=MaterialTheme.colorScheme.surfaceContainerHighest) {
+        Surface(Modifier.align(Alignment.TopEnd).padding(6.dp),shape=MaterialTheme.shapes.small,
+            color=if(selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor=if(selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface) {
             Icon(Icons.Rounded.Edit,null,Modifier.padding(5.dp).size(14.dp))
         }
     }

@@ -33,7 +33,7 @@ class WidgetTest {
         provideComposable { WidgetBody(context, live, large) }
         onNode(hasTextEqualTo("78%")).assertExists()
         onNode(hasTextEqualTo(context.getString(R.string.widget_speed, "23,4"))).assertExists()
-        onNode(hasText("41,2")).assertExists()
+        onNode(hasText("Остаток 41 км")).assertExists() // whole kilometres
         onNode(hasTextEqualTo(context.getString(R.string.disconnect))).assertExists()
         onNode(hasTextEqualTo(context.getString(R.string.action_light_on))).assertExists()
     }

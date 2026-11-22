@@ -129,7 +129,7 @@ object IonWidgetUpdater {
                     color = if (snap.isStale) colors.outline else colors.primary, backgroundColor = colors.surfaceVariant)
             }
             Spacer(GlanceModifier.height(4.dp))
-            val figures = context.getString(R.string.widget_figures, snap.rangeKm?.fmt(1) ?: "—", snap.tripKm?.fmt(1) ?: "—",
+            val figures = context.getString(R.string.widget_figures, snap.rangeKm?.let { kotlin.math.round(it).toInt().toString() } ?: "—", snap.tripKm?.fmt(1) ?: "—",
                 snap.temperature?.toString() ?: "—")
             // TalkBack reads each missing figure as "no data", not as a dash.
             val spokenFigures = figures.replace("—", context.getString(R.string.no_data))
