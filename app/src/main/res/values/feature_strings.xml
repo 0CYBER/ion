@@ -65,7 +65,7 @@
     <string name="tile_quick_light">Ближний свет</string>
     <string name="tile_quick_mute">Без звука</string>
     <string name="tile_trip_session">Эта поездка</string>
-    <string name="tile_trip">Дистанция с включения</string>
+    <string name="tile_trip">Поездка</string>
     <string name="tile_odometer">Одометр</string>
     <string name="tile_voltage">Напряжение</string>
     <string name="tile_current">Ток</string>

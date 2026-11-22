@@ -65,7 +65,7 @@
     <string name="tile_quick_light">Low beam</string>
     <string name="tile_quick_mute">Mute</string>
     <string name="tile_trip_session">This ride</string>
-    <string name="tile_trip">Distance since power-on</string>
+    <string name="tile_trip">Trip</string>
     <string name="tile_odometer">Odometer</string>
     <string name="tile_voltage">Voltage</string>
     <string name="tile_current">Current</string>

@@ -7,7 +7,9 @@ enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val c
                     val paramOptions: List<Int> = emptyList(), val defaultParam: Int? = null) {
     SPEED(true, true),
     BATTERY(true, false),
-    RANGE(true, false),
+    // Default pair is battery + PWM; range stays available from the catalogue.
+    PWM(true, false),
+    RANGE(false, false),
     QUICK_LIGHT(true, false),
     QUICK_MUTE(true, false),
     TRIP_SESSION(true, true, canBeHalf = false),
@@ -18,7 +20,6 @@ enum class DashTile(val defaultVisible: Boolean, val defaultWide: Boolean, val c
     POWER(false, false),
     MOTOR_TEMP(true, false),
     MOS_TEMP(true, false),
-    PWM(false, false),
     TILT(false, false),
     QUICK_HIGH_BEAM(false, false),
     PLAY_SOUND(false, false, paramOptions = V12Protocol.soundIds, defaultParam = 4),

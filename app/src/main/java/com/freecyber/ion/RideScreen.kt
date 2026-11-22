@@ -98,10 +98,7 @@ import kotlin.math.roundToInt
         } else {
             val half=((width-gap)/2).coerceAtLeast(0)
             val widths=measurables.indices.map {i -> if(i==0) half else width-gap-half}
-            // Both cards take the taller one's height, so a two-line label does not leave its neighbour short.
-            // The speed tile (BoxWithConstraints) cannot answer intrinsics; such pairs keep their natural heights.
-            val row=runCatching {measurables.mapIndexed {i,m -> m.minIntrinsicHeight(widths[i])}.max()}.getOrDefault(0)
-            val placeables=measurables.mapIndexed {i,m -> m.measure(free.copy(minWidth=widths[i],maxWidth=widths[i],minHeight=row))}
+            val placeables=measurables.mapIndexed {i,m -> m.measure(free.copy(minWidth=widths[i],maxWidth=widths[i]))}
             val height=placeables.maxOf {it.height}
             layout(width,height) {
                 placeables[0].placeRelative(0,0)
@@ -339,17 +336,26 @@ import kotlin.math.roundToInt
     }
 }
 
+/** Same shape, size and blue tone as the range tile it replaces by default; amber from 80 % load. */
 @Composable private fun PwmTile(pwm: Double?,modifier: Modifier) {
     val ion=ionColors()
     val load=pwm?.takeIf {it.isFinite()}?.let {kotlin.math.abs(it).coerceIn(0.0,100.0)}
     val hot=load!=null && load>=80
     val spoken="${stringResource(R.string.tile_pwm)}, ${load?.let {"${it.roundToInt()}%"} ?: stringResource(R.string.no_data)}"
-    Surface(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},color=if(hot) ion.warning else MaterialTheme.colorScheme.surfaceContainerLow,
-        contentColor=if(hot) ion.onWarning else MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(IonShapes.l)) {
-        Column(Modifier.fillMaxWidth().heightIn(min=96.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.tile_pwm),style=MaterialTheme.typography.labelLarge)
-            Text(load?.let {"${it.roundToInt()}%"} ?: "—",style=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
-            if(load!=null) LinearProgressIndicator(progress={(load/100).toFloat()},modifier=Modifier.fillMaxWidth())
+    val container by animateColorAsState(if(hot) ion.warning else ion.blue.container,MaterialTheme.motionScheme.fastEffectsSpec(),label="pwm-tone")
+    val content=if(hot) ion.onWarning else ion.blue.content
+    Surface(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},color=container,contentColor=content,shape=IonShapes.hero) {
+        Column(Modifier.fillMaxWidth().heightIn(min=156.dp).padding(20.dp),verticalArrangement=Arrangement.SpaceBetween) {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                Text(stringResource(R.string.tile_pwm),style=MaterialTheme.typography.labelLarge,modifier=Modifier.weight(1f))
+                Icon(Icons.Rounded.Equalizer,null,Modifier.size(20.dp))
+            }
+            Column(Modifier.padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                Text(load?.let {"${it.roundToInt()}%"} ?: "—",style=IonType.figure,maxLines=1,softWrap=false,
+                    autoSize=TextAutoSize.StepBased(minFontSize=20.sp,maxFontSize=IonType.figure.fontSize))
+                if(load!=null) LinearProgressIndicator(progress={(load/100).toFloat()},modifier=Modifier.fillMaxWidth(),
+                    color=content,trackColor=content.copy(alpha=.18f),drawStopIndicator={})
+            }
         }
     }
 }
