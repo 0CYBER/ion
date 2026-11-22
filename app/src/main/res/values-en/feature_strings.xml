@@ -96,7 +96,7 @@
     <!-- Background and alert settings -->
     <string name="bg_title">Background and notifications</string>
     <string name="app_title">App</string>
-    <string name="app_hint">Appearance, ride screen, history and background</string>
+    <string name="app_hint">Appearance, background and updates</string>
     <string name="bg_hint">Connection with the screen off, and alerts</string>
     <string name="bg_section">Background</string>
     <string name="bg_companion_pairing">Looking for the wheel to link…</string>

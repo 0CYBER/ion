@@ -22,7 +22,7 @@ class NavigationTest {
         rule.onNodeWithContentDescription("Приложение").performClick()
         rule.onNodeWithText("Оформление").performClick()
         rule.onNodeWithText("Назад").performClick()
-        rule.onNodeWithText("Экран поездки").assertIsDisplayed()
+        rule.onNodeWithText("Обновления").assertIsDisplayed()
     }
 
     @Test fun staticSettingsDoNotReadOrObserveLiveTelemetry() {

@@ -96,7 +96,7 @@
     <!-- Background and alert settings -->
     <string name="bg_title">Фон и уведомления</string>
     <string name="app_title">Приложение</string>
-    <string name="app_hint">Оформление, экран поездки, история и фон</string>
+    <string name="app_hint">Оформление, фон и обновления</string>
     <string name="bg_hint">Связь при выключенном экране и оповещения</string>
     <string name="bg_section">Работа в фоне</string>
     <string name="bg_companion_pairing">Поиск колеса для привязки…</string>

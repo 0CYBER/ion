@@ -4,6 +4,11 @@ package com.freecyber.ion
 import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -53,33 +58,46 @@ import androidx.compose.ui.unit.dp
     }
 }
 
-/** Layout, type and contrasting shape carry the hierarchy, rather than a border on every card. */
+/** Each category tile owns one of these, so no two tiles on the settings overview share a shape. */
+private val Ornaments get() = listOf(MaterialShapes.Cookie9Sided, MaterialShapes.Sunny, MaterialShapes.Clover8Leaf,
+    MaterialShapes.SoftBurst, MaterialShapes.Flower, MaterialShapes.Cookie6Sided, MaterialShapes.Puffy, MaterialShapes.Gem)
+
+/**
+ * Layout, type and contrasting shape carry the hierarchy, rather than a border on every card.
+ * [motif] picks the corner silhouette, [ornament] the shape behind the content; the ornament and the icon
+ * badge turn slowly and continuously (each tile at its own speed and direction), and a press adds a spring turn.
+ */
 @Composable internal fun ToneTile(title: String,subtitle: String,icon: ImageVector,tone: IonTone,
-    modifier: Modifier=Modifier,minHeight: Dp=160.dp,motif: Int=0,onClick: ()->Unit) {
+    modifier: Modifier=Modifier,minHeight: Dp=160.dp,motif: Int=0,ornament: Int=motif,onClick: ()->Unit) {
     val interaction=remember {MutableInteractionSource()}
     val pressed by interaction.collectIsPressedAsState()
     val round by animateDpAsState(if(pressed) 16.dp else if(motif%2==0) 32.dp else 24.dp,MaterialTheme.motionScheme.fastSpatialSpec(),label="category-round")
     val cut by animateDpAsState(if(pressed) 16.dp else 10.dp,MaterialTheme.motionScheme.fastSpatialSpec(),label="category-cut")
-    val rotation=animateFloatAsState(if(pressed) 24f else 0f,MaterialTheme.motionScheme.fastSpatialSpec(),label="category-motif")
+    val push=animateFloatAsState(if(pressed) 24f else 0f,MaterialTheme.motionScheme.fastSpatialSpec(),label="category-motif")
     val scale=animateFloatAsState(if(pressed) .97f else 1f,MaterialTheme.motionScheme.fastSpatialSpec(),label="category-press")
     val shape=when(motif%3) {
         0 -> RoundedCornerShape(round,round,cut,round)
         1 -> RoundedCornerShape(cut,round,round,round)
         else -> RoundedCornerShape(round,cut,round,cut)
     }
-    val ornament=when(motif%3) {
-        0 -> MaterialShapes.Clover4Leaf.toShape()
-        1 -> MaterialShapes.Flower.toShape()
-        else -> MaterialShapes.Cookie4Sided.toShape()
-    }
+    val shapes=Ornaments
+    val big=shapes[ornament.mod(shapes.size)].toShape()
+    val badge=shapes[(ornament+3).mod(shapes.size)].toShape()
+    // Slow, steady turn; the frame loop only invalidates the layers below, never this composition.
+    val direction=if(ornament%2==0) 1f else -1f
+    val period=26_000+(ornament.mod(4))*5_000
+    val turn=rememberInfiniteTransition(label="category-spin").animateFloat(0f,360f,
+        infiniteRepeatable(tween(period,easing=LinearEasing)),label="category-turn")
     Surface(onClick=onClick,interactionSource=interaction,modifier=modifier.graphicsLayer {scaleX=scale.value;scaleY=scale.value},shape=shape,color=tone.container,contentColor=tone.content) {
         Box {
             Box(Modifier.matchParentSize()) {
                 Box(Modifier.size(160.dp).align(Alignment.BottomEnd).offset(x=42.dp,y=54.dp)
-                    .graphicsLayer {rotationZ=rotation.value}.clip(ornament).background(tone.content.copy(alpha=.08f)))
+                    .graphicsLayer {rotationZ=direction*turn.value+push.value}.clip(big).background(tone.content.copy(alpha=.08f)))
             }
             Column(Modifier.fillMaxWidth().heightIn(min=minHeight).padding(20.dp),verticalArrangement=Arrangement.SpaceBetween) {
-                Box(Modifier.size(44.dp).align(Alignment.End).graphicsLayer {rotationZ=-rotation.value}.clip(ornament).background(tone.content.copy(alpha=.1f)),contentAlignment=Alignment.Center) {
+                Box(Modifier.size(44.dp).align(Alignment.End),contentAlignment=Alignment.Center) {
+                    Box(Modifier.matchParentSize().graphicsLayer {rotationZ=-direction*turn.value*1.5f-push.value}
+                        .clip(badge).background(tone.content.copy(alpha=.1f)))
                     Icon(icon,null,Modifier.size(24.dp))
                 }
                 Column(Modifier.padding(top=20.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {

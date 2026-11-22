@@ -83,7 +83,7 @@ import androidx.compose.ui.unit.dp
                         route=="background" -> BackgroundScreen(prefs,actions) {back()}
                         route=="trips" -> TripsScreen(prefs.trips,actions,{trip -> open("trip:${trip.startedAt}")}) {back()}
                         route.startsWith("trip:") -> TripDetailRoute(route.substringAfter(':').toLongOrNull(),prefs.trips,actions) {back()}
-                        route=="app" -> AppScreen({open("appearance")},{open("dashboard")},{open("trips")},{open("background")},{back()}) {open("updates")}
+                        route=="app" -> AppScreen({open("appearance")},{open("background")},{back()}) {open("updates")}
                         route=="updates" -> UpdatesScreen(prefs.update,actions.update) {back()}
                         route.startsWith("control:") && ControlCategory.entries.any {it.name==route.substringAfter(':')} ->
                             ControlScreen(ui(),ControlCategory.valueOf(route.substringAfter(':')),

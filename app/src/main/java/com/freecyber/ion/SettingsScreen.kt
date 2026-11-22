@@ -35,34 +35,33 @@ internal enum class ControlCategory(val title: Int,val subtitle: Int) {
         item(key="heading",contentType="heading") {ScreenHeading(stringResource(R.string.nav_settings),stringResource(R.string.app_title),Icons.Rounded.Settings,app)}
         item(key="app",contentType="tiles") {
             ToneTile(stringResource(R.string.app_title),stringResource(R.string.app_hint),Icons.Rounded.Settings,
-                IonTone(ion.hero,ion.onHero),minHeight=140.dp,motif=2,onClick=app)
+                IonTone(ion.hero,ion.onHero),minHeight=140.dp,ornament=0,motif=2,onClick=app)
         }
         item(key="ride-pedals",contentType="tiles") {
             TilePair(first={m -> ToneTile(stringResource(R.string.category_ride),stringResource(R.string.category_ride_hint),Icons.Rounded.Route,
-                IonTone(ion.accent,ion.onAccent),m,minHeight=180.dp,motif=0) {open(ControlCategory.RIDE)}},
+                IonTone(ion.accent,ion.onAccent),m,minHeight=180.dp,ornament=1,motif=0) {open(ControlCategory.RIDE)}},
                 second={m -> ToneTile(stringResource(R.string.category_pedals),stringResource(R.string.category_pedals_hint),Icons.Rounded.Tune,
-                    ion.lilac,m,minHeight=180.dp,motif=1) {open(ControlCategory.PEDALS)}})
+                    ion.lilac,m,minHeight=180.dp,ornament=2,motif=1) {open(ControlCategory.PEDALS)}})
         }
         item(key="light-sound",contentType="tiles") {
             TilePair(first={m -> ToneTile(stringResource(R.string.category_lights),stringResource(R.string.category_lights_hint),Icons.Rounded.Lightbulb,
-                ion.blue,m,minHeight=160.dp,motif=2) {open(ControlCategory.LIGHTS)}},
+                ion.blue,m,minHeight=160.dp,ornament=3,motif=2) {open(ControlCategory.LIGHTS)}},
                 second={m -> ToneTile(stringResource(R.string.category_sound),stringResource(R.string.category_sound_hint),Icons.AutoMirrored.Rounded.VolumeUp,
-                    ion.peach,m,minHeight=160.dp,motif=0) {open(ControlCategory.SOUND)}})
+                    ion.peach,m,minHeight=160.dp,ornament=4,motif=0) {open(ControlCategory.SOUND)}})
         }
         item(key="service",contentType="tiles") {
             ToneTile(stringResource(R.string.category_service),stringResource(R.string.category_service_hint),Icons.Rounded.Build,
-                ion.blue,minHeight=140.dp,motif=1) {open(ControlCategory.SERVICE)}
+                ion.blue,minHeight=140.dp,ornament=5,motif=1) {open(ControlCategory.SERVICE)}
         }
     }
 }
 
-/** App-level settings in one place: appearance, ride screen, ride history and the background link. */
-@Composable internal fun AppScreen(appearance: ()->Unit,dashboard: ()->Unit,trips: ()->Unit,background: ()->Unit,onBack: ()->Unit,updates: ()->Unit={}) {
+/** App-level settings: appearance, background link and updates. The ride screen editor and ride history
+ * are opened from the ride screen itself. */
+@Composable internal fun AppScreen(appearance: ()->Unit,background: ()->Unit,onBack: ()->Unit,updates: ()->Unit={}) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.app_title),stringResource(R.string.app_hint),onBack)}
         item(key="appearance",contentType="link") {ActionRow(stringResource(R.string.appearance),stringResource(R.string.appearance_hint),Icons.Rounded.Palette,appearance)}
-        item(key="dashboard",contentType="link") {ActionRow(stringResource(R.string.dash_editor_title),stringResource(R.string.dash_editor_hint),Icons.Rounded.DashboardCustomize,dashboard)}
-        item(key="trips",contentType="link") {ActionRow(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),Icons.Rounded.History,trips)}
         item(key="background",contentType="link") {ActionRow(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),Icons.Rounded.Notifications,background)}
         item(key="updates",contentType="link") {ActionRow(stringResource(R.string.updates_title),stringResource(R.string.updates_hint),Icons.Rounded.SystemUpdate,updates)}
     }
