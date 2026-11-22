@@ -69,11 +69,17 @@ import androidx.compose.ui.unit.dp
                     val speedStroke=Stroke(3.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round)
                     val powerStroke=Stroke(2.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round)
                     val baseline=1.dp.toPx()
+                    // "Now" marker: the newest reading sits at the right edge, a halo makes it easy to find at a glance.
+                    val last=samples.last()
+                    val now=Offset(x(last),size.height-last.speed/sTop*size.height)
+                    val dot=4.dp.toPx()
                     onDrawBehind {
                         drawPath(area,speedColor.copy(alpha=.18f))
                         drawPath(line,speedColor,style=speedStroke)
                         power?.let {drawPath(it,powerColor,style=powerStroke)}
                         drawLine(speedColor.copy(alpha=.3f),Offset(0f,size.height),Offset(size.width,size.height),baseline)
+                        drawCircle(speedColor.copy(alpha=.22f),dot*2.2f,now)
+                        drawCircle(speedColor,dot,now)
                     }
                 })
                 Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {

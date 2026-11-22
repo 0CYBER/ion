@@ -160,8 +160,9 @@ internal object EditorSample {
     Column(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=12.dp)) {
         Row(verticalAlignment=Alignment.CenterVertically) {
             Text(label,style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
+            // An alert switched off (0) reads quieter than an armed threshold.
             Text(shownText,style=MaterialTheme.typography.labelLarge,
-                color=MaterialTheme.colorScheme.primary)
+                color=if(shown==0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
         }
         Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
             valueRange=range.first.toFloat()..range.last.toFloat(),steps=steps,
