@@ -38,7 +38,8 @@ object V12Protocol {
         out.add(body.fold(0) { a, b -> a xor b.u() }.toByte())
         return out.toByteArray()
     }
-    data class Frame(val flags: Int, val commandByte: Int, val payload: ByteArray) {
+    /** [seq] is the packet number of flag-0x40 frames (file transfer chunks and their acks), null otherwise. */
+    data class Frame(val flags: Int, val commandByte: Int, val payload: ByteArray, val seq: Int? = null) {
         val command get() = commandByte and 0x7f
         val response get() = commandByte and 0x80 != 0
     }
@@ -65,15 +66,19 @@ object V12Protocol {
                         if (b != 0xaa && b != 0xa5) { invalid = true; break }
                     }
                     body.add(b)
-                    if (body.size == 2) {
-                        if (body[1] == 0) { invalid = true; break }
-                        size = body[1] + 2
+                    // Flag 0x40 (file transfer) puts a packet number between the flags and the length.
+                    val lengthAt = if (body[0] and 0x40 != 0) 2 else 1
+                    if (body.size == lengthAt + 1) {
+                        if (body[lengthAt] == 0) { invalid = true; break }
+                        size = body[lengthAt] + lengthAt + 1
                     }
                 }
                 if (invalid) { buffer.removeFirst(); rejected++; continue }
                 if (i >= list.size) return frames
                 if (body.fold(0) { a, b -> a xor b } != list[i++]) { buffer.removeFirst(); rejected++; continue }
-                frames.add(Frame(body[0], body[2], body.drop(3).map(Int::toByte).toByteArray()))
+                val numbered = body[0] and 0x40 != 0
+                val head = if (numbered) 3 else 2
+                frames.add(Frame(body[0], body[head], body.drop(head + 1).map(Int::toByte).toByteArray(), if (numbered) body[1] else null))
                 repeat(i) { buffer.removeFirst() }
             }
             return frames
