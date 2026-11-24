@@ -155,7 +155,7 @@
     <string name="location_permission_hint">Для записи маршрута разрешите точное местоположение. Приблизительного недостаточно.</string>
     <string name="location_permission">Разрешить местоположение</string>
     <string name="trips_track">Маршрут</string>
-    <string name="trips_track_length">Длина маршрута: %1$s км</string>
+    <string name="trips_track_length">%1$s км по GPS</string>
     <string name="trip_gps_points">GPS: %1$d</string>
     <string name="unit_kwh">кВт·ч</string>
     <string name="trips_export_gpx">Экспорт GPX</string>

@@ -1,10 +1,10 @@
 package com.freecyber.ion
 
 import android.view.MotionEvent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
@@ -27,11 +27,17 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.views.overlay.Polyline
 
-/** Native OSM tiles with disk cache, a route and a marker linked to the ride scrubber. */
-@Composable internal fun TripMap(track: List<TrackPoint>, index: Int, modifier: Modifier = Modifier, footer: Boolean = true) {
+/**
+ * Native OSM tiles with disk cache, a route and a marker linked to the ride cursor. A tap near the route moves the
+ * cursor there ([pick] gets the fix's time); markers have no info bubbles (osmdroid's default one showed up empty).
+ */
+@Composable internal fun TripMap(track: List<TrackPoint>, index: Int, modifier: Modifier = Modifier, pick: ((Long) -> Unit)? = null) {
+    val latestPick by rememberUpdatedState(pick)
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val owner = LocalLifecycleOwner.current
@@ -56,10 +62,27 @@ import org.osmdroid.views.overlay.Polyline
             minZoomLevel=2.0; maxZoomLevel=19.0
             controller.setZoom(14.0)
             controller.setCenter(route.first())
-            overlays.add(Polyline(this).apply { setPoints(route); outlinePaint.color=color; outlinePaint.strokeWidth=8f })
+            val density=context.resources.displayMetrics.density
+            overlays.add(MapEventsOverlay(object : MapEventsReceiver {
+                override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                    val onPick=latestPick ?: return false
+                    val tap=projection.toPixels(p,null)
+                    val hit=android.graphics.Point()
+                    var best=-1; var bestDistance=Double.MAX_VALUE
+                    track.forEachIndexed { i,t ->
+                        projection.toPixels(GeoPoint(t.lat,t.lon),hit)
+                        val d=Math.hypot((hit.x-tap.x).toDouble(),(hit.y-tap.y).toDouble())
+                        if(d<bestDistance) { bestDistance=d; best=i }
+                    }
+                    if(best<0 || bestDistance>40*density) return false
+                    onPick(track[best].t); return true
+                }
+                override fun longPressHelper(p: GeoPoint) = false
+            }))
+            overlays.add(Polyline(this).apply { setPoints(route); outlinePaint.color=color; outlinePaint.strokeWidth=8f; setOnClickListener { _,_,_ -> false } })
             // Native markers have info windows and remain visible when tiles are unavailable.
-            overlays.add(Marker(this).apply { position=route.first(); title=startTitle; icon=mapDot(context,startColor); setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER) })
-            overlays.add(Marker(this).apply { position=route.last(); title=endTitle; icon=mapDot(context,color); setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER) })
+            overlays.add(Marker(this).apply { position=route.first(); title=startTitle; icon=mapDot(context,startColor); setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER); quiet() })
+            overlays.add(Marker(this).apply { position=route.last(); title=endTitle; icon=mapDot(context,color); setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER); quiet() })
             setOnTouchListener { view,event ->
                 view.parent?.requestDisallowInterceptTouchEvent(event.actionMasked != MotionEvent.ACTION_UP && event.actionMasked != MotionEvent.ACTION_CANCEL)
                 false
@@ -79,6 +102,7 @@ import org.osmdroid.views.overlay.Polyline
         setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER)
         icon=mapDot(context,markerColor)
         title=positionTitle
+        quiet()
         map.overlays.add(this)
     } }
     val observer = remember(map) {
@@ -86,18 +110,18 @@ import org.osmdroid.views.overlay.Polyline
             when(event) { Lifecycle.Event.ON_RESUME -> map.onResume(); Lifecycle.Event.ON_PAUSE -> map.onPause(); else -> Unit }
         }
     }
-    Column(if (footer) Modifier else modifier) {
+    Box(modifier) {
         key(map) {
             AndroidView(
                 factory = { map.also { owner.lifecycle.addObserver(observer) } },
-                modifier = (if (footer) modifier else Modifier.weight(1f).fillMaxWidth()).clipToBounds(),
+                modifier = Modifier.matchParentSize().clipToBounds(),
                 onRelease = {
                     owner.lifecycle.removeObserver(observer)
                     it.onPause()
                     it.onDetach()
                 },
                 update = {
-                    (it.overlays.first() as Polyline).outlinePaint.color = color
+                    it.overlays.filterIsInstance<Polyline>().firstOrNull()?.outlinePaint?.color = color
                     marker.title = positionTitle
                     val point = track[index.coerceIn(0, track.lastIndex)]
                     marker.position = GeoPoint(point.lat, point.lon)
@@ -105,12 +129,18 @@ import org.osmdroid.views.overlay.Polyline
                 },
             )
         }
-        // Full screen keeps the attribution (OSM requires it) but not the gesture hint.
-        Text("© OpenStreetMap contributors",style=MaterialTheme.typography.labelSmall,
-            modifier=Modifier.heightIn(min=if (footer) 48.dp else 32.dp).wrapContentHeight().clickable(role=androidx.compose.ui.semantics.Role.Button) { uriHandler.openUri("https://www.openstreetmap.org/copyright") })
-        if (footer) Text(stringResource(R.string.trip_map_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        // OSM requires the attribution; it sits on the map like on osm.org.
+        Surface(color=MaterialTheme.colorScheme.surface.copy(alpha=.82f),shape=androidx.compose.foundation.shape.RoundedCornerShape(topStart=8.dp),
+            modifier=Modifier.align(Alignment.BottomEnd)) {
+            Text("© OpenStreetMap contributors",style=MaterialTheme.typography.labelSmall,
+                modifier=Modifier.clickable(role=androidx.compose.ui.semantics.Role.Button) { uriHandler.openUri("https://www.openstreetmap.org/copyright") }
+                    .padding(horizontal=8.dp,vertical=4.dp))
+        }
     }
 }
+
+/** Markers only mark: no info bubble on tap. */
+private fun Marker.quiet() { infoWindow=null; setOnMarkerClickListener { _,_ -> true } }
 
 private fun mapDot(context: android.content.Context, color: Int) = android.graphics.drawable.GradientDrawable().apply {
     shape=android.graphics.drawable.GradientDrawable.OVAL

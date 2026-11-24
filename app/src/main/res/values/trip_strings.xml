@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="trip_max_power">Макс. мощность</string>
-    <string name="trip_avg_power">Средняя мощность</string>
-    <string name="trip_max_pwm">Макс. PWM</string>
-    <string name="trip_max_current">Макс. ток</string>
-    <string name="trip_min_voltage">Мин. напряжение</string>
+    <string name="trip_max_power">Пик мощн.</string>
+    <string name="trip_avg_power">Ср. мощн.</string>
+    <string name="trip_max_pwm">Пик PWM</string>
+    <string name="trip_max_current">Пик тока</string>
+    <string name="trip_min_voltage">Мин. напряж.</string>
     <string name="trip_regen">Рекуперация</string>
-    <string name="trip_stopped">Время остановок</string>
-    <string name="trip_export_help">CSV — все замеры колеса за поездку с временем и GPS. GPX — маршрут с координатами, высотой и временем для карт и навигации.</string>
+    <string name="trip_stopped">Остановки</string>
     <string name="trip_csv_missing">В этой старой поездке подробные замеры не сохранялись. CSV доступен для новых поездок.</string>
     <string name="trip_export_failed">Не удалось экспортировать файл поездки. Проверьте свободное место и повторите.</string>
     <string name="trip_load_failed">Не удалось прочитать поездку</string>
@@ -15,7 +14,6 @@
     <string name="trip_map_start">Старт</string>
     <string name="trip_map_end">Финиш</string>
     <string name="trip_map_position">Выбранная точка</string>
-    <string name="trip_map_hint">Масштаб и перемещение — жестами. Для загрузки карты нужен интернет; уже просмотренные участки доступны из кэша.</string>
     <string name="gps_off">GPS выключен в настройках записи</string>
     <string name="gps_paused">GPS: пауза до подключения колеса</string>
     <string name="gps_precise">GPS: разрешите точное местоположение</string>
@@ -27,12 +25,13 @@
     <string name="trip_series_power">Мощность</string>
     <string name="trip_series_battery">Заряд</string>
     <string name="trip_series_pwm">PWM</string>
-    <string name="trip_point_gps_speed">GPS-скорость</string>
-    <string name="trip_point_voltage">Напряжение</string>
+    <string name="trip_point_gps_speed">GPS</string>
+    <string name="trip_point_voltage">Напряж.</string>
     <string name="trip_point_current">Ток</string>
-    <string name="trip_point_mos">Темп. MOS</string>
-    <string name="trip_point_motor">Темп. мотора</string>
+    <string name="trip_point_mos">MOS</string>
+    <string name="trip_point_motor">Мотор</string>
     <string name="trip_expand">Развернуть карту</string>
     <string name="trip_collapse">Свернуть карту</string>
     <string name="trip_chart_cursor">Момент поездки</string>
+    <string name="trip_load_section">Энергия и нагрузка</string>
 </resources>

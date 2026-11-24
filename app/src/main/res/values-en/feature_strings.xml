@@ -155,7 +155,7 @@
     <string name="location_permission_hint">Allow precise location to record the route. Approximate location is insufficient.</string>
     <string name="location_permission">Allow location access</string>
     <string name="trips_track">Route</string>
-    <string name="trips_track_length">Route length: %1$s km</string>
+    <string name="trips_track_length">%1$s km by GPS</string>
     <string name="trip_gps_points">GPS: %1$d</string>
     <string name="unit_kwh">kWh</string>
     <string name="trips_export_gpx">Export GPX</string>

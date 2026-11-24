@@ -1,6 +1,9 @@
 package com.freecyber.ion
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -63,9 +66,10 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
     var hidden by rememberSaveable { mutableStateOf(listOf<String>()) }
     val visible = RideSeries.entries.filter { it.name !in hidden }
     val toggle: (RideSeries) -> Unit = { s -> hidden = if (s.name in hidden) hidden - s.name else hidden + s.name }
+    val pick: (Long) -> Unit = onCursor
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.padding(start = 20.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(stringResource(R.string.trips_track), style = MaterialTheme.typography.titleMedium)
                     if (data.hasMap) Text(stringResource(R.string.trips_track_length, (data.cumulativeKm.lastOrNull() ?: 0.0).fmt(2)),
@@ -75,13 +79,16 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
                     Icon(Icons.Rounded.OpenInFull, stringResource(R.string.trip_expand))
                 }
             }
-            if (data.hasMap) TripMap(data.track, data.trackIndex(cursor).coerceAtLeast(0), Modifier.fillMaxWidth().height(300.dp))
+            if (data.hasMap) TripMap(data.track, data.trackIndex(cursor).coerceAtLeast(0),
+                Modifier.padding(horizontal = 12.dp).fillMaxWidth().height(260.dp).clip(RoundedCornerShape(IonShapes.l)), pick = pick)
             else Banner(stringResource(R.string.trips_track_missing), Icons.Rounded.LocationOff)
-            if (data.hasChart) {
-                RideChart(data, visible, cursor, onCursor, Modifier.fillMaxWidth().height(150.dp))
-                SeriesLegend(visible, toggle)
+            Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (data.hasChart) {
+                    RideChart(data, visible, cursor, onCursor, Modifier.fillMaxWidth().height(140.dp))
+                    SeriesLegend(visible, toggle)
+                }
+                MomentFigures(data, cursor)
             }
-            MomentFigures(data, cursor)
         }
     }
     if (fullScreen) Dialog(onDismissRequest = { fullScreen = false },
@@ -89,7 +96,7 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxWidth().weight(1f)) {
-                    TripMap(data.track, data.trackIndex(cursor).coerceAtLeast(0), Modifier.fillMaxSize(), footer = false)
+                    TripMap(data.track, data.trackIndex(cursor).coerceAtLeast(0), Modifier.fillMaxSize(), pick = pick)
                     FilledTonalIconButton(onClick = { fullScreen = false },
                         modifier = Modifier.statusBarsPadding().padding(12.dp).size(48.dp).testTag("trip-collapse")) {
                         Icon(Icons.Rounded.Close, stringResource(R.string.trip_collapse))
@@ -109,7 +116,8 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
 }
 
 @Composable private fun SeriesLegend(visible: List<RideSeries>, toggle: (RideSeries) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // One scrolling row instead of two wrapped ones.
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         RideSeries.entries.forEach { s ->
             val on = s in visible
             FilterChip(selected = on, onClick = { toggle(s) }, label = { Text(stringResource(s.label)) },
