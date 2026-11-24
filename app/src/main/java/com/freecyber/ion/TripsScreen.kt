@@ -95,11 +95,13 @@ import java.util.Date
     Surface(color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
         // One compact row: the lifetime distance, then how many rides and how long in motion. Every value is one line
         // that shrinks to fit, so "1234,5 km" or "123:45:06" never wraps or clips.
-        Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=18.dp),verticalAlignment=Alignment.Bottom,
+        Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=18.dp),verticalAlignment=Alignment.Top,
             horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-            TotalFigure(stringResource(R.string.trips_total),t.distanceKm.fmt(1),km,MaterialTheme.typography.headlineLarge,Modifier.weight(1.25f))
-            TotalFigure(stringResource(R.string.trips_count),t.count.toString(),"",MaterialTheme.typography.titleLarge,Modifier.weight(0.7f))
-            TotalFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",MaterialTheme.typography.titleLarge,Modifier.weight(1.05f))
+            // The same label and value style for all three, so they line up as one row.
+            val style=MaterialTheme.typography.headlineSmall
+            TotalFigure(stringResource(R.string.trips_total),t.distanceKm.fmt(1),km,style,Modifier.weight(1f))
+            TotalFigure(stringResource(R.string.trips_count),t.count.toString(),"",style,Modifier.weight(1f))
+            TotalFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",style,Modifier.weight(1f))
         }
     }
 }
@@ -114,7 +116,7 @@ import java.util.Date
                 append(value)
                 if(unit.isNotEmpty()) {
                     append("\u00a0")
-                    pushStyle(androidx.compose.ui.text.SpanStyle(fontSize=MaterialTheme.typography.titleMedium.fontSize)); append(unit); pop()
+                    pushStyle(androidx.compose.ui.text.SpanStyle(fontSize=MaterialTheme.typography.titleSmall.fontSize)); append(unit); pop()
                 }
             },style=valueStyle,maxLines=1,softWrap=false,
             autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=12.sp,maxFontSize=valueStyle.fontSize))
