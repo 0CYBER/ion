@@ -37,6 +37,9 @@ class ControlsTest {
         assertArrayEquals(bytes("AA AA 16 09 02 21 60 33 02 FF FF FF FF 6D"), music.bytes())
         assertEquals(V12Protocol.Read.SETTINGS, off.readBack)
         assertThrows(IllegalArgumentException::class.java) { V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, 1) }
+        // Personal mode names the stored effect where the other modes send ff ff ff ff.
+        assertEquals("3301a1bb0d00", V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, 1, 900_001).bytes().takeLast(7).dropLast(1)
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) })
     }
     @Test fun selectingAStoredEffectMatchesTheVendorCapture() {
         fun bytes(hex: String) = hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()

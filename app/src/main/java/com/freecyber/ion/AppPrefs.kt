@@ -76,6 +76,10 @@ class AppPrefs(context: Context) {
     private val lightDesignsState = MutableStateFlow(LightDesign.decodeAll(prefs.getString("light_designs", null)))
     val lightDesigns: StateFlow<List<LightDesign>> = lightDesignsState.asStateFlow()
     fun setLightDesigns(value: List<LightDesign>) { lightDesignsState.value = value; prefs.edit { putString("light_designs", LightDesign.encodeAll(value)) } }
+    /** The personal effect last turned on, so the "personal" mode can be switched to without picking one again. */
+    private val lightLastState = MutableStateFlow(prefs.getLong("light_last_effect", 0L).takeIf { it > 0 })
+    val lightLast: StateFlow<Long?> = lightLastState.asStateFlow()
+    fun setLightLast(id: Long) { lightLastState.value = id; prefs.edit { putLong("light_last_effect", id) } }
 
     private val dashboardState = MutableStateFlow(DashboardLayout.decode(prefs.getString("dashboard", null)))
     val dashboard: StateFlow<DashboardLayout> = dashboardState.asStateFlow()

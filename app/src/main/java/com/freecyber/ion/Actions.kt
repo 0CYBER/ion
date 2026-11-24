@@ -39,4 +39,5 @@ internal data class PrefsUi(
     val update: UpdateUi = UpdateUi(),
     val sounds: SoundLabels = SoundLabels(),
     val lightDesigns: List<LightDesign> = emptyList(),
+    val lightLast: Long? = null,
 )

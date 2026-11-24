@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
             val background by model.prefs.background.collectAsStateWithLifecycle()
             val soundLabels by model.prefs.soundLabels.collectAsStateWithLifecycle()
             val lightDesigns by model.prefs.lightDesigns.collectAsStateWithLifecycle()
+            val lightLast by model.prefs.lightLast.collectAsStateWithLifecycle()
             val updater = ionGraph.updater
             val updateState by updater.state.collectAsStateWithLifecycle()
             val updateConfig by model.prefs.updates.collectAsStateWithLifecycle()
@@ -177,13 +178,13 @@ class MainActivity : ComponentActivity() {
                     requestLocationServices = { runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                     addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
                 ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
-                    themeFollowsSystem=preference==null,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns),Actions(scan={permitted(null)},connect={permitted(it)},
+                    themeFollowsSystem=preference==null,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns,lightLast=lightLast),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
                     setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,
                     lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d, model.prefs.lightDesigns.value) },
-                        list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer,delete=model.ble::deleteLights),setAlerts=model.prefs::setAlerts,setBackground={ config ->
+                        list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer,delete=model.ble::deleteLights,setLast=model.prefs::setLightLast),setAlerts=model.prefs::setAlerts,setBackground={ config ->
                         model.prefs.setBackground(config)
                         if ((config.gpsTrack && !background.gpsTrack && !locationAllowed) ||
                             (config.liveNotification && !background.liveNotification && !notificationsAllowed)) onboarding = true

@@ -40,7 +40,7 @@ import kotlin.math.roundToInt
                         listOf(SliderSpec(stringResource(R.string.control_low),it.lowBrightness,0..100) {v -> "$v%"},
                             SliderSpec(stringResource(R.string.control_high),it.highBrightness,0..100) {v -> "$v%"})
                     }) {v -> request(V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,v[0],v[1]))}
-                LightModeRow(ui,safe,personalPicked,{personalPicked=it},request)
+                LightModeRow(ui,safe,lights,personalPicked,{personalPicked=it},request)
             }
                 LightSync(ui,lights) }
             // Effect settings only matter once the personal mode is chosen (or already running on the wheel).

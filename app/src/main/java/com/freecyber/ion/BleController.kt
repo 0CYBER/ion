@@ -442,8 +442,13 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                         deleteFiles(link, write, listOf(LightEffects.Stored(previous, 0)))
                                     mutable.update { it.copy(lightTransfer = LightTransfer(job.design.slot, id, if (error == null) 1f else
                                         it.lightTransfer?.progress ?: 0f, done = true, error = error)) }
-                                    // The selected effect shows up as personal mode in the settings, and in the list.
-                                    optionalRead(link, write, V12Protocol.Read.SETTINGS)
+                                    // Selecting only works inside personal mode; from another mode the wheel needs 0x33 with the id.
+                                    val now = optionalRead(link, write, V12Protocol.Read.SETTINGS)?.let(V12Protocol::settings)
+                                    if (error == null && id != null && now?.lightEffect != V12Protocol.LightEffect.PERSONAL.id) {
+                                        send(link, write, V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, 1, id.toInt()).bytes())
+                                        delay(200)
+                                        optionalRead(link, write, V12Protocol.Read.SETTINGS)
+                                    }
                                     if (error == null) listStoredLights(link, write)
                                 }
                                 is Work.Write -> {

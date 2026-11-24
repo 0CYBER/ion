@@ -115,7 +115,7 @@ class ScreenshotTest {
     }
     @Test fun lightModes() = shot("light_modes", dark = true) {
         androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
-            GroupColumn { LightModeRow(Samples.live(), true, true, {}) {} }
+            GroupColumn { LightModeRow(Samples.live(), true, LightUi(), true, {}) {} }
         }
     }
     @Test fun lightEditor() {

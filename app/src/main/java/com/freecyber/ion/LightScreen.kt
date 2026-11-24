@@ -55,7 +55,18 @@ internal data class LightUi(
     val list: () -> Unit = {},
     val clearTransfer: () -> Unit = {},
     val delete: (List<LightEffects.Stored>) -> Unit = {},
+    /** The effect last turned on (or uploaded), used when "personal" is picked as the mode. */
+    val last: Long? = null,
+    val setLast: (Long) -> Unit = {},
 )
+
+/**
+ * Turns on a stored effect. Inside personal mode the vendor app's select (0x2d) is enough; from another mode the
+ * wheel ignores it and needs the mode command with the effect's id.
+ */
+internal fun lightOn(mode: Int?, id: Long) = if (mode == V12Protocol.LightEffect.PERSONAL.id)
+    V12Protocol.Write(V12Protocol.Control.LIGHT_PACKAGE, id.toInt())
+    else V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, V12Protocol.LightEffect.PERSONAL.id, id.toInt())
 
 /** The name shown everywhere: the rider's, or "Effect N" for an unnamed one. */
 @Composable private fun LightDesign.title() = name.ifBlank { stringResource(R.string.light_unnamed, slot) }
@@ -102,7 +113,7 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
         SectionHeader(stringResource(R.string.light_on_wheel))
         StoredEffects(wheel.storedLights, lights.designs, safe, refresh = lights.list,
             clean = { lights.delete(it) }, delete = { deletingStored = it }) { id ->
-            request(V12Protocol.Write(V12Protocol.Control.LIGHT_PACKAGE, id.toInt()))
+            lights.setLast(id); request(lightOn(wheel.settings?.lightEffect, id))
         }
     }
     editing?.let { d ->
@@ -144,7 +155,7 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
  * Side-light mode as an expandable row of the lights group. Off, music and speed are sent at once; "personal" needs
  * an effect, so picking it only opens the effect settings below, where an effect is turned on.
  */
-@Composable internal fun LightModeRow(ui: VelaUi, safe: Boolean, personalPicked: Boolean, pickPersonal: (Boolean) -> Unit,
+@Composable internal fun LightModeRow(ui: VelaUi, safe: Boolean, lights: LightUi, personalPicked: Boolean, pickPersonal: (Boolean) -> Unit,
     request: (V12Protocol.Write) -> Unit) {
     val mode = ui.wheel.settings?.lightEffect
     val personal = lightPersonal(mode, personalPicked)
@@ -161,7 +172,13 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
                 val on = effect == selected
                 Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(IonShapes.m))
                     .selectable(on, enabled = safe, role = Role.RadioButton) {
-                        if (effect == V12Protocol.LightEffect.PERSONAL) pickPersonal(true)
+                        if (effect == V12Protocol.LightEffect.PERSONAL) {
+                            pickPersonal(true)
+                            // The last effect turned on, else the first one on the wheel; with none, the list below is the way in.
+                            val effects = ui.wheel.storedLights?.filterNot { it.temporary }.orEmpty()
+                            val id = effects.firstOrNull { it.id == lights.last }?.id ?: effects.firstOrNull()?.id
+                            if (id != null && mode != V12Protocol.LightEffect.PERSONAL.id) request(lightOn(mode, id))
+                        }
                         else { pickPersonal(false); request(V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, effect.id)) }
                     }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     RadioButton(selected = on, onClick = null, enabled = safe)
@@ -185,6 +202,7 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
             lights.designs.firstOrNull { it.slot == transfer.slot && it.wheelId != id }?.let { d ->
                 lights.setDesigns(lights.designs.map { if (it.slot == d.slot) it.copy(wheelId = id) else it })
             }
+        if (transfer?.done == true && transfer.error == null && id != null) lights.setLast(id)
     }
 }
 

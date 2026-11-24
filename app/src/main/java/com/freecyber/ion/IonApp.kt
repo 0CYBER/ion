@@ -90,7 +90,7 @@ internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETT
                         route.startsWith("control:") && ControlCategory.entries.any {it.name==route.substringAfter(':')} ->
                             ControlScreen(ui(),ControlCategory.valueOf(route.substringAfter(':')),
                             {actions.read(V12Protocol.Read.SETTINGS)},::write,prefs.sounds,actions.setSoundLabels,
-                            actions.lights.copy(designs=prefs.lightDesigns)) {back()}
+                            actions.lights.copy(designs=prefs.lightDesigns,last=prefs.lightLast)) {back()}
                         route=="tab:${Tabs.HISTORY}" -> TripsScreen(prefs.trips,actions,{trip -> open("trip:${trip.startedAt}")})
                         route=="tab:${Tabs.SETTINGS}" -> SettingsScreen({open("app")}) {open("control:${it.name}")}
                         route=="tab:${Tabs.WHEEL}" -> WheelScreen(ui(),actions,actions.connect,{forget=true},{open("diagnostics")})

@@ -206,8 +206,9 @@ object V12Protocol {
     enum class Tier { SAFE, STATIONARY }
     /** Sound slots offered for preview: the whole 0..31 range, so slots past 15 can be found by ear; 24 is the horn. */
     val soundIds = (0..31).toList()
-    /** RGB light mode, settings byte 23 (before/after exports of the owner's V12 HT). [PERSONAL] is switched by
-     * selecting a stored effect ([Control.LIGHT_PACKAGE]), the way the vendor app does; the others by 0x33. */
+    /** RGB light mode, settings byte 23 (before/after exports of the owner's V12 HT). All four go through 0x33;
+     * [PERSONAL] carries the stored effect's id where the others send 0xff × 4. Selecting an effect alone
+     * ([Control.LIGHT_PACKAGE]) only changes the effect while the wheel is already in personal mode (owner's test). */
     enum class LightEffect(val id: Int) { OFF(0), PERSONAL(1), MUSIC(2), SPEED(3) }
 
     enum class Control(val tier: Tier) {
@@ -234,7 +235,8 @@ object V12Protocol {
                 Control.PEDAL_TILT -> require(a in -100..100) // tenths of a degree
                 Control.ALARMS -> require(a in 0..70 && b in 0..70)
                 Control.PLAY_SOUND -> require(a in soundIds)
-                Control.LIGHT_EFFECT -> require(a != LightEffect.PERSONAL.id && LightEffect.entries.any { it.id == a } && b == 0)
+                // b: the effect id for personal mode, 0 otherwise.
+                Control.LIGHT_EFFECT -> require(LightEffect.entries.any { it.id == a } && if (a == LightEffect.PERSONAL.id) b > 0 else b == 0)
                 Control.LIGHT_PACKAGE -> require(a > 0)
                 else -> require(a in 0..1)
             }
@@ -254,6 +256,7 @@ object V12Protocol {
                 Control.LIGHT_EFFECT -> when (a) {
                     LightEffect.OFF.id -> tr("Выключить подсветку", "Turn off RGB lights")
                     LightEffect.SPEED.id -> tr("Подсветка по скорости", "Lights follow speed")
+                    LightEffect.PERSONAL.id -> tr("Свой эффект подсветки $b", "Personal light effect $b")
                     else -> tr("Подсветка в такт музыке", "Lights follow music")
                 }
                 Control.LIGHT_PACKAGE -> tr("Включить эффект подсветки $a", "Turn on light effect $a")
@@ -282,8 +285,9 @@ object V12Protocol {
                 Control.BRIGHTNESS -> byteArrayOf(0x2b, a.toByte(), b.toByte())
                 Control.AUTO_LIGHT -> byteArrayOf(0x2f, a.toByte())
                 // INMOTION 8.1.34 V12MessageFactory.genSetLightEffectModeMsg uses 0x33,
-                // a mode byte, and four 0xff bytes when no package or colour is supplied.
-                Control.LIGHT_EFFECT -> byteArrayOf(0x33, a.toByte(), -1, -1, -1, -1)
+                // a mode byte, and four 0xff bytes when no package or colour is supplied; personal mode names its package.
+                Control.LIGHT_EFFECT -> byteArrayOf(0x33, a.toByte()) +
+                    if (a == LightEffect.PERSONAL.id) ByteArray(4) { (b shr (8 * it)).toByte() } else byteArrayOf(-1, -1, -1, -1)
                 Control.LIGHT_PACKAGE -> byteArrayOf(0x2d) + ByteArray(4) { (a shr (8 * it)).toByte() }
                 Control.VOLUME -> byteArrayOf(0x26, a.toByte())
                 Control.MUTE -> byteArrayOf(0x2c, (1-a).toByte())
