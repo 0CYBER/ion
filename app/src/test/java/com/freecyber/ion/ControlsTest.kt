@@ -5,7 +5,7 @@ import org.junit.Test
 class ControlsTest {
     private fun unpack(w: V12Protocol.Write) = V12Protocol.Decoder().feed(w.bytes()).single()
     @Test fun allowlistMatchesReferencePayloads() {
-        assertEquals(21,V12Protocol.Control.entries.size)
+        assertEquals(22,V12Protocol.Control.entries.size)
         val samples=listOf(
             V12Protocol.Write(V12Protocol.Control.LIGHTS,1,0) to byteArrayOf(0x50,1,0),
             V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,25,75) to byteArrayOf(0x2b,25,75),
@@ -35,8 +35,23 @@ class ControlsTest {
         val music = V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, V12Protocol.LightEffect.MUSIC.id)
         assertArrayEquals(bytes("AA AA 16 09 02 21 60 33 00 FF FF FF FF 6F"), off.bytes())
         assertArrayEquals(bytes("AA AA 16 09 02 21 60 33 02 FF FF FF FF 6D"), music.bytes())
-        assertNull(off.readBack)
+        assertEquals(V12Protocol.Read.SETTINGS, off.readBack)
         assertThrows(IllegalArgumentException::class.java) { V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, 1) }
+    }
+    @Test fun selectingAStoredEffectMatchesTheVendorCapture() {
+        fun bytes(hex: String) = hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        // docs/evidence/light-upload-frames.txt: the vendor app selecting effect 30321 after uploading it.
+        assertArrayEquals(bytes("aaaa16080221602d7176000077"), V12Protocol.Write(V12Protocol.Control.LIGHT_PACKAGE, 30321).bytes())
+        assertArrayEquals(LightEffects.select(30321).bytes, V12Protocol.Write(V12Protocol.Control.LIGHT_PACKAGE, 30321).bytes())
+    }
+    @Test fun lightModeIsSettingsByte23() {
+        fun settings(hex: String) = V12Protocol.settings(V12Protocol.Frame(0x14, 0xa0, hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()))!!
+        val base = "20000000000000000070178A1381150000080710464605%s0F32646428AC0D2F2F800C0000000005700100"
+        listOf(0, 1, 2, 3).forEach { mode -> assertEquals(mode, settings(base.format("%02X".format(mode))).lightEffect) }
+        val music = settings(base.format("02"))
+        assertTrue(V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, V12Protocol.LightEffect.MUSIC.id)
+            .confirmed(V12Protocol.Frame(0x14, 0xa0, base.format("02").chunked(2).map { it.toInt(16).toByte() }.toByteArray()))!!)
+        assertEquals(2, music.lightEffect)
     }
     @Test fun lockFramesMatchOfficialObservedV12HtSession() {
         fun bytes(hex: String) = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()

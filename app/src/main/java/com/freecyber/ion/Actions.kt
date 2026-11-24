@@ -26,6 +26,7 @@ internal data class Actions(
     val tripTimeline: (Long) -> List<Moment> = { emptyList() },
     val update: UpdateActions = UpdateActions(),
     val setSoundLabels: (SoundLabels) -> Unit = {},
+    val lights: LightUi = LightUi(),
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */
@@ -37,4 +38,5 @@ internal data class PrefsUi(
     val themeFollowsSystem: Boolean = false,
     val update: UpdateUi = UpdateUi(),
     val sounds: SoundLabels = SoundLabels(),
+    val lightDesigns: List<LightDesign> = emptyList(),
 )

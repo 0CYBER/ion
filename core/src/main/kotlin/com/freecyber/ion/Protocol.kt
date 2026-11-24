@@ -126,7 +126,9 @@ object V12Protocol {
         val autoLight: Boolean, val transport: Boolean, val soundWave: Boolean, val splitMode: Boolean,
         val locked: Boolean = false,
         /** Wheel-side remaining range estimate (vendor "remainder range estimate"); off = nominal 180 km. */
-        val rangeEstimate: Boolean = false)
+        val rangeEstimate: Boolean = false,
+        /** RGB light mode ([LightEffect] id), settings byte 23. */
+        val lightEffect: Int? = null)
     fun settings(f: Frame): Settings? {
         if (f.flags != 0x14 || f.command != 0x20 || !f.response || f.payload.size < 42 || f.payload[0].u() != 0x20) return null
         val p = f.payload
@@ -138,7 +140,9 @@ object V12Protocol {
             // bit5 of byte39: observed flipping exactly when the vendor app toggles the wheel lock.
             p[39].u() and 0x20 != 0,
             // bit6 of byte40: 0x70 with the vendor app's range estimate on, 0x30 with it off (owner's before/after export).
-            p[40].u() and 0x40 != 0)
+            p[40].u() and 0x40 != 0,
+            // byte23: 0 off, 1 personal, 2 music, 3 speed (owner's exports of each mode).
+            p[23].u())
     }
     /** WheelLog parseTotalStats (0x14/0x11): u32LE ×6; distance in 10 m units, energies /100, times in seconds. */
     data class Statistics(val totalKm: Double, val dischargedKwh: Double, val recoveredKwh: Double,
@@ -202,7 +206,9 @@ object V12Protocol {
     enum class Tier { SAFE, STATIONARY }
     /** Sound slots offered for preview: the whole 0..31 range, so slots past 15 can be found by ear; 24 is the horn. */
     val soundIds = (0..31).toList()
-    enum class LightEffect(val id: Int) { OFF(0), MUSIC(2) }
+    /** RGB light mode, settings byte 23 (before/after exports of the owner's V12 HT). [PERSONAL] is switched by
+     * selecting a stored effect ([Control.LIGHT_PACKAGE]), the way the vendor app does; the others by 0x33. */
+    enum class LightEffect(val id: Int) { OFF(0), PERSONAL(1), MUSIC(2), SPEED(3) }
 
     enum class Control(val tier: Tier) {
         LIGHTS(Tier.SAFE), BRIGHTNESS(Tier.SAFE), AUTO_LIGHT(Tier.SAFE), LIGHT_EFFECT(Tier.SAFE),
@@ -213,7 +219,9 @@ object V12Protocol {
         /** Only changes how the wheel estimates remaining range, so it is safe while riding. */
         RANGE_ESTIMATE(Tier.SAFE),
         /** Wheel speed limit in km/h; changes how the wheel rides, so only with the wheel standing still. */
-        MAX_SPEED(Tier.STATIONARY)
+        MAX_SPEED(Tier.STATIONARY),
+        /** Activates a personal light effect stored on the wheel by its id (`0x2d` + u32, as the vendor app). */
+        LIGHT_PACKAGE(Tier.SAFE)
     }
     data class Write(val kind: Control, val a: Int, val b: Int = 0) {
         init {
@@ -226,14 +234,15 @@ object V12Protocol {
                 Control.PEDAL_TILT -> require(a in -100..100) // tenths of a degree
                 Control.ALARMS -> require(a in 0..70 && b in 0..70)
                 Control.PLAY_SOUND -> require(a in soundIds)
-                Control.LIGHT_EFFECT -> require(LightEffect.entries.any { it.id == a } && b == 0)
+                Control.LIGHT_EFFECT -> require(a != LightEffect.PERSONAL.id && LightEffect.entries.any { it.id == a } && b == 0)
+                Control.LIGHT_PACKAGE -> require(a > 0)
                 else -> require(a in 0..1)
             }
         }
         /** Authoritative read-back target; null means the value is not observable in known reads. */
         val readBack: Read? get() = when(kind) {
             Control.LIGHTS -> Read.TELEMETRY
-            Control.PLAY_SOUND, Control.LIGHT_EFFECT -> null
+            Control.PLAY_SOUND -> null
             else -> Read.SETTINGS
         }
         val label: String get() {
@@ -242,8 +251,12 @@ object V12Protocol {
                 Control.LIGHTS -> tr("Свет: ближний ${on(a)}, дальний ${on(b)}","Lights: low ${on(a)}, high ${on(b)}")
                 Control.BRIGHTNESS -> tr("Яркость: ближний $a%, дальний $b%","Brightness: low $a%, high $b%")
                 Control.AUTO_LIGHT -> tr("Автосвет: ${on(a)}","Auto light: ${on(a)}")
-                Control.LIGHT_EFFECT -> if (a == LightEffect.OFF.id) tr("Выключить подсветку", "Turn off RGB lights")
-                    else tr("Подсветка в такт музыке", "Lights follow music")
+                Control.LIGHT_EFFECT -> when (a) {
+                    LightEffect.OFF.id -> tr("Выключить подсветку", "Turn off RGB lights")
+                    LightEffect.SPEED.id -> tr("Подсветка по скорости", "Lights follow speed")
+                    else -> tr("Подсветка в такт музыке", "Lights follow music")
+                }
+                Control.LIGHT_PACKAGE -> tr("Включить эффект подсветки $a", "Turn on light effect $a")
                 Control.VOLUME -> tr("Громкость: $a%","Volume: $a%")
                 Control.MUTE -> if(a==1) tr("Без звука: да","Mute: yes") else tr("Без звука: нет","Mute: no")
                 Control.SOUND_WAVE -> tr("Звук движения: ${on(a)}","Riding sound: ${on(a)}")
@@ -271,6 +284,7 @@ object V12Protocol {
                 // INMOTION 8.1.34 V12MessageFactory.genSetLightEffectModeMsg uses 0x33,
                 // a mode byte, and four 0xff bytes when no package or colour is supplied.
                 Control.LIGHT_EFFECT -> byteArrayOf(0x33, a.toByte(), -1, -1, -1, -1)
+                Control.LIGHT_PACKAGE -> byteArrayOf(0x2d) + ByteArray(4) { (a shr (8 * it)).toByte() }
                 Control.VOLUME -> byteArrayOf(0x26, a.toByte())
                 Control.MUTE -> byteArrayOf(0x2c, (1-a).toByte())
                 Control.SOUND_WAVE -> byteArrayOf(0x39, a.toByte())
@@ -295,7 +309,7 @@ object V12Protocol {
             // V12 HT lock frames observed in INMOTION 8.1.34 on this wheel. The
             // address can be session-dependent; this test path requires hardware verification.
             return when (kind) {
-                Control.LOCK, Control.LIGHT_EFFECT -> frame(0x16, 0x02, byteArrayOf(0x21, 0x60) + payload)
+                Control.LOCK, Control.LIGHT_EFFECT, Control.LIGHT_PACKAGE -> frame(0x16, 0x02, byteArrayOf(0x21, 0x60) + payload)
                 else -> frame(0x14, 0x60, payload)
             }
         }
@@ -324,6 +338,8 @@ object V12Protocol {
                 Control.LOCK -> s.locked == (a==1)
                 Control.RANGE_ESTIMATE -> s.rangeEstimate == (a==1)
                 Control.MAX_SPEED -> kotlin.math.abs(s.speedLimit - a) < 0.005
+                Control.LIGHT_EFFECT -> s.lightEffect == a
+                Control.LIGHT_PACKAGE -> s.lightEffect == LightEffect.PERSONAL.id
                 else -> null
             }
         }
@@ -383,6 +399,7 @@ object V12Protocol {
             add("mute",tr("Без звука","Mute"),yes(s.muted)); add("handle",tr("Кнопка ручки","Handle button"),yes(s.handleEnabled))
             add("autoLight",tr("Автосвет","Auto light"),yes(s.autoLight)); add("transport",tr("Транспортный режим","Transport mode"),yes(s.transport))
             add("soundWave",tr("Звук движения","Riding sound"),yes(s.soundWave)); add("splitMode","Split mode",yes(s.splitMode))
+            add("lightEffect",tr("Режим подсветки","Light mode"),s.lightEffect?.toString() ?: "—")
             add("rangeEstimate",tr("Оценка остатка пробега","Range estimate"),yes(s.rangeEstimate))
             add("locked",tr("Блокировка","Lock"),yes(s.locked))
         }

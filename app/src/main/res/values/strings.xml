@@ -60,4 +60,8 @@
     <string name="sound_show_hidden">Показать скрытые (%1$d)</string>
     <string name="sound_hide_hidden">Спрятать скрытые</string>
     <string name="save">Сохранить</string>
+    <string name="light_upload_mtu">Канал Bluetooth слишком узкий для загрузки эффекта</string>
+    <string name="light_upload_no_answer">Колесо не ответило на шаге «%1$s»</string>
+    <string name="light_upload_refused">Колесо отклонило шаг «%1$s»</string>
+    <string name="light_upload_busy">Колесо занято другой командой, попробуйте ещё раз</string>
 </resources>

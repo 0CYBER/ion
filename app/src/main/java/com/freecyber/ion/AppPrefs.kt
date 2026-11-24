@@ -73,6 +73,10 @@ class AppPrefs(context: Context) {
     val soundLabels: StateFlow<SoundLabels> = soundLabelsState.asStateFlow()
     fun setSoundLabels(value: SoundLabels) { soundLabelsState.value = value; prefs.edit { putString("sound_labels", value.encode()) } }
 
+    private val lightDesignsState = MutableStateFlow(LightDesign.decodeAll(prefs.getString("light_designs", null)))
+    val lightDesigns: StateFlow<List<LightDesign>> = lightDesignsState.asStateFlow()
+    fun setLightDesigns(value: List<LightDesign>) { lightDesignsState.value = value; prefs.edit { putString("light_designs", LightDesign.encodeAll(value)) } }
+
     private val dashboardState = MutableStateFlow(DashboardLayout.decode(prefs.getString("dashboard", null)))
     val dashboard: StateFlow<DashboardLayout> = dashboardState.asStateFlow()
     fun setDashboard(value: DashboardLayout) {

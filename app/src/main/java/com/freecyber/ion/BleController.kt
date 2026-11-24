@@ -40,6 +40,9 @@ data class WheelDevice(
         this.address.equals(address, ignoreCase = true) || (serial != null && reportedSerial == serial)
 }
 data class PacketRecord(val read: V12Protocol.Read, val frame: V12Protocol.Frame? = null, val at: Long? = null, val status: String = "Ещё не запрошено")
+/** A personal light effect upload: [progress] 0..1 over the file chunks, [error] set when a step failed. */
+data class LightTransfer(val id: Long, val progress: Float, val done: Boolean = false, val error: String? = null)
+
 data class WheelState(
     val phase: Phase = Phase.OFFLINE,
     val message: String = "", // set from resources by BleController
@@ -60,7 +63,11 @@ data class WheelState(
     /** Consecutive telemetry packets above the stillness speed threshold; resets the counter only from 2 in a row. */
     val movingStreak: Int = 0,
     /** Consecutive telemetry packets carrying the firmware-update bit; the guard acts from 2 in a row. */
-    val firmwareUpdateStreak: Int = 0
+    val firmwareUpdateStreak: Int = 0,
+    /** Personal light effect upload in progress or just finished. */
+    val lightTransfer: LightTransfer? = null,
+    /** Effect files on the wheel from the last listing; null until listed. */
+    val storedLights: List<LightEffects.Stored>? = null,
 ) {
     val verifiedV12 get() = model?.isSupported == true
 }
@@ -93,7 +100,11 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         data object ReadAll : Work
         data class ReadOne(val read: V12Protocol.Read) : Work
         data class Write(val command: V12Protocol.Write) : Work
+        data class LightUpload(val id: Long, val file: ByteArray) : Work
+        data object LightList : Work
     }
+    private val fileResponses = Channel<LightEffects.Reply>(Channel.BUFFERED)
+    @Volatile private var awaitingFile = false
     private val work = Channel<Work>(1)
     // Debug-only diagnostics: messages are fixed labels/statuses, never security payloads or identifiers.
     private fun lockTrace(message: String, reset: Boolean = false) {
@@ -112,8 +123,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             s.lastPacketAt?.let { SystemClock.elapsedRealtime()-it }, t?.speed, t?.charging ?: false,
             t?.firmwareUpdate ?: false, pending && !ignorePending)
     }
-    fun readAll() = enqueue(Work.ReadAll)
-    fun read(read: V12Protocol.Read) = enqueue(Work.ReadOne(read))
+    fun readAll() { enqueue(Work.ReadAll) }
+    fun read(read: V12Protocol.Read) { enqueue(Work.ReadOne(read)) }
     fun apply(command: V12Protocol.Write) {
         // The lock is offered on every supported V12 (only proven on the HT); its security exchange and read-back
         // still refuse to report success unless the wheel confirms the new state.
@@ -123,9 +134,21 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             str(R.string.ble_write_moving)) }; return }
         enqueue(Work.Write(command))
     }
-    private fun enqueue(item: Work) {
-        if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedV12 || mutable.value.workPending) return
-        if(work.trySend(item).isSuccess) mutable.update { it.copy(workPending=true, writeMessage=if(item is Work.Write) null else it.writeMessage) }
+    /** Uploads a personal light effect file and makes it the active effect, as the vendor app does. */
+    fun uploadLight(id: Long, file: ByteArray) {
+        if (!mayWrite(V12Protocol.Tier.SAFE, mutable.value.writeInFlight)) {
+            mutable.update { it.copy(writeMessage = str(R.string.ble_write_no_link)) }; return
+        }
+        if (enqueue(Work.LightUpload(id, file))) mutable.update { it.copy(lightTransfer = LightTransfer(id, 0f)) }
+        else mutable.update { it.copy(writeMessage = str(R.string.light_upload_busy)) }
+    }
+    fun listLights() { enqueue(Work.LightList) }
+    fun clearLightTransfer() = mutable.update { it.copy(lightTransfer = null) }
+    private fun enqueue(item: Work): Boolean {
+        if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedV12 || mutable.value.workPending) return false
+        if(!work.trySend(item).isSuccess) return false
+        mutable.update { it.copy(workPending=true, writeMessage=if(item is Work.Write || item is Work.LightUpload) null else it.writeMessage) }
+        return true
     }
     private fun clearWork() { while(work.tryReceive().isSuccess) {} }
     private fun record(read: V12Protocol.Read, frame: V12Protocol.Frame? = null, status: String) {
@@ -218,6 +241,8 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         scope.launch {
             if (g !== gatt || uuid.toString() != V12Protocol.NOTIFY) return@launch
             for (f in decoder.feed(value)) {
+                // File transfer and effect replies use the addressed layout too; only while a transfer waits for them.
+                if (awaitingFile) LightEffects.reply(f)?.let { fileResponses.trySend(it); continue }
                 // Security replies use a different address layout, not the legacy response bit.
                 if (awaitingSecurity && LockSecurity.isRelevantReply(f)) {
                     securityResponses.trySend(f)
@@ -387,6 +412,16 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                     if(read != V12Protocol.Read.TELEMETRY) optionalRead(link,write,V12Protocol.Read.TELEMETRY)
                                 }
                                 is Work.ReadOne -> optionalRead(link,write,job.read)
+                                is Work.LightList -> listStoredLights(link, write)
+                                is Work.LightUpload -> {
+                                    mutable.update { it.copy(writeInFlight=true) }
+                                    val error = uploadLight(link, write, job.id, job.file)
+                                    mutable.update { it.copy(lightTransfer = LightTransfer(job.id, if (error == null) 1f else
+                                        it.lightTransfer?.progress ?: 0f, done = true, error = error)) }
+                                    // The selected effect shows up as personal mode in the settings, and in the list.
+                                    optionalRead(link, write, V12Protocol.Read.SETTINGS)
+                                    if (error == null) listStoredLights(link, write)
+                                }
                                 is Work.Write -> {
                                     mutable.update { it.copy(writeInFlight=true) }
                                     if(!mayWrite(job.command.kind.tier, pending=true, ignorePending=true)) mutable.update { it.copy(writeMessage=
@@ -515,6 +550,71 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             while (securityResponses.tryReceive().isSuccess) { }
         }
     }
+    /** Asks for a larger MTU when the link is below [minimum]; returns whether it is at least [minimum] now. */
+    private suspend fun ensureMtu(g: BluetoothGatt, minimum: Int, request: Int): Boolean {
+        if (negotiatedMtu >= minimum) return true
+        while (events.tryReceive().isSuccess) { }
+        if (!g.requestMtu(request)) return false
+        withTimeoutOrNull(2000) {
+            var result: Event? = null
+            while (result == null) { val e = events.receive(); if (e.kind == "mtu") result = e }
+        }
+        return negotiatedMtu >= minimum
+    }
+
+    /** Sends one step and waits for its reply (one retry on silence for steps that are safe to repeat). */
+    private suspend fun fileStep(g: BluetoothGatt, c: BluetoothGattCharacteristic, step: LightEffects.Step): LightEffects.Reply? {
+        val attempts = if (step.label == "rename") 1 else 2
+        repeat(attempts) {
+            while (fileResponses.tryReceive().isSuccess) { }
+            send(g, c, step.bytes)
+            if (step.channel == null) { delay(150); return LightEffects.Reply(0, 0, byteArrayOf(0), null) }
+            val reply = withTimeoutOrNull(2_500) {
+                var r = fileResponses.receive()
+                while (!r.answers(step)) r = fileResponses.receive()
+                r
+            }
+            if (reply != null) return reply
+        }
+        return null
+    }
+
+    /** The vendor app's upload sequence ([LightEffects.upload]); returns null on success or what failed. */
+    private suspend fun uploadLight(g: BluetoothGatt, c: BluetoothGattCharacteristic, id: Long, file: ByteArray): String? {
+        // The app writes 191-byte chunk frames in one go; ask for room for them (the floor still allows small chunks).
+        if (!ensureMtu(g, 200, 247) && negotiatedMtu < 64) return str(R.string.light_upload_mtu)
+        val steps = runCatching { LightEffects.upload(id, file, negotiatedMtu - 3) }.getOrElse { return str(R.string.light_upload_mtu) }
+        val chunks = steps.count { it.label == "chunk" }
+        var sent = 0
+        awaitingFile = true
+        try {
+            for (step in steps) {
+                if (!mayWrite(V12Protocol.Tier.SAFE, pending = true, ignorePending = true)) return str(R.string.ble_not_sent_link)
+                val reply = fileStep(g, c, step) ?: return str(R.string.light_upload_no_answer, step.label)
+                if (!reply.ok) return str(R.string.light_upload_refused, step.label)
+                if (step.label == "chunk") {
+                    sent++
+                    mutable.update { it.copy(lightTransfer = LightTransfer(id, sent.toFloat() / chunks)) }
+                }
+            }
+            return null
+        } finally {
+            awaitingFile = false
+            while (fileResponses.tryReceive().isSuccess) { }
+        }
+    }
+
+    private suspend fun listStoredLights(g: BluetoothGatt, c: BluetoothGattCharacteristic) {
+        awaitingFile = true
+        try {
+            val reply = fileStep(g, c, LightEffects.list())
+            reply?.let(LightEffects::parseList)?.let { list -> mutable.update { it.copy(storedLights = list) } }
+        } finally {
+            awaitingFile = false
+            while (fileResponses.tryReceive().isSuccess) { }
+        }
+    }
+
     private suspend fun send(g: BluetoothGatt, c: BluetoothGattCharacteristic, bytes: ByteArray) {
         val type = if (c.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0)
             BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE else BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
@@ -541,7 +641,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), model = null, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0) }
+        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), model = null, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0, lightTransfer = null, storedLights = null) }
     }
     /** A connection failure whose message is already localized for the rider. */
     private class LinkFailure(message: String) : Exception(message)

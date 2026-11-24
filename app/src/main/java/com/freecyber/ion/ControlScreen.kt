@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 @Composable internal fun ControlScreen(ui: VelaUi,category: ControlCategory,readSettings: ()->Unit,request: (V12Protocol.Write)->Unit,
-    sounds: SoundLabels=SoundLabels(),setSounds: (SoundLabels)->Unit={},onBack: ()->Unit) {
+    sounds: SoundLabels=SoundLabels(),setSounds: (SoundLabels)->Unit={},lights: LightUi=LightUi(),onBack: ()->Unit) {
     val t=ui.wheel.telemetry; val s=ui.wheel.settings
     val safe=ui.safeWrite
     val stopped=ui.stoppedWrite
@@ -40,24 +40,7 @@ import kotlin.math.roundToInt
                             SliderSpec(stringResource(R.string.control_high),it.highBrightness,0..100) {v -> "$v%"})
                     }) {v -> request(V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,v[0],v[1]))}
             } }
-            animatedItem(key="light-effects",contentType="controls") {
-                GroupColumn {
-                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.control_light_effect), style = MaterialTheme.typography.titleMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            V12Protocol.LightEffect.entries.forEach { effect ->
-                                val label = when (effect) {
-                                    V12Protocol.LightEffect.OFF -> R.string.control_light_effect_off
-                                    V12Protocol.LightEffect.MUSIC -> R.string.control_light_effect_music
-                                }
-                                FilledTonalButton(enabled = safe, onClick = {
-                                    request(V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, effect.id))
-                                }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(label)) }
-                            }
-                        }
-                    }
-                }
-            }
+            animatedItem(key="light-effects",contentType="controls") { LightEffectsSection(ui,safe,lights,request) }
         }
         if(category==ControlCategory.SOUND) {
             animatedItem(key="sound",contentType="controls") { GroupColumn {

@@ -60,4 +60,8 @@
     <string name="sound_show_hidden">Show hidden (%1$d)</string>
     <string name="sound_hide_hidden">Hide hidden</string>
     <string name="save">Save</string>
+    <string name="light_upload_mtu">The Bluetooth link is too narrow to upload an effect</string>
+    <string name="light_upload_no_answer">The wheel did not answer at step &quot;%1$s&quot;</string>
+    <string name="light_upload_refused">The wheel refused step &quot;%1$s&quot;</string>
+    <string name="light_upload_busy">The wheel is busy with another command, try again</string>
 </resources>
