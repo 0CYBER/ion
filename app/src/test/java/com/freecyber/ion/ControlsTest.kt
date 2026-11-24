@@ -54,7 +54,7 @@ class ControlsTest {
             {V12Protocol.Write(V12Protocol.Control.LIGHTS,1,2)},{V12Protocol.Write(V12Protocol.Control.MUTE,2)},
             {V12Protocol.Write(V12Protocol.Control.STANDBY,0)},{V12Protocol.Write(V12Protocol.Control.STANDBY,241)},{V12Protocol.Write(V12Protocol.Control.MAX_SPEED,71)},{V12Protocol.Write(V12Protocol.Control.MAX_SPEED,9)},
             {V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,101)},{V12Protocol.Write(V12Protocol.Control.PEDAL_TILT,-101)},
-            {V12Protocol.Write(V12Protocol.Control.ALARMS,71)},{V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,16)},
+            {V12Protocol.Write(V12Protocol.Control.ALARMS,71)},{V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,32)},
             {V12Protocol.Write(V12Protocol.Control.SPLIT_ACCEL_BRAKE,101)}).forEach { factory ->
             assertThrows(IllegalArgumentException::class.java) { factory() }
         }

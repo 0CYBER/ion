@@ -108,3 +108,9 @@ Instrumentation (изолированный эмулятор, отдельный
 
 - Протокол выведен из WheelLog (GPL-3.0, `third-party/WheelLog-LICENSE.txt`); MIT LICENSE в корне не снимает GPL-обязательств — решить перед публикацией. Orion/Lumen — визуальные ориентиры, код не копировался. Вендорский APK/декомпилят не включены.
 - Research root: `C:\Users\Bishkeks\Documents\inmotion-research` (офф. APK 8.1.34 ARM32+ARM64, evidence, приватные логи — не публиковать). Скрипты: `tools/re/` (`verify_arm64_lock.py`, `dispatch_lock.py`, `extract_observed_lock.py`, `compare_security_sessions.py`, `compare_ion_settings.py`). Парсеры в `%TEMP%\inmotion-re\` и `re-work` — сохранить до очистки TEMP.
+
+## Звуки колеса
+
+- Проигрывание: `0x14/0x60 [0x51, id, 0x01]` (как `playSound` в WheelLog), id 24 = `0x18` — гудок WheelLog на V12. Ion предлагает слоты 0–31: раньше было 0–15 + 24, а владелец слышал, что части звуков нет.
+- **Названий в протоколе и APK нет**: что звучит в слоте, зависит от звукового пакета на колесе, а офф. приложение берёт имена с сервера вместе с паком (`/product/sound-pack/…`, `SoundItemModel`; в строках Dart есть только ключи UI). Поэтому имена задаёт райдер: долгое нажатие подписывает или скрывает слот (`SoundLabels`, prefs `sound_labels`). Когда владелец пришлёт список «слот → звук», можно зашить имена по умолчанию.
+- Не сделано: смена паков и DIY-звуки (загрузка файла на колесо, `EzcanSoundFileUploadManager`/`EzCANSoundPackFileConfig`, `/download_soundPack_file.rmf`). Формат передачи не разобран.

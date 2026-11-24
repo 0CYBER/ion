@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -186,16 +187,57 @@ internal class SliderSpec(val label: String,value: Int,val range: IntRange,val t
         }
     }
 }
-@Composable internal fun SoundButtons(enabled: Boolean,play: (Int)->Unit) {
+/**
+ * Sound preview: tap plays the slot on the wheel, long press names or hides it. What a slot sounds like depends on
+ * the wheel's sound pack, so the names are the rider's own (see [SoundLabels]); hidden slots stay one tap away.
+ */
+@Composable internal fun SoundButtons(enabled: Boolean,labels: SoundLabels,setLabels: (SoundLabels)->Unit,play: (Int)->Unit) {
+    var editing by rememberSaveable {mutableStateOf<Int?>(null)}
+    var showHidden by rememberSaveable {mutableStateOf(false)}
+    val haptics=LocalHapticFeedback.current
+    @Composable fun label(id: Int)=labels.name(id) ?: if(id==SoundLabels.HORN) stringResource(R.string.sound_horn) else stringResource(R.string.sound_number,id)
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow).padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.sound_preview),style=MaterialTheme.typography.titleMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            V12Protocol.soundIds.forEach { number ->
-                FilledTonalButton(onClick = { play(number) }, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(if (number == 24) stringResource(R.string.sound_horn) else stringResource(R.string.sound_number, number))
+        Text(stringResource(R.string.sound_preview_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            V12Protocol.soundIds.filter {showHidden || it !in labels.hidden}.forEach {id ->
+                val hidden=id in labels.hidden
+                val text=label(id)
+                val rename=stringResource(R.string.sound_rename)
+                Surface(color=if(hidden) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor=if(hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape=RoundedCornerShape(50),modifier=Modifier.alpha(if(enabled) 1f else .38f)) {
+                    Box(Modifier.heightIn(min=48.dp)
+                        .combinedClickable(enabled=enabled,role=Role.Button,onLongClickLabel=rename,
+                            onLongClick={haptics.performHapticFeedback(HapticFeedbackType.LongPress);editing=id}) {play(id)}
+                        .padding(horizontal=18.dp),contentAlignment=Alignment.Center) {
+                        Text(text,style=MaterialTheme.typography.labelLarge,maxLines=1)
+                    }
                 }
             }
         }
+        if(labels.hidden.isNotEmpty()) TextButton(onClick={showHidden=!showHidden},modifier=Modifier.heightIn(min=48.dp)) {
+            Text(if(showHidden) stringResource(R.string.sound_hide_hidden) else stringResource(R.string.sound_show_hidden,labels.hidden.size))
+        }
+    }
+    editing?.let {id ->
+        var name by rememberSaveable(id) {mutableStateOf(labels.name(id).orEmpty())}
+        var hide by rememberSaveable(id) {mutableStateOf(id in labels.hidden)}
+        AlertDialog(onDismissRequest={editing=null},
+            title={Text(stringResource(R.string.sound_number,id))},
+            text={
+                Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(name,{name=it.take(SoundLabels.MAX_NAME)},singleLine=true,
+                        label={Text(stringResource(R.string.sound_name))},modifier=Modifier.fillMaxWidth())
+                    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).toggleable(hide,role=Role.Checkbox) {hide=it},
+                        verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        Checkbox(hide,null);Text(stringResource(R.string.sound_hide))
+                    }
+                    TextButton(onClick={play(id)},enabled=enabled) {Text(stringResource(R.string.sound_play_again))}
+                }
+            },
+            confirmButton={TextButton(onClick={setLabels(labels.rename(id,name).hide(id,hide));editing=null}) {Text(stringResource(R.string.save))}},
+            dismissButton={TextButton(onClick={editing=null}) {Text(stringResource(R.string.cancel))}})
     }
 }
 

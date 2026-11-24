@@ -195,7 +195,8 @@ object V12Protocol {
     /** Standby timer upper end in minutes, as offered by the vendor app (240 = 4 h). */
     const val STANDBY_MAX_MIN = 240
     enum class Tier { SAFE, STATIONARY }
-    val soundIds = (0..15).toList() + 24
+    /** Sound slots offered for preview: the whole 0..31 range, so slots past 15 can be found by ear; 24 is the horn. */
+    val soundIds = (0..31).toList()
     enum class LightEffect(val id: Int) { OFF(0), MUSIC(2) }
 
     enum class Control(val tier: Tier) {

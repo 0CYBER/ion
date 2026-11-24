@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
             val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
             val background by model.prefs.background.collectAsStateWithLifecycle()
+            val soundLabels by model.prefs.soundLabels.collectAsStateWithLifecycle()
             val updater = ionGraph.updater
             val updateState by updater.state.collectAsStateWithLifecycle()
             val updateConfig by model.prefs.updates.collectAsStateWithLifecycle()
@@ -175,11 +176,11 @@ class MainActivity : ComponentActivity() {
                     requestLocationServices = { runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                     addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
                 ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
-                    themeFollowsSystem=preference==null,update=updateUi),Actions(scan={permitted(null)},connect={permitted(it)},
+                    themeFollowsSystem=preference==null,update=updateUi,sounds=soundLabels),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
-                    setDashboard=model.prefs::setDashboard,setAlerts=model.prefs::setAlerts,setBackground={ config ->
+                    setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,setAlerts=model.prefs::setAlerts,setBackground={ config ->
                         model.prefs.setBackground(config)
                         if ((config.gpsTrack && !background.gpsTrack && !locationAllowed) ||
                             (config.liveNotification && !background.liveNotification && !notificationsAllowed)) onboarding = true

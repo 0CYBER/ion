@@ -151,7 +151,8 @@ class DashboardLayoutTest {
         // Out-of-range params fall back to the default.
         assertEquals(4, DashboardLayout.decode("PLAY_SOUND:1:0:99").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
         assertEquals(24, DashboardLayout.decode("PLAY_SOUND:1:0:24").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
-        assertEquals(4, DashboardLayout.decode("PLAY_SOUND:1:0:23").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        assertEquals(23, DashboardLayout.decode("PLAY_SOUND:1:0:23").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
+        assertEquals(4, DashboardLayout.decode("PLAY_SOUND:1:0:32").slots.first { it.tile == DashTile.PLAY_SOUND }.param)
         val set = legacy.setParam(DashTile.PLAY_SOUND, 2)
         assertTrue(set.encode().removePrefix("v2|").split(',').any { it.startsWith("PLAY_SOUND:1:0:2") })
         // setParam ignores values outside the tile's range.

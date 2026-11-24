@@ -69,6 +69,10 @@ class AppPrefs(context: Context) {
     val updateCheckedAt: StateFlow<Long> = updateCheckedState.asStateFlow()
     fun setUpdateCheckedAt(value: Long) { updateCheckedState.value = value; prefs.edit { putLong("update_checked_at", value) } }
 
+    private val soundLabelsState = MutableStateFlow(SoundLabels.decode(prefs.getString("sound_labels", null)))
+    val soundLabels: StateFlow<SoundLabels> = soundLabelsState.asStateFlow()
+    fun setSoundLabels(value: SoundLabels) { soundLabelsState.value = value; prefs.edit { putString("sound_labels", value.encode()) } }
+
     private val dashboardState = MutableStateFlow(DashboardLayout.decode(prefs.getString("dashboard", null)))
     val dashboard: StateFlow<DashboardLayout> = dashboardState.asStateFlow()
     fun setDashboard(value: DashboardLayout) {

@@ -25,6 +25,7 @@ internal data class Actions(
     /** The ride's telemetry log read back for the ride explorer (empty when the ride has none). Called off the main thread. */
     val tripTimeline: (Long) -> List<Moment> = { emptyList() },
     val update: UpdateActions = UpdateActions(),
+    val setSoundLabels: (SoundLabels) -> Unit = {},
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */
@@ -35,4 +36,5 @@ internal data class PrefsUi(
     val trips: List<TripSummary> = emptyList(),
     val themeFollowsSystem: Boolean = false,
     val update: UpdateUi = UpdateUi(),
+    val sounds: SoundLabels = SoundLabels(),
 )

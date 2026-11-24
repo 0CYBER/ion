@@ -52,4 +52,12 @@
     <string name="search_start">Search for devices</string>
     <string name="search_stop">Stop search</string>
     <string name="bluetooth_permissions">Bluetooth permissions</string>
+    <string name="sound_preview_hint">Tap plays the sound on the wheel, long press names or hides it. What each slot sounds like depends on the sound pack on the wheel.</string>
+    <string name="sound_rename">Name</string>
+    <string name="sound_name">Name</string>
+    <string name="sound_hide">Hide (duplicate or silent)</string>
+    <string name="sound_play_again">Play again</string>
+    <string name="sound_show_hidden">Show hidden (%1$d)</string>
+    <string name="sound_hide_hidden">Hide hidden</string>
+    <string name="save">Save</string>
 </resources>

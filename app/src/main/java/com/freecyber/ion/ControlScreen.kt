@@ -15,7 +15,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-@Composable internal fun ControlScreen(ui: VelaUi,category: ControlCategory,readSettings: ()->Unit,request: (V12Protocol.Write)->Unit,onBack: ()->Unit) {
+@Composable internal fun ControlScreen(ui: VelaUi,category: ControlCategory,readSettings: ()->Unit,request: (V12Protocol.Write)->Unit,
+    sounds: SoundLabels=SoundLabels(),setSounds: (SoundLabels)->Unit={},onBack: ()->Unit) {
     val t=ui.wheel.telemetry; val s=ui.wheel.settings
     val safe=ui.safeWrite
     val stopped=ui.stoppedWrite
@@ -65,7 +66,7 @@ import kotlin.math.roundToInt
                 ExpandSliders(Icons.AutoMirrored.Rounded.VolumeUp,stringResource(R.string.control_volume),s?.let { "${it.volume}%" } ?: "—",settingsSafe,
                     s?.takeIf { it.volume in 0..100 }?.let { listOf(SliderSpec(stringResource(R.string.control_volume),it.volume,0..100) {v -> "$v%"}) }
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.VOLUME,v[0]))}
-                SoundButtons(safe) {n -> request(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,n))}
+                SoundButtons(safe,sounds,setSounds) {n -> request(V12Protocol.Write(V12Protocol.Control.PLAY_SOUND,n))}
             } }
         }
         // Ride, pedal and service writes all need a stopped wheel; say why they are greyed out instead of leaving dead controls.

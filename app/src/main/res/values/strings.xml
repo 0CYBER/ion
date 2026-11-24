@@ -52,4 +52,12 @@
     <string name="search_start">Поиск устройств</string>
     <string name="search_stop">Остановить поиск</string>
     <string name="bluetooth_permissions">Разрешения Bluetooth</string>
+    <string name="sound_preview_hint">Нажатие играет звук на колесе, долгое нажатие — подписать или скрыть. Что звучит в каждом слоте, зависит от звукового пакета на колесе.</string>
+    <string name="sound_rename">Подписать</string>
+    <string name="sound_name">Название</string>
+    <string name="sound_hide">Скрыть (повтор или тишина)</string>
+    <string name="sound_play_again">Проиграть ещё раз</string>
+    <string name="sound_show_hidden">Показать скрытые (%1$d)</string>
+    <string name="sound_hide_hidden">Спрятать скрытые</string>
+    <string name="save">Сохранить</string>
 </resources>
