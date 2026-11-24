@@ -251,7 +251,7 @@
         <item quantity="other">Added %d rides</item>
     </plurals>
     <string name="control_light_effect_speed">Follow speed</string>
-    <string name="control_light_effect_personal">Personal</string>
+    <string name="control_light_effect_personal">Personalised</string>
     <string name="light_mine">My effects</string>
     <string name="light_new">New effect</string>
     <string name="light_edit">Edit effect</string>
@@ -267,7 +267,7 @@
     <string name="light_on_wheel">On the wheel</string>
     <string name="light_on_wheel_unknown">List not received yet</string>
     <string name="light_on_wheel_empty">No personal effects on the wheel</string>
-    <string name="light_on_wheel_hint">Effects from the INMOTION app show their number: their names live on the INMOTION server.</string>
+    <string name="light_on_wheel_hint">INMOTION effects are shown by number: their names live on INMOTION servers</string>
     <string name="light_vendor_effect">No. %1$d</string>
     <string name="light_refresh">Refresh list</string>
     <string name="light_uploading">Uploading &quot;%1$s&quot; to the wheel…</string>
@@ -286,7 +286,6 @@
     <string name="delete">Delete</string>
     <string name="light_ion_effect">From Ion No. %1$d</string>
     <string name="light_upload_no_list">could not read the effect list from the wheel</string>
-    <string name="light_turn_on">Turn on</string>
     <string name="light_delete_failed">The wheel did not confirm the delete</string>
     <string name="light_delete_text_wheel">Delete the effect from Ion only, or together with its copy on the wheel?</string>
     <string name="light_delete_everywhere">Everywhere</string>
@@ -298,12 +297,9 @@
         <item quantity="one">%d unfinished effect: the wheel shows it as an empty one</item>
         <item quantity="other">%d unfinished effects: the wheel shows them as empty ones</item>
     </plurals>
-    <string name="light_mode_vendor_hint">Colour and variant are set in the INMOTION app</string>
-    <string name="light_mode_personal_hint">Turned on from an effect below</string>
-    <string name="light_new_hint">Paint the LEDs or start from a template</string>
     <string name="light_on_wheel_badge">On the wheel</string>
-    <string name="light_from_ion">Made in Ion</string>
-    <string name="light_from_vendor">From the INMOTION app</string>
+    <string name="light_from_ion">Ion</string>
+    <string name="light_from_vendor">INMOTION</string>
     <string name="light_tpl_custom">Painted</string>
     <string name="light_frame_n">Frame %1$d of %2$d</string>
     <string name="light_add_frame">Frame</string>
@@ -314,16 +310,12 @@
     <string name="light_play">Play</string>
     <string name="light_pause">Pause</string>
     <string name="light_custom_color">Own colour</string>
-    <string name="light_hue">Hue</string>
-    <string name="light_saturation">Saturation</string>
-    <string name="light_brightness">Brightness</string>
     <string name="light_use_color">Use</string>
     <string name="light_off_color">Off</string>
     <string name="light_start_template">Start from a template</string>
     <string name="light_template_apply">Replace frames</string>
     <string name="light_template_text">The template replaces every frame. Undo brings them back.</string>
     <string name="light_wheel_canvas">Wheel LEDs: tap or drag to paint</string>
-    <string name="light_layout_note">LED positions follow the INMOTION editor; their order on the wheel itself is still being checked.</string>
     <string name="light_interval">Frame length</string>
     <string name="light_seconds">%1$s s</string>
     <plurals name="light_frames">
@@ -331,4 +323,5 @@
         <item quantity="other">%d frames</item>
     </plurals>
     <string name="light_effect">Effect</string>
+    <string name="light_turn_on_named">Turn on “%1$s”</string>
 </resources>

@@ -12,8 +12,8 @@ import kotlin.math.sin
  *
  * Coordinates are in units of the picture's height: x in 0..[WIDTH], y in 0..1.
  *
- * Which LED number is which spot is NOT confirmed yet: [ORDER] assumes left bar, left half of the ring, right half,
- * right bar, each from the top down. A capture of a marked frame from the vendor editor fixes it in this one place.
+ * [ORDER]: left bar, left half of the ring, right half, right bar, each from the top down; the owner confirmed it
+ * on the wheel with an effect painted in Ion.
  */
 object LedLayout {
     enum class Segment { LEFT_BAR, LEFT_RING, RIGHT_RING, RIGHT_BAR }
@@ -31,7 +31,7 @@ object LedLayout {
     const val TOP_GAP = 10.7
     const val BOTTOM_GAP = 17.0
 
-    /** Segments in LED-number order, each listed from the top down (assumed, see above). */
+    /** Segments in LED-number order, each listed from the top down. */
     val ORDER = listOf(Segment.LEFT_BAR, Segment.LEFT_RING, Segment.RIGHT_RING, Segment.RIGHT_BAR)
 
     private fun segment(s: Segment): List<Spot> = when (s) {

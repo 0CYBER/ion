@@ -110,6 +110,14 @@ class ScreenshotTest {
             LightEffects.Stored(LightEffects.ION_ID_BASE + 1, 440), LightEffects.Stored(LightEffects.ION_ID_BASE + 2, 440, temporary = true)), lightTransfer = LightTransfer(2, LightEffects.ION_ID_BASE + 2, 0.6f)))
         androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) { LightEffectsSection(ui, true, LightUi(designs)) {} }
     }
+    @Test fun lightColorPicker() = shot("light_color_picker", dark = true) {
+        androidx.compose.foundation.layout.Box(Modifier.padding(24.dp)) { ColorPicker(0x2E8BFF) {} }
+    }
+    @Test fun lightModes() = shot("light_modes", dark = true) {
+        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+            GroupColumn { LightModeRow(Samples.live(), true, true, {}) {} }
+        }
+    }
     @Test fun lightEditor() {
         rule.setContent {
             IonTheme(true) {

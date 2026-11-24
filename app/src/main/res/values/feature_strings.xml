@@ -263,7 +263,7 @@
         <item quantity="other">Добавлено %d поездки</item>
     </plurals>
     <string name="control_light_effect_speed">По скорости</string>
-    <string name="control_light_effect_personal">Свой эффект</string>
+    <string name="control_light_effect_personal">Персонализированная</string>
     <string name="light_mine">Мои эффекты</string>
     <string name="light_new">Новый эффект</string>
     <string name="light_edit">Изменить эффект</string>
@@ -279,7 +279,7 @@
     <string name="light_on_wheel">На колесе</string>
     <string name="light_on_wheel_unknown">Список ещё не получен</string>
     <string name="light_on_wheel_empty">На колесе нет своих эффектов</string>
-    <string name="light_on_wheel_hint">Эффекты из приложения InMotion подписаны номером: их названия хранятся на сервере InMotion.</string>
+    <string name="light_on_wheel_hint">Эффекты из InMotion подписаны номерами, их названия хранятся на серверах InMotion</string>
     <string name="light_vendor_effect">№ %1$d</string>
     <string name="light_refresh">Обновить список</string>
     <string name="light_uploading">Загружаю «%1$s» на колесо…</string>
@@ -298,7 +298,6 @@
     <string name="delete">Удалить</string>
     <string name="light_ion_effect">Из Ion № %1$d</string>
     <string name="light_upload_no_list">не удалось получить список эффектов с колеса</string>
-    <string name="light_turn_on">Включить</string>
     <string name="light_delete_failed">Колесо не подтвердило удаление</string>
     <string name="light_delete_text_wheel">Удалить эффект только из Ion или вместе с его копией на колесе?</string>
     <string name="light_delete_everywhere">Везде</string>
@@ -312,12 +311,9 @@
         <item quantity="many">%d недописанных эффектов: колесо показывает их как пустые</item>
         <item quantity="other">%d недописанного эффекта: колесо показывает их как пустые</item>
     </plurals>
-    <string name="light_mode_vendor_hint">Цвет и вариант задаются в приложении InMotion</string>
-    <string name="light_mode_personal_hint">Включается кнопкой у эффекта ниже</string>
-    <string name="light_new_hint">Раскрасьте светодиоды или начните с шаблона</string>
     <string name="light_on_wheel_badge">На колесе</string>
-    <string name="light_from_ion">Сделан в Ion</string>
-    <string name="light_from_vendor">Из приложения InMotion</string>
+    <string name="light_from_ion">Ion</string>
+    <string name="light_from_vendor">InMotion</string>
     <string name="light_tpl_custom">Свой рисунок</string>
     <string name="light_frame_n">Кадр %1$d из %2$d</string>
     <string name="light_add_frame">Кадр</string>
@@ -328,16 +324,12 @@
     <string name="light_play">Проиграть</string>
     <string name="light_pause">Пауза</string>
     <string name="light_custom_color">Свой цвет</string>
-    <string name="light_hue">Оттенок</string>
-    <string name="light_saturation">Насыщенность</string>
-    <string name="light_brightness">Яркость</string>
     <string name="light_use_color">Выбрать</string>
     <string name="light_off_color">Выключен</string>
     <string name="light_start_template">Начать с шаблона</string>
     <string name="light_template_apply">Заменить кадры</string>
     <string name="light_template_text">Шаблон заменит все кадры. Вернуть их можно кнопкой «Отменить».</string>
     <string name="light_wheel_canvas">Светодиоды колеса: коснитесь или проведите пальцем, чтобы покрасить</string>
-    <string name="light_layout_note">Расположение светодиодов взято из редактора InMotion; порядок на самом колесе ещё сверяется.</string>
     <string name="light_interval">Длительность кадра</string>
     <string name="light_seconds">%1$s с</string>
     <plurals name="light_frames">
@@ -347,4 +339,5 @@
         <item quantity="other">%d кадра</item>
     </plurals>
     <string name="light_effect">Эффект</string>
+    <string name="light_turn_on_named">Включить «%1$s»</string>
 </resources>

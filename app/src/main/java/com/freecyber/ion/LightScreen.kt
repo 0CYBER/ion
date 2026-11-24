@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -80,31 +81,11 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
  */
 @Composable internal fun LightEffectsSection(ui: VelaUi, safe: Boolean, lights: LightUi, request: (V12Protocol.Write) -> Unit) {
     val wheel = ui.wheel
-    val mode = wheel.settings?.lightEffect
     var editing by remember { mutableStateOf<LightDesign?>(null) }
     var deleting by remember { mutableStateOf<LightDesign?>(null) }
     var deletingStored by remember { mutableStateOf<LightEffects.Stored?>(null) }
-    // The stored list is read once per screen visit; it is a few hundred bytes.
-    LaunchedEffect(ui.connected) { if (ui.connected && wheel.storedLights == null) lights.list() }
-    // A finished upload records the id it got, so the design knows which copy on the wheel is its own.
     val transfer = wheel.lightTransfer
-    LaunchedEffect(transfer?.done, transfer?.id) {
-        val id = transfer?.id
-        if (transfer?.done == true && transfer.error == null && id != null)
-            lights.designs.firstOrNull { it.slot == transfer.slot && it.wheelId != id }?.let { d ->
-                lights.setDesigns(lights.designs.map { if (it.slot == d.slot) it.copy(wheelId = id) else it })
-            }
-    }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        SectionHeader(stringResource(R.string.control_light_effect))
-        GroupColumn {
-            val vendor = stringResource(R.string.light_mode_vendor_hint)
-            ModeRow(Icons.Rounded.LightbulbCircle, stringResource(R.string.control_light_effect_off), null, mode, V12Protocol.LightEffect.OFF, safe, request)
-            ModeRow(Icons.Rounded.MusicNote, stringResource(R.string.control_light_effect_music), vendor, mode, V12Protocol.LightEffect.MUSIC, safe, request)
-            ModeRow(Icons.Rounded.Speed, stringResource(R.string.control_light_effect_speed), vendor, mode, V12Protocol.LightEffect.SPEED, safe, request)
-            ModeRow(Icons.Rounded.Palette, stringResource(R.string.control_light_effect_personal), stringResource(R.string.light_mode_personal_hint),
-                mode, V12Protocol.LightEffect.PERSONAL, false, request)
-        }
         transfer?.let { TransferCard(it, lights.designs, lights.clearTransfer) }
         SectionHeader(stringResource(R.string.light_mine))
         GroupColumn {
@@ -113,8 +94,9 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
                     canSend = safe && transfer?.done != false, edit = { editing = d }) { lights.upload(d) }
             }
             LightDesign.freeSlot(lights.designs)?.let { slot ->
-                ActionRow(Icons.Rounded.Add, stringResource(R.string.light_new), stringResource(R.string.light_new_hint),
-                    Modifier.testTag("light-new")) { editing = LightDesign(slot, "").painted() }
+                ActionRow(Icons.Rounded.Add, stringResource(R.string.light_new), null, Modifier.testTag("light-new")) {
+                    editing = LightDesign(slot, "", LightDesign.Template.CUSTOM, custom = listOf(List(LightEffects.LEDS) { 0 }))
+                }
             }
         }
         SectionHeader(stringResource(R.string.light_on_wheel))
@@ -155,26 +137,54 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
     }
 }
 
-/** One mode as a radio row, styled like [SwitchRow]; the selected mode is tinted. */
-@Composable private fun ModeRow(icon: ImageVector, title: String, hint: String?, mode: Int?, effect: V12Protocol.LightEffect, enabled: Boolean,
+/** Whether the personal-effect settings are shown: the wheel runs a personal effect, or the rider picked that mode. */
+internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12Protocol.LightEffect.PERSONAL.id
+
+/**
+ * Side-light mode as an expandable row of the lights group. Off, music and speed are sent at once; "personal" needs
+ * an effect, so picking it only opens the effect settings below, where an effect is turned on.
+ */
+@Composable internal fun LightModeRow(ui: VelaUi, safe: Boolean, personalPicked: Boolean, pickPersonal: (Boolean) -> Unit,
     request: (V12Protocol.Write) -> Unit) {
-    val on = mode == effect.id
-    val bg by animateColorAsState(if (on) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-        MaterialTheme.motionScheme.fastEffectsSpec(), label = "light-mode")
-    Surface(color = bg, shape = RoundedCornerShape(IonShapes.xs)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 76.dp)
-            .selectable(selected = on, enabled = enabled && mode != null, role = Role.RadioButton) {
-                request(V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, effect.id))
+    val mode = ui.wheel.settings?.lightEffect
+    val personal = lightPersonal(mode, personalPicked)
+    val options = listOf(V12Protocol.LightEffect.OFF to R.string.control_light_effect_off,
+        V12Protocol.LightEffect.MUSIC to R.string.control_light_effect_music,
+        V12Protocol.LightEffect.SPEED to R.string.control_light_effect_speed,
+        V12Protocol.LightEffect.PERSONAL to R.string.control_light_effect_personal)
+    val selected = if (personal) V12Protocol.LightEffect.PERSONAL else options.firstOrNull { it.first.id == mode }?.first
+    val summary = options.firstOrNull { it.first == selected }?.let { stringResource(it.second) } ?: "—"
+    ExpandRow(Icons.Rounded.AutoAwesome, stringResource(R.string.control_light_effect), summary) {
+        if (mode == null) { MissingSetting(stringResource(R.string.no_data)); return@ExpandRow }
+        Column(Modifier.selectableGroup()) {
+            options.forEach { (effect, label) ->
+                val on = effect == selected
+                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(IonShapes.m))
+                    .selectable(on, enabled = safe, role = Role.RadioButton) {
+                        if (effect == V12Protocol.LightEffect.PERSONAL) pickPersonal(true)
+                        else { pickPersonal(false); request(V12Protocol.Write(V12Protocol.Control.LIGHT_EFFECT, effect.id)) }
+                    }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    RadioButton(selected = on, onClick = null, enabled = safe)
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyLarge)
+                }
             }
-            .padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingIcon(icon, on)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                val supporting = if (mode == null) stringResource(R.string.no_data) else hint
-                supporting?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-            RadioButton(selected = on, onClick = null, enabled = (enabled || on) && mode != null)
         }
+    }
+}
+
+/** Keeps the effect list and each design's wheel id current, whether or not the effect settings are on screen. */
+@Composable internal fun LightSync(ui: VelaUi, lights: LightUi) {
+    val wheel = ui.wheel
+    // The stored list is read once per screen visit; it is a few hundred bytes.
+    LaunchedEffect(ui.connected) { if (ui.connected && wheel.storedLights == null) lights.list() }
+    // A finished upload records the id it got, so the design knows which copy on the wheel is its own.
+    val transfer = wheel.lightTransfer
+    LaunchedEffect(transfer?.done, transfer?.id) {
+        val id = transfer?.id
+        if (transfer?.done == true && transfer.error == null && id != null)
+            lights.designs.firstOrNull { it.slot == transfer.slot && it.wheelId != id }?.let { d ->
+                lights.setDesigns(lights.designs.map { if (it.slot == d.slot) it.copy(wheelId = id) else it })
+            }
     }
 }
 
@@ -297,13 +307,19 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
             Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xs)) {
                 Row(Modifier.fillMaxWidth().heightIn(min = 76.dp).padding(start = 18.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SettingIcon(if (ion) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, false)
+                    // Ion's own uploads are previewed from the design that made them; the wheel's files are not read back.
+                    val source = designs.firstOrNull { it.wheelId == e.id }
+                    if (source != null) Surface(color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = RoundedCornerShape(IonShapes.s)) {
+                        PlayingWheel(source, Modifier.padding(4.dp).height(40.dp).aspectRatio(LedLayout.WIDTH))
+                    } else SettingIcon(if (ion) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, false)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(stringResource(if (ion) R.string.light_from_ion else R.string.light_from_vendor), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextButton(onClick = { turnOn(e.id) }, enabled = safe, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.light_turn_on)) }
+                    FilledTonalIconButton(onClick = { turnOn(e.id) }, enabled = safe, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Rounded.PlayArrow, stringResource(R.string.light_turn_on_named, title))
+                    }
                     IconButton(onClick = { delete(e) }, enabled = safe) {
                         Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.light_delete_wheel_title, title))
                     }
@@ -372,7 +388,6 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
                         val f = frames[current]
                         if (f[led] != brush) frames = frames.toMutableList().also { it[current] = f.toMutableList().also { p -> p[led] = brush } }
                     }
-                    Text(stringResource(R.string.light_layout_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         FilledIconToggleButton(checked = playing, onCheckedChange = { playing = it }, enabled = frames.size > 1, modifier = Modifier.size(48.dp)) {
                             Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (playing) R.string.light_pause else R.string.light_play))
@@ -412,7 +427,7 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
             }
         }
     }
-    if (picking) CustomColorDialog(onDismiss = { picking = false }) { brush = it; picking = false }
+    if (picking) CustomColorDialog(brush, onDismiss = { picking = false }) { brush = it; picking = false }
     template?.let { t ->
         TemplateDialog(start.copy(template = t, intervalMs = interval, custom = null), onDismiss = { template = null }) { generated ->
             change(generated.frames().map { it.toList() }); current = 0; playing = false; template = null
@@ -500,25 +515,69 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
     }
 }
 
-/** Hue, saturation and brightness, for a colour outside the palette. */
-@Composable private fun CustomColorDialog(onDismiss: () -> Unit, pick: (Int) -> Unit) {
-    var hue by remember { mutableFloatStateOf(0f) }
-    var saturation by remember { mutableFloatStateOf(1f) }
-    var brightness by remember { mutableFloatStateOf(1f) }
-    val rgb = LightDesign.scale(LightDesign.mix(0xFFFFFF, LightDesign.hue(hue.toDouble()), saturation.toDouble()), brightness.toDouble())
+/** A touch or drag over the area, reported as 0..1 fractions of its width and height. */
+private fun Modifier.dragFraction(update: (Float, Float) -> Unit) = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown()
+        fun report(p: Offset) = update((p.x / size.width).coerceIn(0f, 1f), (p.y / size.height).coerceIn(0f, 1f))
+        report(down.position); down.consume()
+        while (true) {
+            val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+            if (!change.pressed) break
+            report(change.position); change.consume()
+        }
+    }
+}
+
+/** A saturation/brightness square over a hue strip, with the hex code; for colours outside the palette. */
+@Composable private fun CustomColorDialog(start: Int, onDismiss: () -> Unit, pick: (Int) -> Unit) {
+    var picked by remember { mutableIntStateOf(start) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.light_custom_color)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(IonShapes.m))) {
-                    Canvas(Modifier.fillMaxSize()) { drawRect(Color(0xFF000000.toInt() or rgb)) }
-                }
-                SettingSlider(stringResource(R.string.light_hue), hue, "${(hue * 360).roundToInt()}°", 0f..0.999f, true, { hue = it })
-                SettingSlider(stringResource(R.string.light_saturation), saturation, "${(saturation * 100).roundToInt()}%", 0f..1f, true, { saturation = it })
-                SettingSlider(stringResource(R.string.light_brightness), brightness, "${(brightness * 100).roundToInt()}%", 0.05f..1f, true, { brightness = it })
-            }
-        },
-        confirmButton = { TextButton(onClick = { pick(rgb) }) { Text(stringResource(R.string.light_use_color)) } },
+        text = { ColorPicker(start) { picked = it } },
+        confirmButton = { TextButton(onClick = { pick(picked) }) { Text(stringResource(R.string.light_use_color)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } })
+}
+
+@Composable internal fun ColorPicker(start: Int, change: (Int) -> Unit) {
+    val hsv = remember { FloatArray(3).also { android.graphics.Color.colorToHSV(0xFF000000.toInt() or start, it) } }
+    var hue by remember { mutableFloatStateOf(hsv[0] / 360f) }
+    var saturation by remember { mutableFloatStateOf(if (start == 0) 1f else hsv[1]) }
+    var value by remember { mutableFloatStateOf(if (start == 0) 1f else hsv[2]) }
+    val rgb = android.graphics.Color.HSVToColor(floatArrayOf(hue * 360f, saturation, value)) and 0xFFFFFF
+    // What the rider is typing; dragging goes back to showing the picked colour.
+    var draft by remember { mutableStateOf<String?>(null) }
+    val hex = draft ?: "%06X".format(rgb)
+    val pure = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue * 360f, 1f, 1f)))
+    val hues = remember { List(7) { Color(android.graphics.Color.HSVToColor(floatArrayOf(it * 60f, 1f, 1f))) } }
+    val description = stringResource(R.string.light_custom_color)
+    LaunchedEffect(rgb) { change(rgb) }
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Canvas(Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(IonShapes.m)).semantics { contentDescription = description }
+                    .dragFraction { x, y -> saturation = x; value = 1 - y; draft = null }) {
+                    drawRect(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color.White, pure)))
+                    drawRect(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+                    val at = Offset(saturation * size.width, (1 - value) * size.height)
+                    drawCircle(Color.Black, 12.dp.toPx(), at, style = Stroke(4.dp.toPx()))
+                    drawCircle(Color.White, 12.dp.toPx(), at, style = Stroke(2.dp.toPx()))
+                }
+                Canvas(Modifier.fillMaxWidth().height(32.dp).clip(RoundedCornerShape(50)).dragFraction { x, _ -> hue = x.coerceAtMost(0.999f); draft = null }) {
+                    drawRect(androidx.compose.ui.graphics.Brush.horizontalGradient(hues))
+                    val at = Offset(hue * size.width, size.height / 2)
+                    drawCircle(pure, size.height / 2 - 3.dp.toPx(), at)
+                    drawCircle(Color.White, size.height / 2 - 3.dp.toPx(), at, style = Stroke(3.dp.toPx()))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(48.dp).clip(CircleShape)) { Canvas(Modifier.fillMaxSize()) { drawRect(Color(0xFF000000.toInt() or rgb)) } }
+                    OutlinedTextField(hex, { text ->
+                        val typed = text.filter { it.isLetterOrDigit() }.take(6).uppercase()
+                        draft = typed
+                        if (typed.length == 6) typed.toIntOrNull(16)?.let { c ->
+                            val f = FloatArray(3); android.graphics.Color.colorToHSV(0xFF000000.toInt() or c, f)
+                            hue = (f[0] / 360f).coerceAtMost(0.999f); saturation = f[1]; value = f[2]
+                        }
+                    }, singleLine = true, prefix = { Text("#") }, label = { Text("HEX") }, modifier = Modifier.weight(1f))
+                }
+            }
 }
 
 /** A template with its colours, previewed; applying it replaces every frame (undoable). */

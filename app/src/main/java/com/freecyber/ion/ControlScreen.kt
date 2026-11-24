@@ -22,6 +22,7 @@ import kotlin.math.roundToInt
     val stopped=ui.stoppedWrite
     val settingsSafe=safe && ui.settingsFresh && s!=null
     val settingsStopped=stopped && ui.settingsFresh && s!=null
+    var personalPicked by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(false)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
         animatedItem(key="intro",contentType="intro") {DetailHeading(stringResource(category.title),stringResource(category.subtitle),onBack)}
         if(!ui.connected) animatedItem(key="offline",contentType="banner") {Banner(stringResource(R.string.wheel_offline),Icons.Rounded.BluetoothDisabled) }
@@ -39,8 +40,11 @@ import kotlin.math.roundToInt
                         listOf(SliderSpec(stringResource(R.string.control_low),it.lowBrightness,0..100) {v -> "$v%"},
                             SliderSpec(stringResource(R.string.control_high),it.highBrightness,0..100) {v -> "$v%"})
                     }) {v -> request(V12Protocol.Write(V12Protocol.Control.BRIGHTNESS,v[0],v[1]))}
-            } }
-            animatedItem(key="light-effects",contentType="controls") { LightEffectsSection(ui,safe,lights,request) }
+                LightModeRow(ui,safe,personalPicked,{personalPicked=it},request)
+            }
+                LightSync(ui,lights) }
+            // Effect settings only matter once the personal mode is chosen (or already running on the wheel).
+            if(lightPersonal(s?.lightEffect,personalPicked)) animatedItem(key="light-effects",contentType="controls") { LightEffectsSection(ui,safe,lights,request) }
         }
         if(category==ControlCategory.SOUND) {
             animatedItem(key="sound",contentType="controls") { GroupColumn {
