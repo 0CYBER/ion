@@ -74,7 +74,7 @@ import kotlin.math.roundToInt
 @Composable internal fun GroupColumn(content: @Composable ColumnScope.()->Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(IonShapes.xl)),verticalArrangement=Arrangement.spacedBy(2.dp),content=content)
 }
-@Composable private fun SettingIcon(icon: ImageVector,active: Boolean) {
+@Composable internal fun SettingIcon(icon: ImageVector,active: Boolean) {
     val radius by animateDpAsState(if(active) IonShapes.s else IonShapes.row,MaterialTheme.motionScheme.fastSpatialSpec(),label="setting-shape")
     Box(Modifier.size(40.dp).clip(RoundedCornerShape(radius)).background(MaterialTheme.colorScheme.surfaceContainerHigh),contentAlignment=Alignment.Center) {
         Icon(icon,null,Modifier.size(22.dp),tint=MaterialTheme.colorScheme.primary)

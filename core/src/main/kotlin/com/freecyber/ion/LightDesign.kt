@@ -5,9 +5,9 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 
 /**
- * A personal light effect made in Ion: a template with two colours and a frame interval, turned into explicit
- * frames for [LightEffects.file]. Templates do not depend on where each of the 70 LEDs sits on the wheel (not yet
- * mapped), except that "halves" splits LEDs 0–34 / 35–69 and "chase" runs along the LED order.
+ * A personal light effect made in Ion: either a template with two colours or frames painted LED by LED ([custom]),
+ * plus a frame interval, turned into explicit frames for [LightEffects.file]. Templates follow [LedLayout]: the
+ * gradient runs top to bottom, chase and rainbow go round the ring, halves split left from right.
  */
 data class LightDesign(
     /** 1..[SLOTS]: the design's place in Ion. */
@@ -20,12 +20,18 @@ data class LightDesign(
     /** Id of the copy last uploaded to the wheel. Every upload takes a fresh id: the wheel refuses to rename a new
      * file onto an existing `<id>.rgb`, which left a half-written `.tmp` effect behind when an id was reused. */
     val wheelId: Long? = null,
+    /** Frames painted in the editor, [LightEffects.LEDS] colours each; set exactly when [template] is CUSTOM. */
+    val custom: List<List<Int>>? = null,
 ) {
-    enum class Template { SOLID, BLINK, BREATHE, GRADIENT, CHASE, RAINBOW, HALVES }
+    enum class Template { SOLID, BLINK, BREATHE, GRADIENT, CHASE, RAINBOW, HALVES, CUSTOM;
+        /** Templates the editor offers as a starting point. */
+        companion object { val generators get() = entries - CUSTOM }
+    }
 
     fun frames(): List<IntArray> {
         val n = LightEffects.LEDS
         return when (template) {
+            Template.CUSTOM -> custom.orEmpty().map { it.toIntArray() }.ifEmpty { listOf(IntArray(n)) }
             Template.SOLID -> listOf(IntArray(n) { color1 })
             Template.BLINK -> listOf(IntArray(n) { color1 }, IntArray(n) { color2 })
             Template.BREATHE -> List(BREATHE_FRAMES) { f ->
@@ -33,28 +39,35 @@ data class LightDesign(
                 val k = 0.1 + 0.9 * (1 - cos(2 * PI * f / BREATHE_FRAMES)) / 2
                 IntArray(n) { scale(color1, k) }
             }
-            Template.GRADIENT -> listOf(IntArray(n) { mix(color1, color2, it / (n - 1.0)) })
+            Template.GRADIENT -> listOf(IntArray(n) { mix(color1, color2, LedLayout.height(it)) })
             Template.CHASE -> List(CHASE_FRAMES) { f ->
-                val start = f * n / CHASE_FRAMES
-                IntArray(n) { i -> if ((i - start + n) % n < CHASE_LENGTH) color1 else color2 }
+                IntArray(n) { i -> if ((LedLayout.phase(i) - f.toDouble() / CHASE_FRAMES + 1) % 1 < CHASE_WIDTH) color1 else color2 }
             }
-            Template.RAINBOW -> List(RAINBOW_FRAMES) { f -> IntArray(n) { i -> hue(((i.toDouble() / n) + f.toDouble() / RAINBOW_FRAMES) % 1.0) } }
-            Template.HALVES -> listOf(IntArray(n) { if (it < n / 2) color1 else color2 }, IntArray(n) { if (it < n / 2) color2 else color1 })
+            Template.RAINBOW -> List(RAINBOW_FRAMES) { f -> IntArray(n) { i -> hue((LedLayout.phase(i) + f.toDouble() / RAINBOW_FRAMES) % 1.0) } }
+            Template.HALVES -> listOf(IntArray(n) { if (LedLayout.isLeft(it)) color1 else color2 }, IntArray(n) { if (LedLayout.isLeft(it)) color2 else color1 })
         }
     }
 
     fun file(id: Long): ByteArray = LightEffects.file(id, frames(), intervalMs)
 
-    /** `slot;template;color1;color2;interval;wheelId;name` (the first build wrote no wheelId field). */
-    fun encode(): String = listOf(slot, template.name, "%06X".format(color1), "%06X".format(color2), intervalMs,
-        wheelId?.toString().orEmpty(), name.replace('\n', ' ').replace(';', ',')).joinToString(";")
+    /** The same effect as painted frames, for the editor. */
+    fun painted(): LightDesign = copy(template = Template.CUSTOM, custom = frames().map { it.toList() })
+
+    /**
+     * `slot;template;color1;color2;interval;wheelId;name[;frames]` (the first build wrote no wheelId field); painted
+     * frames are 6 hex digits per LED, frames separated by commas.
+     */
+    fun encode(): String = (listOf(slot, template.name, "%06X".format(color1), "%06X".format(color2), intervalMs,
+        wheelId?.toString().orEmpty(), name.replace('\n', ' ').replace(';', ',')) +
+        listOfNotNull(custom?.joinToString(",") { f -> f.joinToString("") { "%06X".format(it) } })).joinToString(";")
 
     companion object {
         const val SLOTS = 9
         const val MAX_NAME = 24
         const val BREATHE_FRAMES = 16
         const val CHASE_FRAMES = 14
-        const val CHASE_LENGTH = 7
+        /** Share of the circle the chase lights up. */
+        const val CHASE_WIDTH = 0.1
         const val RAINBOW_FRAMES = 14
         /** Swatches offered in the editor. */
         val PALETTE = listOf(0xFF0000, 0xFF6A00, 0xFFC800, 0x7CFF00, 0x00FF00, 0x00FFA0, 0x00E5FF,
@@ -65,13 +78,18 @@ data class LightDesign(
             if (parts.size < 6) return null
             // Names never contain ';', so 6 fields is the first build's layout and 7 the one with the wheel id.
             val p = if (parts.size >= 7) parts.take(5) + parts[6] else parts
+            val custom = parts.getOrNull(7)?.split(',')?.map { f ->
+                if (f.length != LightEffects.LEDS * 6) return null
+                f.chunked(6).map { it.toIntOrNull(16) ?: return null }
+            }?.takeIf { it.size in 1..LightEffects.MAX_FRAMES }
             val wheelId = if (parts.size >= 7) parts[5].toLongOrNull() else null
             val slot = p[0].toIntOrNull()?.takeIf { it in 1..SLOTS } ?: return null
             val template = Template.entries.firstOrNull { it.name == p[1] } ?: return null
             val c1 = p[2].toIntOrNull(16)?.takeIf { it in 0..0xFFFFFF } ?: return null
             val c2 = p[3].toIntOrNull(16)?.takeIf { it in 0..0xFFFFFF } ?: return null
             val interval = p[4].toIntOrNull()?.takeIf { it in LightEffects.INTERVAL_MS } ?: return null
-            return LightDesign(slot, p[5].take(MAX_NAME), template, c1, c2, interval, wheelId)
+            if ((template == Template.CUSTOM) != (custom != null)) return null
+            return LightDesign(slot, p[5].take(MAX_NAME), template, c1, c2, interval, wheelId, custom)
         }
         fun decodeAll(text: String?): List<LightDesign> =
             text?.lineSequence()?.mapNotNull(::decode)?.distinctBy { it.slot }?.sortedBy { it.slot }?.toList().orEmpty()

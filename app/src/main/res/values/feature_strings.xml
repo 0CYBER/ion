@@ -182,7 +182,7 @@
     <string name="trip_duration">Длительность</string>
     <string name="trips_details">Подробнее</string>
     <string name="control_light_effect">Боковая подсветка</string>
-    <string name="control_light_effect_off">Выключить</string>
+    <string name="control_light_effect_off">Выключена</string>
     <string name="control_light_effect_music">В такт музыке</string>
     <string name="trips_expanded">Развёрнуто</string>
     <string name="trips_collapsed">Свёрнуто</string>
@@ -264,9 +264,7 @@
     </plurals>
     <string name="control_light_effect_speed">По скорости</string>
     <string name="control_light_effect_personal">Свой эффект</string>
-    <string name="light_mode_hint">Свой эффект включается выбором эффекта ниже. Цвет «музыки» и вариант «по скорости» задаются в приложении InMotion.</string>
     <string name="light_mine">Мои эффекты</string>
-    <string name="light_mine_empty">Создайте эффект из шаблона: он загрузится на колесо и сразу включится.</string>
     <string name="light_new">Новый эффект</string>
     <string name="light_edit">Изменить эффект</string>
     <string name="light_name">Название</string>
@@ -314,4 +312,39 @@
         <item quantity="many">%d недописанных эффектов: колесо показывает их как пустые</item>
         <item quantity="other">%d недописанного эффекта: колесо показывает их как пустые</item>
     </plurals>
+    <string name="light_mode_vendor_hint">Цвет и вариант задаются в приложении InMotion</string>
+    <string name="light_mode_personal_hint">Включается кнопкой у эффекта ниже</string>
+    <string name="light_new_hint">Раскрасьте светодиоды или начните с шаблона</string>
+    <string name="light_on_wheel_badge">На колесе</string>
+    <string name="light_from_ion">Сделан в Ion</string>
+    <string name="light_from_vendor">Из приложения InMotion</string>
+    <string name="light_tpl_custom">Свой рисунок</string>
+    <string name="light_frame_n">Кадр %1$d из %2$d</string>
+    <string name="light_add_frame">Кадр</string>
+    <string name="light_delete_frame">Удалить кадр</string>
+    <string name="light_undo">Отменить</string>
+    <string name="light_fill">Залить кадр цветом кисти</string>
+    <string name="light_clear">Погасить кадр</string>
+    <string name="light_play">Проиграть</string>
+    <string name="light_pause">Пауза</string>
+    <string name="light_custom_color">Свой цвет</string>
+    <string name="light_hue">Оттенок</string>
+    <string name="light_saturation">Насыщенность</string>
+    <string name="light_brightness">Яркость</string>
+    <string name="light_use_color">Выбрать</string>
+    <string name="light_off_color">Выключен</string>
+    <string name="light_start_template">Начать с шаблона</string>
+    <string name="light_template_apply">Заменить кадры</string>
+    <string name="light_template_text">Шаблон заменит все кадры. Вернуть их можно кнопкой «Отменить».</string>
+    <string name="light_wheel_canvas">Светодиоды колеса: коснитесь или проведите пальцем, чтобы покрасить</string>
+    <string name="light_layout_note">Расположение светодиодов взято из редактора InMotion; порядок на самом колесе ещё сверяется.</string>
+    <string name="light_interval">Длительность кадра</string>
+    <string name="light_seconds">%1$s с</string>
+    <plurals name="light_frames">
+        <item quantity="one">%d кадр</item>
+        <item quantity="few">%d кадра</item>
+        <item quantity="many">%d кадров</item>
+        <item quantity="other">%d кадра</item>
+    </plurals>
+    <string name="light_effect">Эффект</string>
 </resources>

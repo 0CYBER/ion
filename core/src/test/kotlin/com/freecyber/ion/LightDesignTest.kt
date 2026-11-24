@@ -5,7 +5,7 @@ import org.junit.Test
 
 class LightDesignTest {
     @Test fun everyTemplateBuildsAValidFile() {
-        LightDesign.Template.entries.forEach { t ->
+        LightDesign.Template.generators.forEach { t ->
             val d = LightDesign(1, "x", t, 0x00FF00, 0x0000FF, 300)
             val frames = d.frames()
             assertTrue(t.name, frames.size in 1..LightEffects.MAX_FRAMES && frames.all { it.size == LightEffects.LEDS })
@@ -22,10 +22,13 @@ class LightDesignTest {
 
     @Test fun chaseMovesAndGradientEndsAtBothColours() {
         val chase = LightDesign(2, "c", LightDesign.Template.CHASE, 0xFFFFFF, 0).frames()
-        assertEquals(LightDesign.CHASE_LENGTH, chase[0].count { it == 0xFFFFFF })
-        assertNotEquals(chase[0].indexOfFirst { it == 0xFFFFFF }, chase[1].indexOfFirst { it == 0xFFFFFF })
+        assertTrue(chase[0].count { it == 0xFFFFFF } in 3..15)
+        assertNotEquals(chase[0].toList(), chase[1].toList())
         val g = LightDesign(2, "g", LightDesign.Template.GRADIENT, 0xFF0000, 0x0000FF).frames().single()
-        assertEquals(0xFF0000, g.first()); assertEquals(0x0000FF, g.last())
+        // Top of the side bars to the bottom of the ring.
+        assertEquals(0xFF0000, g[0]); assertEquals(0x0000FF, g[LedLayout.spots.indices.maxBy { LedLayout.spots[it].y }])
+        val halves = LightDesign(2, "h", LightDesign.Template.HALVES, 0xFF0000, 0x0000FF).frames()[0]
+        assertEquals(35, halves.count { it == 0xFF0000 })
     }
 
     @Test fun designsRoundTripAndSlotsMapToIds() {
@@ -39,6 +42,29 @@ class LightDesignTest {
         // The owner's first build stored designs without a wheel id.
         assertEquals(LightDesign(1, "x", LightDesign.Template.BLINK, 0xFF0000, 0x0000FF, 500), LightDesign.decode("1;BLINK;FF0000;0000FF;500;x"))
         assertTrue(LightDesign.decodeAll("0;SOLID;FF0000;000000;100;bad\n1;NOPE;FF0000;000000;100;bad").isEmpty())
+    }
+
+    @Test fun paintedFramesRoundTrip() {
+        val painted = LightDesign(4, "свой", LightDesign.Template.BLINK, 0xFF0000, 0x00FF00, 250, 900_003).painted()
+        assertEquals(LightDesign.Template.CUSTOM, painted.template)
+        val frames = painted.custom!!.map { it.toMutableList() }
+        frames[1][5] = 0x123456
+        val edited = painted.copy(custom = frames)
+        val back = LightDesign.decode(edited.encode())!!
+        assertEquals(edited, back)
+        assertEquals(0x123456, back.frames()[1][5])
+        assertArrayEquals(edited.file(900_010), back.file(900_010))
+        // A painted design without frames, or frames of the wrong size, is not accepted.
+        assertNull(LightDesign.decode("4;CUSTOM;FF0000;00FF00;250;;x"))
+        assertNull(LightDesign.decode("4;CUSTOM;FF0000;00FF00;250;;x;FF0000"))
+    }
+
+    @Test fun layoutHasEveryLedOnceAndFindsThemByPosition() {
+        val spots = LedLayout.spots
+        assertEquals(LightEffects.LEDS, spots.size)
+        spots.indices.forEach { assertEquals(it, LedLayout.at(spots[it].x, spots[it].y)) }
+        assertNull(LedLayout.at(LedLayout.WIDTH / 2, 0.7f))
+        assertEquals(24, spots.count { it.segment == LedLayout.Segment.LEFT_BAR || it.segment == LedLayout.Segment.RIGHT_BAR })
     }
 
     @Test fun everyUploadGetsAnIdNoFileOnTheWheelHas() {

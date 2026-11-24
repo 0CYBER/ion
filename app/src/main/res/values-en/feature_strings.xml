@@ -182,7 +182,7 @@
     <string name="trip_duration">Duration</string>
     <string name="trips_details">Details</string>
     <string name="control_light_effect">Side lights</string>
-    <string name="control_light_effect_off">Turn off</string>
+    <string name="control_light_effect_off">Off</string>
     <string name="control_light_effect_music">Follow music</string>
     <string name="trips_expanded">Expanded</string>
     <string name="trips_collapsed">Collapsed</string>
@@ -252,9 +252,7 @@
     </plurals>
     <string name="control_light_effect_speed">Follow speed</string>
     <string name="control_light_effect_personal">Personal</string>
-    <string name="light_mode_hint">Personal turns on by picking an effect below. The music colour and the speed variant are set in the INMOTION app.</string>
     <string name="light_mine">My effects</string>
-    <string name="light_mine_empty">Make an effect from a template: it is uploaded to the wheel and turned on.</string>
     <string name="light_new">New effect</string>
     <string name="light_edit">Edit effect</string>
     <string name="light_name">Name</string>
@@ -300,4 +298,37 @@
         <item quantity="one">%d unfinished effect: the wheel shows it as an empty one</item>
         <item quantity="other">%d unfinished effects: the wheel shows them as empty ones</item>
     </plurals>
+    <string name="light_mode_vendor_hint">Colour and variant are set in the INMOTION app</string>
+    <string name="light_mode_personal_hint">Turned on from an effect below</string>
+    <string name="light_new_hint">Paint the LEDs or start from a template</string>
+    <string name="light_on_wheel_badge">On the wheel</string>
+    <string name="light_from_ion">Made in Ion</string>
+    <string name="light_from_vendor">From the INMOTION app</string>
+    <string name="light_tpl_custom">Painted</string>
+    <string name="light_frame_n">Frame %1$d of %2$d</string>
+    <string name="light_add_frame">Frame</string>
+    <string name="light_delete_frame">Delete frame</string>
+    <string name="light_undo">Undo</string>
+    <string name="light_fill">Fill the frame with the brush colour</string>
+    <string name="light_clear">Turn the frame off</string>
+    <string name="light_play">Play</string>
+    <string name="light_pause">Pause</string>
+    <string name="light_custom_color">Own colour</string>
+    <string name="light_hue">Hue</string>
+    <string name="light_saturation">Saturation</string>
+    <string name="light_brightness">Brightness</string>
+    <string name="light_use_color">Use</string>
+    <string name="light_off_color">Off</string>
+    <string name="light_start_template">Start from a template</string>
+    <string name="light_template_apply">Replace frames</string>
+    <string name="light_template_text">The template replaces every frame. Undo brings them back.</string>
+    <string name="light_wheel_canvas">Wheel LEDs: tap or drag to paint</string>
+    <string name="light_layout_note">LED positions follow the INMOTION editor; their order on the wheel itself is still being checked.</string>
+    <string name="light_interval">Frame length</string>
+    <string name="light_seconds">%1$s s</string>
+    <plurals name="light_frames">
+        <item quantity="one">%d frame</item>
+        <item quantity="other">%d frames</item>
+    </plurals>
+    <string name="light_effect">Effect</string>
 </resources>
