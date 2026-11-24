@@ -165,11 +165,10 @@
     <string name="unit_m">m</string>
     <string name="trips_delete_title">Delete ride?</string>
     <string name="trips_delete_message">The ride and its route will be deleted permanently.</string>
-    <string name="trips_hint">Past rides, totals and CSV export</string>
     <string name="trips_empty">No finished rides yet. A ride is saved when you disconnect or tap “Finish”.</string>
     <string name="trips_export">Export CSV</string>
     <string name="trips_export_subject">Ion rides</string>
-    <string name="trips_export_all">All rides to CSV</string>
+    <string name="trips_export_all">All rides (ZIP)</string>
     <string name="trips_clear">Clear</string>
     <string name="trips_clear_title">Delete the whole history?</string>
     <string name="trips_clear_message">All saved rides will be removed from this phone.</string>

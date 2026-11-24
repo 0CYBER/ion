@@ -262,12 +262,15 @@ class MainActivity : ComponentActivity() {
             try {
                 val trips = model.history.trips.value
                 check(trips.isNotEmpty())
+                model.journal.awaitWrites()
                 val file = withContext(Dispatchers.IO) {
                     val directory = exportDirectory()
                     val stamp = java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US).format(Date())
-                    File(directory,"Ion_rides_${stamp}.csv").apply { writeText(TripSummary.csv(trips)) }
+                    File(directory,"Ion_rides_${stamp}.zip").apply {
+                        outputStream().use { TripArchive.write(it,trips,model.journal::csv,model.history::track) }
+                    }
                 }
-                startActivity(Intent.createChooser(TripExport.intent(this@MainActivity,file,"text/csv"),getString(R.string.trips_export_subject)))
+                startActivity(Intent.createChooser(TripExport.intent(this@MainActivity,file,"application/zip"),getString(R.string.trips_export_subject)))
             } catch(e: CancellationException) { throw e }
             catch(_: Exception) { android.widget.Toast.makeText(this@MainActivity,R.string.trip_export_failed,android.widget.Toast.LENGTH_LONG).show() }
         }

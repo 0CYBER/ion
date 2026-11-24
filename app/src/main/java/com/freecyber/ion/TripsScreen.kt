@@ -30,8 +30,8 @@ import java.text.DateFormat
 import java.util.Date
 
 /** Ride log: lifetime totals, then every stored ride newest first. Per-ride exports live in the detail; the log
- * itself exports one summary row per ride. */
-@Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,openTrip: (TripSummary)->Unit,onBack: (()->Unit)?) {
+ * itself exports every ride at once as a zip of CSVs. */
+@Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,openTrip: (TripSummary)->Unit) {
     var confirmClear by rememberSaveable {mutableStateOf(false)}
     // Keyed by startedAt so the pending question survives rotation; one tap on the bin must not lose a ride.
     var pendingDelete by rememberSaveable {mutableStateOf<Long?>(null)}
@@ -39,13 +39,9 @@ import java.util.Date
     val months=remember(trips) {TripMonths.group(trips,java.time.ZoneId.systemDefault())}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {
-            // As a dock tab there is nowhere to go back to: a page title like the other tabs instead of a Back button.
-            if(onBack!=null) DetailHeading(stringResource(R.string.trips_title),stringResource(R.string.trips_hint),onBack)
-            else Column(Modifier.fillMaxWidth().padding(top=8.dp,bottom=12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.nav_history),style=IonType.page,color=MaterialTheme.colorScheme.onBackground,
-                    modifier=Modifier.semantics {heading()})
-                Text(stringResource(R.string.trips_hint),style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            // A dock tab: just the page title, like the other tabs.
+            Text(stringResource(R.string.nav_history),style=IonType.page,color=MaterialTheme.colorScheme.onBackground,
+                modifier=Modifier.fillMaxWidth().padding(top=8.dp,bottom=12.dp).semantics {heading()})
         }
         if(trips.isEmpty()) {
             item(key="empty",contentType="note") {Banner(stringResource(R.string.trips_empty),Icons.Rounded.History)}

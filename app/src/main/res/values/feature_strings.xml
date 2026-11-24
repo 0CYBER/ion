@@ -165,11 +165,10 @@
     <string name="unit_m">м</string>
     <string name="trips_delete_title">Удалить поездку?</string>
     <string name="trips_delete_message">Поездка и её маршрут будут удалены безвозвратно.</string>
-    <string name="trips_hint">Прошлые поездки, итоги и экспорт CSV</string>
     <string name="trips_empty">Пока нет завершённых поездок. Поездка сохраняется при отключении или по кнопке «Завершить».</string>
     <string name="trips_export">Экспорт CSV</string>
     <string name="trips_export_subject">Поездки Ion</string>
-    <string name="trips_export_all">Все поездки в CSV</string>
+    <string name="trips_export_all">Все поездки (ZIP)</string>
     <string name="trips_clear">Очистить</string>
     <string name="trips_clear_title">Удалить всю историю?</string>
     <string name="trips_clear_message">Все сохранённые поездки будут удалены с телефона.</string>
