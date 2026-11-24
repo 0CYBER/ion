@@ -33,13 +33,36 @@ data class TripStats(
     val consumption: Double? get() = if (distanceKm < 0.2) null else (energyWh - regenWh) / distanceKm
 }
 
-/** Integrates telemetry into [TripStats]. Pure apart from the exposed StateFlow, so it can run in unit tests. */
+/**
+ * Integrates telemetry into [TripStats]. Pure apart from the exposed StateFlow, so it can run in unit tests.
+ *
+ * Power-off tail: when the wheel is switched off it keeps talking for a second or two while its pack voltage
+ * collapses, which used to put a bogus minimum voltage and a battery drop into the ride. A standing-still sample far
+ * below the last accepted voltage is therefore held back ([Feed.Held]) instead of counted. The next normal sample
+ * accepts the held ones (it was real) unless a link gap came first; a held tail that never gets a successor, because
+ * the link dropped, simply never reaches the stats. A dip that lasts longer than [HOLD_MS] is accepted as real.
+ */
 class TripRecorder {
     companion object {
         const val MOVING_KMH = 1.0
         /** Gaps longer than this (lost link) are not integrated: no invented distance or energy. */
         const val MAX_GAP_MS = 5_000L
+        /** A standing sample below this share of the last accepted voltage looks like the power-off collapse. */
+        const val COLLAPSE_RATIO = 0.85
+        const val HOLD_MS = 10_000L
     }
+
+    /** What [feed] did with a sample, so the caller can hold or drop its own copy (the CSV row) the same way. */
+    enum class Feed {
+        /** Counted. Samples held before it were dropped (the wheel came back after a gap) or there were none. */
+        COUNTED,
+        /** Counted, after the samples held before it, which turned out to be real. */
+        COUNTED_WITH_HELD,
+        /** Looks like the power-off collapse: held back until the next sample decides. */
+        HELD,
+    }
+    private val held = ArrayList<Pair<V12Protocol.Telemetry, Long>>()
+    private var acceptedVoltage: Double? = null
     private val mutable = MutableStateFlow(TripStats())
     val stats: StateFlow<TripStats> = mutable.asStateFlow()
     private var lastAt: Long? = null
@@ -47,9 +70,24 @@ class TripRecorder {
     /** Provisional speed distance since the last wheel-counter increment (the counter is quantised). */
     private var provisionalKm = 0.0
 
-    fun reset() { mutable.value = TripStats(); lastAt = null; lastTripKm = null; provisionalKm = 0.0 }
+    fun reset() { mutable.value = TripStats(); lastAt = null; lastTripKm = null; provisionalKm = 0.0; held.clear(); acceptedVoltage = null }
 
-    fun feed(t: V12Protocol.Telemetry, now: Long) {
+    fun feed(t: V12Protocol.Telemetry, now: Long): Feed {
+        val reference = acceptedVoltage
+        val collapsing = reference != null && kotlin.math.abs(t.speed) < MOVING_KMH &&
+            (!t.voltage.isFinite() || t.voltage < reference * COLLAPSE_RATIO)
+        if (collapsing && (held.isEmpty() || now - held.first().second < HOLD_MS)) {
+            held += t to now
+            return Feed.HELD
+        }
+        val keepHeld = held.isNotEmpty() && (collapsing || now - held.last().second <= MAX_GAP_MS)
+        if (keepHeld) held.forEach { (h, at) -> apply(h, at) }
+        held.clear()
+        apply(t, now)
+        return if (keepHeld) Feed.COUNTED_WITH_HELD else Feed.COUNTED
+    }
+
+    private fun apply(t: V12Protocol.Telemetry, now: Long) {
         val s = mutable.value
         val dt = lastAt?.let { now - it }?.takeIf { it in 1..MAX_GAP_MS } ?: 0L
         // A frozen/quantised counter must not suppress speed distance. Reconcile its next increment
@@ -90,5 +128,6 @@ class TripRecorder {
         )
         lastAt = now
         lastTripKm = t.tripKm
+        if (t.voltage.isFinite() && t.voltage > 0) acceptedVoltage = t.voltage
     }
 }

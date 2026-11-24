@@ -32,6 +32,8 @@ class WheelMonitor(private val graph: IonGraph) {
     private var lastCheckpointAt = 0L
     private var sessionStart: Long? = null
     private var sessionWall: Long? = null
+    /** CSV rows of samples the recorder is holding back as a possible power-off tail. */
+    private val heldRows = ArrayList<String>()
     private val companionWakeLock by lazy {
         graph.context.getSystemService(PowerManager::class.java)
             ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ion:companion-link")
@@ -130,7 +132,7 @@ class WheelMonitor(private val graph: IonGraph) {
             graph.history.add(summary)
         } else sessionWall?.let(graph.journal::delete)
         graph.track.stop()
-        sessionStart = null; sessionWall = null
+        sessionStart = null; sessionWall = null; heldRows.clear()
         graph.history.checkpoint(null); lastCheckpointAt = 0L
         graph.trips.reset()
         graph.samples.clear(); graph.chartState.value = emptyList()
@@ -188,10 +190,16 @@ class WheelMonitor(private val graph: IonGraph) {
     /** Called directly for each decoded telemetry packet: StateFlow can conflate packets in a burst. */
     private fun onTelemetry(t: V12Protocol.Telemetry, now: Long) {
         if (sessionStart == null) { sessionStart = now; sessionWall = System.currentTimeMillis() }
-        graph.trips.feed(t, now)
+        val fed = graph.trips.feed(t, now)
         refreshRecording(false)
-        graph.journal.telemetry(sessionWall!!, TripCsv.row(sessionWall!!, now - sessionStart!!,
-            t, graph.trips.stats.value.distanceKm, graph.track.lastPoint))
+        val row = TripCsv.row(sessionWall!!, now - sessionStart!!, t, graph.trips.stats.value.distanceKm, graph.track.lastPoint)
+        // The CSV follows the stats: a held power-off tail is written only if the recorder later accepts it.
+        when (fed) {
+            TripRecorder.Feed.HELD -> heldRows += row
+            TripRecorder.Feed.COUNTED_WITH_HELD -> { heldRows.forEach { graph.journal.telemetry(sessionWall!!, it) }; heldRows.clear() }
+            TripRecorder.Feed.COUNTED -> heldRows.clear()
+        }
+        if (fed != TripRecorder.Feed.HELD) graph.journal.telemetry(sessionWall!!, row)
         if (graph.samples.add(t, now)) graph.chartState.value = graph.samples.snapshot()
     }
 
