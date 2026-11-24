@@ -49,6 +49,12 @@ class TripJournal(context: Context, scope: CoroutineScope) {
         done.await()
     }
 
+    /** Backup import (off the queue: imported rides are never the one being recorded). */
+    fun importTrack(id: Long, points: List<TrackPoint>) {
+        directory.mkdirs()
+        file(id, "track").writeText(TrackCodec.encode(points) + "\n")
+    }
+
     fun hasTelemetry(id: Long) = file(id, "csv").isFile
     fun csv(id: Long): File = file(id, "csv")
     fun hasTrack(id: Long) = file(id, "track").isFile

@@ -169,6 +169,10 @@
     <string name="trips_export">Экспорт CSV</string>
     <string name="trips_export_subject">Поездки Ion</string>
     <string name="trips_export_all">Все поездки (ZIP)</string>
+    <string name="trips_import">Импорт</string>
+    <string name="trips_import_none">Новых поездок в архиве нет</string>
+    <string name="trips_import_wrong">Это не архив Ion: нужен файл «Все поездки (ZIP)»</string>
+    <string name="trips_import_failed">Не удалось прочитать архив</string>
     <string name="trips_clear">Очистить</string>
     <string name="trips_clear_title">Удалить всю историю?</string>
     <string name="trips_clear_message">Все сохранённые поездки будут удалены с телефона.</string>
@@ -250,4 +254,10 @@
     <string name="tile_energy">Энергия поездки</string>
     <string name="tile_consumption">Расход</string>
     <string name="battery_charging">Зарядка</string>
+    <plurals name="trips_imported">
+        <item quantity="one">Добавлена %d поездка</item>
+        <item quantity="few">Добавлено %d поездки</item>
+        <item quantity="many">Добавлено %d поездок</item>
+        <item quantity="other">Добавлено %d поездки</item>
+    </plurals>
 </resources>

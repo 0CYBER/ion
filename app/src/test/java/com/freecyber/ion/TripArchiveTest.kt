@@ -26,7 +26,7 @@ class TripArchiveTest {
         TripArchive.write(out, listOf(second, first).map(::trip), csv = { if (it == first) csv else null },
             track = { if (it == second) track else emptyList() }, zone = utc)
         val files = entries(out.toByteArray())
-        assertEquals(setOf(TripArchive.SUMMARY, "Ion_2026-09-21_1413.csv", "Ion_2026-09-22_1413.gpx"), files.keys)
+        assertEquals(setOf(TripArchive.MANIFEST, TripArchive.SUMMARY, "Ion_2026-09-21_1413.csv", "Ion_2026-09-22_1413.gpx", "ion/${second}.track"), files.keys)
         assertEquals(3, files.getValue(TripArchive.SUMMARY).trim().lines().size)
         assertTrue(files.getValue("Ion_2026-09-21_1413.csv").startsWith(TripCsv.HEADER))
         assertTrue(files.getValue("Ion_2026-09-22_1413.gpx").contains("<trkpt"))
@@ -37,6 +37,35 @@ class TripArchiveTest {
         val csv = File.createTempFile("ride", ".csv").apply { writeText("x"); deleteOnExit() }
         val out = ByteArrayOutputStream()
         TripArchive.write(out, listOf(trip(at + 20_000), trip(at)), csv = { csv }, track = { emptyList() }, zone = utc)
-        assertEquals(setOf(TripArchive.SUMMARY, "Ion_2026-09-21_1413.csv", "Ion_2026-09-21_1413_2.csv"), entries(out.toByteArray()).keys)
+        assertEquals(setOf(TripArchive.MANIFEST, TripArchive.SUMMARY, "Ion_2026-09-21_1413.csv", "Ion_2026-09-21_1413_2.csv"), entries(out.toByteArray()).keys)
+    }
+
+    @Test fun exportedArchiveRestoresRidesCsvAndTracksExactly() {
+        val first = 1_790_000_000_000; val second = first + 86_400_000
+        val rides = listOf(trip(second).copy(maxPower = 2400.0, minVoltage = 88.1), trip(first))
+        val source = File.createTempFile("ride", ".csv").apply { writeText(TripCsv.HEADER + "\nrow1\nrow2\n"); deleteOnExit() }
+        val track = listOf(TrackPoint(0, 42.87, 74.59, 760.0, 5.5), TrackPoint(1000, 42.88, 74.6, 761.0, 6.0))
+        val out = ByteArrayOutputStream()
+        TripArchive.write(out, rides, csv = { if (it == second) source else null }, track = { if (it == second) track else emptyList() })
+
+        val dir = kotlin.io.path.createTempDirectory().toFile().apply { deleteOnExit() }
+        val tracks = HashMap<Long, List<TrackPoint>>()
+        val restored = TripArchive.read(ByteArrayInputStream(out.toByteArray()), existing = setOf(first),
+            csvFile = { File(dir, "$it.csv") }, saveTrack = { id, p -> tracks[id] = p })
+        assertEquals(listOf(rides[0]), restored)
+        assertEquals(source.readText(), File(dir, "$second.csv").readText())
+        assertEquals(track, tracks[second])
+        assertFalse(File(dir, "$first.csv").exists())
+    }
+
+    @Test fun anyOtherZipIsRejected() {
+        val out = ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(out).use { it.putNextEntry(java.util.zip.ZipEntry("photo.jpg")); it.write(1); it.closeEntry() }
+        assertThrows(TripArchive.NotABackup::class.java) {
+            TripArchive.read(ByteArrayInputStream(out.toByteArray()), emptySet(), { File("x") }, { _, _ -> })
+        }
+        assertThrows(TripArchive.NotABackup::class.java) {
+            TripArchive.read(ByteArrayInputStream("not a zip".toByteArray()), emptySet(), { File("x") }, { _, _ -> })
+        }
     }
 }

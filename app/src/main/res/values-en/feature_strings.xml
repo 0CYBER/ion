@@ -169,6 +169,10 @@
     <string name="trips_export">Export CSV</string>
     <string name="trips_export_subject">Ion rides</string>
     <string name="trips_export_all">All rides (ZIP)</string>
+    <string name="trips_import">Import</string>
+    <string name="trips_import_none">No new rides in the archive</string>
+    <string name="trips_import_wrong">Not an Ion archive: pick an &quot;All rides (ZIP)&quot; file</string>
+    <string name="trips_import_failed">Could not read the archive</string>
     <string name="trips_clear">Clear</string>
     <string name="trips_clear_title">Delete the whole history?</string>
     <string name="trips_clear_message">All saved rides will be removed from this phone.</string>
@@ -240,4 +244,8 @@
     <string name="tile_energy">Ride energy</string>
     <string name="tile_consumption">Consumption</string>
     <string name="battery_charging">Charging</string>
+    <plurals name="trips_imported">
+        <item quantity="one">Added %d ride</item>
+        <item quantity="other">Added %d rides</item>
+    </plurals>
 </resources>

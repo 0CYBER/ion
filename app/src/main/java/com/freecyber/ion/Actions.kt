@@ -17,6 +17,8 @@ internal data class Actions(
     val clearTrips: () -> Unit = {},
     /** One CSV row per stored ride (TripSummary.csv), for spreadsheets. */
     val shareAllCsv: () -> Unit = {},
+    /** Opens the file picker for an "All rides (ZIP)" archive to restore. */
+    val importTrips: () -> Unit = {},
     /** GPS fixes stored for a finished ride, keyed by its startedAt. */
     val tripTrack: (Long) -> List<TrackPoint> = { emptyList() },
     val tripHasTelemetry: (Long) -> Boolean = { false },

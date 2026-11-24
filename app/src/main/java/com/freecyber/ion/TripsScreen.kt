@@ -45,6 +45,8 @@ import java.util.Date
         }
         if(trips.isEmpty()) {
             item(key="empty",contentType="note") {Banner(stringResource(R.string.trips_empty),Icons.Rounded.History)}
+            // A fresh install (or a new phone) restores its rides from here.
+            item(key="import",contentType="actions") {ImportButton(actions.importTrips)}
             return@LazyColumn
         }
         item(key="totals",contentType="totals") {TotalsCard(totals)}
@@ -53,6 +55,7 @@ import java.util.Date
                 TextButton(onClick=actions.shareAllCsv,modifier=Modifier.heightIn(min=48.dp)) {
                     Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_all))
                 }
+                ImportButton(actions.importTrips)
                 TextButton(onClick={confirmClear=true},modifier=Modifier.heightIn(min=48.dp)) {
                     Icon(Icons.Rounded.DeleteSweep,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_clear))
                 }
@@ -74,6 +77,12 @@ import java.util.Date
             text={Text(stringResource(R.string.trips_delete_message))},
             confirmButton={TextButton(onClick={pendingDelete=null;actions.deleteTrip(trip)}) {Text(stringResource(R.string.trips_delete))}},
             dismissButton={TextButton(onClick={pendingDelete=null}) {Text(stringResource(R.string.cancel))}})
+    }
+}
+
+@Composable private fun ImportButton(onClick: ()->Unit) {
+    TextButton(onClick=onClick,modifier=Modifier.heightIn(min=48.dp)) {
+        Icon(Icons.Rounded.FileOpen,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_import))
     }
 }
 

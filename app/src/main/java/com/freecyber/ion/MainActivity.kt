@@ -137,6 +137,7 @@ class MainActivity : ComponentActivity() {
                 if(!locationAllowed && SystemClock.elapsedRealtime()-locationAskedAt<500)
                     runCatching {startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")))}
             }
+            val backupPicker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(::importTrips) }
             var bluetoothAskedAt by remember { mutableLongStateOf(0L) }
             val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                 bluetoothAllowed = model.ble.hasPermissions()
@@ -185,6 +186,7 @@ class MainActivity : ComponentActivity() {
                     },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
+                    importTrips={ backupPicker.launch(arrayOf("application/zip","application/x-zip-compressed","application/octet-stream")) },
                     tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,update=updateActions),
                     initialTab=if (startOnWheel) Tabs.WHEEL else Tabs.RIDE)
                 // One silent check per launch, never on top of the first-run setup.
@@ -273,6 +275,26 @@ class MainActivity : ComponentActivity() {
                 startActivity(Intent.createChooser(TripExport.intent(this@MainActivity,file,"application/zip"),getString(R.string.trips_export_subject)))
             } catch(e: CancellationException) { throw e }
             catch(_: Exception) { android.widget.Toast.makeText(this@MainActivity,R.string.trip_export_failed,android.widget.Toast.LENGTH_LONG).show() }
+        }
+    }
+    /** Restores rides from an "All rides (ZIP)" archive; rides already in the log are skipped, never duplicated. */
+    private fun importTrips(uri: Uri) {
+        lifecycleScope.launch {
+            val message = try {
+                val added = withContext(Dispatchers.IO) {
+                    val existing = model.history.trips.value.mapTo(HashSet()) { it.startedAt }
+                    val rides = contentResolver.openInputStream(uri)?.use { input ->
+                        TripArchive.read(input, existing, model.journal::csv, model.journal::importTrack)
+                    } ?: throw java.io.IOException("unreadable")
+                    rides
+                }
+                model.history.import(added)
+                if (added.isEmpty()) getString(R.string.trips_import_none)
+                else resources.getQuantityString(R.plurals.trips_imported, added.size, added.size)
+            } catch (e: CancellationException) { throw e }
+            catch (_: TripArchive.NotABackup) { getString(R.string.trips_import_wrong) }
+            catch (_: Exception) { getString(R.string.trips_import_failed) }
+            android.widget.Toast.makeText(this@MainActivity, message, android.widget.Toast.LENGTH_LONG).show()
         }
     }
     override fun onStop() { super.onStop(); if(!isChangingConfigurations) model.onBackground() }

@@ -23,6 +23,15 @@ class TripHistory(context: Context, private val journal: TripJournal? = null) {
         save(all.take(LIMIT))
     }
 
+    /** Rides restored from a backup, slotted in by start time; the log keeps its newest [LIMIT] as always. */
+    fun import(rides: List<TripSummary>) {
+        if (rides.isEmpty()) return
+        val known = state.value.mapTo(HashSet()) { it.startedAt }
+        val all = (state.value + rides.filter { it.startedAt !in known }).sortedByDescending { it.startedAt }
+        all.drop(LIMIT).forEach { deleteTrack(it.startedAt); journal?.delete(it.startedAt) }
+        save(all.take(LIMIT))
+    }
+
     /** Checkpoint of the running ride, so a killed process or crash does not lose it. */
     fun checkpoint(trip: TripSummary?) = prefs.edit { if (trip == null) remove("pending") else putString("pending", trip.encode()) }
 
