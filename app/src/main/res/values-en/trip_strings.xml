@@ -24,4 +24,15 @@
     <string name="gps_recording">GPS: recording</string>
     <string name="gps_error">GPS: could not start recording</string>
     <string name="trip_record_failed">Ride storage failed. Check free storage.</string>
+    <string name="trip_series_power">Power</string>
+    <string name="trip_series_battery">Battery</string>
+    <string name="trip_series_pwm">PWM</string>
+    <string name="trip_point_gps_speed">GPS speed</string>
+    <string name="trip_point_voltage">Voltage</string>
+    <string name="trip_point_current">Current</string>
+    <string name="trip_point_mos">MOS temp</string>
+    <string name="trip_point_motor">Motor temp</string>
+    <string name="trip_expand">Expand map</string>
+    <string name="trip_collapse">Collapse map</string>
+    <string name="trip_chart_cursor">Ride moment</string>
 </resources>

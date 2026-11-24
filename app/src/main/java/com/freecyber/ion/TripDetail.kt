@@ -32,11 +32,14 @@ import kotlinx.coroutines.CancellationException
     var track by remember(startedAt) {mutableStateOf<List<TrackPoint>?>(null)}
     var failed by remember(startedAt) {mutableStateOf(false)}
     var hasCsv by remember(startedAt) {mutableStateOf(false)}
+    var moments by remember(startedAt) {mutableStateOf(emptyList<Moment>())}
     LaunchedEffect(startedAt,retry) {
         failed=false
         try {
-            val loaded=withContext(Dispatchers.IO) { actions.tripTrack(trip.startedAt) to actions.tripHasTelemetry(trip.startedAt) }
-            track=loaded.first; hasCsv=loaded.second
+            val loaded=withContext(Dispatchers.IO) {
+                Triple(actions.tripTrack(trip.startedAt),actions.tripHasTelemetry(trip.startedAt),actions.tripTimeline(trip.startedAt))
+            }
+            moments=loaded.third; hasCsv=loaded.second; track=loaded.first
         } catch(e: CancellationException) {throw e}
         catch(_: Exception) {failed=true}
     }
@@ -50,45 +53,24 @@ import kotlinx.coroutines.CancellationException
             } else LoadingIndicator()
         }
     } else TripDetailScreen(trip,loaded,{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack,
-        shareCsv={actions.shareCsv(trip)},hasCsv=hasCsv)
+        shareCsv={actions.shareCsv(trip)},hasCsv=hasCsv,moments=moments)
 }
 
-/** One archived ride: the whole ride's stats, its GPS route with a scrubber showing the stats at
- * any moment of the ride, GPX export and delete. */
+/** One archived ride: the whole ride's stats, the ride explorer (map, chart and figures at any moment of the ride),
+ * exports and delete. */
 @Composable internal fun TripDetailScreen(trip: TripSummary,track: List<TrackPoint>,shareGpx: ()->Unit,delete: ()->Unit,onBack: ()->Unit,
-    shareCsv: ()->Unit = {},hasCsv: Boolean = false) {
+    shareCsv: ()->Unit = {},hasCsv: Boolean = false,moments: List<Moment> = emptyList()) {
     var confirmDelete by rememberSaveable {mutableStateOf(false)}
     val date=rememberTripDate(trip.startedAt)
-    val cum=remember(track) {Track.cumulativeKm(track)}
-    var pick by rememberSaveable(track.size) {mutableFloatStateOf((track.size-1).coerceAtLeast(0).toFloat())}
-    val idx=pick.roundToInt().coerceIn(0,(track.size-1).coerceAtLeast(0))
+    val data=remember(track,moments) {RideData(track,moments)}
+    // The cursor is a time on the ride clock; it starts at the end, like the old scrubber.
+    var cursor by rememberSaveable(data.duration) {mutableLongStateOf(data.duration)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item(key="heading",contentType="heading") {DetailHeading(date,V12Protocol.formatDuration(trip.durationMs/1000),onBack)}
         item(key="stats",contentType="stats") {TripStatsCard(trip)}
         item(key="route",contentType="route") {
-            if(track.size<2) Banner(stringResource(R.string.trips_track_missing),Icons.Rounded.LocationOff)
-            else Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
-                Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.trips_track),style=MaterialTheme.typography.titleMedium)
-                    Text(stringResource(R.string.trips_track_length,(cum.lastOrNull() ?: 0.0).fmt(2)),
-                        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    TripMap(track,idx,Modifier.fillMaxWidth().height(300.dp))
-                    // TalkBack: "Route, 12:30 · 3.25 km" instead of a bare percentage of track points.
-                    val sliderLabel=stringResource(R.string.trips_track)
-                    val sliderState=V12Protocol.formatDuration(track[idx].t/1000)+" · "+cum[idx].fmt(2)+" "+stringResource(R.string.unit_km)
-                    Slider(value=pick,onValueChange={pick=it},valueRange=0f..(track.size-1).coerceAtLeast(1).toFloat(),
-                        modifier=Modifier.semantics {contentDescription=sliderLabel;stateDescription=sliderState})
-                    Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        TripFigure(stringResource(R.string.trip_point_time),V12Protocol.formatDuration(track[idx].t/1000),"",Modifier.weight(1f))
-                        TripFigure(stringResource(R.string.trip_point_speed),track[idx].speed?.let {(it*3.6).fmt(1)} ?: "—",
-                            stringResource(R.string.unit_kmh),Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        TripFigure(stringResource(R.string.trip_point_distance),cum[idx].fmt(2),stringResource(R.string.unit_km),Modifier.weight(1f))
-                        TripFigure(stringResource(R.string.trip_point_alt),track[idx].alt?.fmt(0) ?: "—",stringResource(R.string.unit_m),Modifier.weight(1f))
-                    }
-                }
-            }
+            if(!data.hasMap && !data.hasChart) Banner(stringResource(R.string.trips_track_missing),Icons.Rounded.LocationOff)
+            else RideExplorer(data,cursor) {cursor=it}
         }
         item(key="actions",contentType="action") {
             Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {

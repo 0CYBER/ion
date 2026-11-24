@@ -2,6 +2,7 @@ package com.freecyber.ion
 
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.unit.dp
@@ -30,7 +31,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
 /** Native OSM tiles with disk cache, a route and a marker linked to the ride scrubber. */
-@Composable internal fun TripMap(track: List<TrackPoint>, index: Int, modifier: Modifier = Modifier) {
+@Composable internal fun TripMap(track: List<TrackPoint>, index: Int, modifier: Modifier = Modifier, footer: Boolean = true) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val owner = LocalLifecycleOwner.current
@@ -85,11 +86,11 @@ import org.osmdroid.views.overlay.Polyline
             when(event) { Lifecycle.Event.ON_RESUME -> map.onResume(); Lifecycle.Event.ON_PAUSE -> map.onPause(); else -> Unit }
         }
     }
-    Column {
+    Column(if (footer) Modifier else modifier) {
         key(map) {
             AndroidView(
                 factory = { map.also { owner.lifecycle.addObserver(observer) } },
-                modifier = modifier.clipToBounds(),
+                modifier = (if (footer) modifier else Modifier.weight(1f).fillMaxWidth()).clipToBounds(),
                 onRelease = {
                     owner.lifecycle.removeObserver(observer)
                     it.onPause()
@@ -104,9 +105,10 @@ import org.osmdroid.views.overlay.Polyline
                 },
             )
         }
+        // Full screen keeps the attribution (OSM requires it) but not the gesture hint.
         Text("© OpenStreetMap contributors",style=MaterialTheme.typography.labelSmall,
-            modifier=Modifier.heightIn(min=48.dp).wrapContentHeight().clickable(role=androidx.compose.ui.semantics.Role.Button) { uriHandler.openUri("https://www.openstreetmap.org/copyright") })
-        Text(stringResource(R.string.trip_map_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            modifier=Modifier.heightIn(min=if (footer) 48.dp else 32.dp).wrapContentHeight().clickable(role=androidx.compose.ui.semantics.Role.Button) { uriHandler.openUri("https://www.openstreetmap.org/copyright") })
+        if (footer) Text(stringResource(R.string.trip_map_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

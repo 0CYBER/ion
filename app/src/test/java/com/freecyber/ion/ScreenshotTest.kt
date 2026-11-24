@@ -3,6 +3,8 @@ package com.freecyber.ion
 import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -91,7 +93,26 @@ class ScreenshotTest {
             TrackPoint(i * 2_000L, 55.751 + 0.002 * Math.sin(a), 37.618 + 0.003 * Math.cos(a),
                 160.0 + 10 * Math.sin(a), 6.0 + 2 * Math.sin(a))
         }
-        TripDetailScreen(trips.first(), track, {}, {}, {})
+        val moments = List(600) { i ->
+            val a = i / 600.0 * 2 * Math.PI
+            val speed = 20 + 14 * Math.sin(a * 3) + 4 * Math.sin(a * 17)
+            Moment(i * 400L, speed, 92 - i * 0.012 - speed * 0.08, speed * 0.6, speed * 52, speed * 1.4, 88 - i * 0.03,
+                38 + i / 60, 42 + i / 50, i * 0.0024)
+        }
+        TripDetailScreen(trips.first(), track, {}, {}, {}, moments = moments)
+    }
+    @Test fun tripExplorer() = shot("trip_explorer", dark = true) {
+        val track = List(120) { i ->
+            val a = i / 120.0 * 2 * Math.PI
+            TrackPoint(i * 2_000L, 55.751 + 0.002 * Math.sin(a), 37.618 + 0.003 * Math.cos(a), 160.0 + 10 * Math.sin(a), 6.0 + 2 * Math.sin(a))
+        }
+        val moments = List(600) { i ->
+            val a = i / 600.0 * 2 * Math.PI
+            val speed = 20 + 14 * Math.sin(a * 3) + 4 * Math.sin(a * 17)
+            Moment(i * 400L, speed, 92 - i * 0.012 - speed * 0.08, speed * 0.6, speed * 52, speed * 1.4, 88 - i * 0.03,
+                38 + i / 60, 42 + i / 50, i * 0.0024)
+        }
+        Box(Modifier.padding(16.dp)) { RideExplorer(RideData(track, moments), 100_000L) {} }
     }
 }
 

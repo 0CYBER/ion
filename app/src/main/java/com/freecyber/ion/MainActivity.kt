@@ -187,7 +187,8 @@ class MainActivity : ComponentActivity() {
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
                     deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
                     importTrips={ backupPicker.launch(arrayOf("application/zip","application/x-zip-compressed","application/octet-stream")) },
-                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,update=updateActions),
+                    tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,
+                    tripTimeline={ id -> model.journal.csv(id).takeIf { it.isFile }?.useLines { TripTimeline.parse(it) }.orEmpty() },update=updateActions),
                     initialTab=if (startOnWheel) Tabs.WHEEL else Tabs.RIDE)
                 // One silent check per launch, never on top of the first-run setup.
                 LaunchedEffect(onboarding) { if (!onboarding) updater.checkOnLaunch() }

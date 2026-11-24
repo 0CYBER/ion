@@ -22,6 +22,8 @@ internal data class Actions(
     /** GPS fixes stored for a finished ride, keyed by its startedAt. */
     val tripTrack: (Long) -> List<TrackPoint> = { emptyList() },
     val tripHasTelemetry: (Long) -> Boolean = { false },
+    /** The ride's telemetry log read back for the ride explorer (empty when the ride has none). Called off the main thread. */
+    val tripTimeline: (Long) -> List<Moment> = { emptyList() },
     val update: UpdateActions = UpdateActions(),
 )
 
