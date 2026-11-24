@@ -83,6 +83,8 @@ android {
             if (providers.gradleProperty("skipScreenshots").isPresent) {
                 it.filter { excludeTestsMatching("com.freecyber.ion.ScreenshotTest") }
             }
+            // README images are written into docs/readme; they are only rendered on request (-PreadmeShots).
+            if (!providers.gradleProperty("readmeShots").isPresent) it.filter { excludeTestsMatching("com.freecyber.ion.ReadmeShots*") }
         }
     }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }

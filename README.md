@@ -1,69 +1,148 @@
-# Ion 1.0 — INMOTION V12 companion
+<p align="center"><b>English</b> · <a href="README.ru.md">Русский</a></p>
 
-Native Kotlin / Jetpack Compose / Material 3 Expressive companion for INMOTION V12 HT, HS and PRO.
+<p align="center"><img src="docs/readme/en/banner.png" alt="Ion — a companion app for INMOTION V12 wheels" width="100%"></p>
 
-- Package / applicationId: `com.freecyber.ion` (since 0.4.0; earlier builds were `dev.vela.v12` and install side by side).
-- Tabs: Ride, Settings, Wheel. Settings opens focused categories; diagnostics (fields, raw and export) lives under Wheel. No demo mode.
-- Background: on supported Android 12+ devices, ION requests Android’s companion association when you choose a wheel. The default background BLE connection needs no persistent card once associated. GPS tracking and live notifications are optional and use the foreground service (`connectedDevice|location`). Auto-reconnect (3 attempts by default, configurable up to unlimited), home-screen widget and Quick Settings tile are available. Internet is used only for trip map tiles.
-- Customisable ride dashboard (repeatable tiles, universal toggle), alerts with voice and optional vibration rhythms (danger / speed / warning / info are told apart in a pocket), RU/EN.
-- Appearance: light, dark or "Match system" (follows the phone's dark mode).
+<p align="center">
+  <a href="https://github.com/0CYBER/ion/releases"><img src="https://img.shields.io/github/v/release/0CYBER/ion?include_prereleases&label=download" alt="Latest build"></a>
+  <a href="https://github.com/0CYBER/ion/actions/workflows/android.yml"><img src="https://github.com/0CYBER/ion/actions/workflows/android.yml/badge.svg" alt="Android CI"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white" alt="Android 8.0+">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0"></a>
+</p>
 
-## What it does
-- BLE (Nordic UART) link to a verified V12 HS, HT or PRO (series 7, variants 1–3; same protocol as in WheelLog, hardware-tested on the HT only). Ion remembers the wheel after the first valid telemetry.
-- Ride: speed, battery, voltage, trip distance (telemetry u16[22], distance since power-on), odometer (statistics), remaining range, current, MOS/motor temperature.
-- Data: decoded fields and full raw payloads for nine read requests, plus JSON export of raw frames for before/after diffs.
-- Trips: ride log grouped by month (with monthly distance), trip detail with a ride explorer (map that expands to full screen, a chart of speed/power/battery/PWM you drag along the ride, and every figure at that moment: speed, GPS speed, distance, battery, voltage, current, power, PWM, temperatures, altitude) and GPX/CSV export with dated file names; "All rides (ZIP)" on the History tab: `rides.csv` (one row per ride: distance, speeds, energy, battery, temperature, power, PWM, current, minimum voltage, UTC start time) plus each ride's telemetry CSV and GPX track under the same `Ion_yyyy-MM-dd_HHmm` names as the single-ride export. The same zip is the backup: "Import" on the History tab restores its rides (exact summaries from `ion/rides.txt`, telemetry CSVs, lossless tracks from `ion/<start>.track`), skipping rides already in the log.
-- Voice alerts: danger alerts (critical battery, overheating, wheel error, speed) are spoken first and cut any queued phrase.
-- Controls include the headlight, side lights (off, music, speed or a personal effect: Ion has an LED-by-LED frame editor laid out like the wheel, with templates as a starting point, uploads effects to the wheel and turns on any effect stored there), sound previews, ride modes, pedal settings with Split Mode, alarm thresholds, handle button, transport mode, wheel lock and standby timer.
+**Ion** is an independent Android app for INMOTION V12 electric unicycles (HT, HS and PRO). It shows the ride live, records every trip with a map and full telemetry, changes the wheel's settings, and lets you paint your own side-light effects LED by LED. It is written in Kotlin with Jetpack Compose and Material 3 Expressive, and works in English and Russian.
 
-## Write safeguards
-- Two tiers: SAFE (lights/sound) needs a live verified link; STATIONARY (modes, pedals, service) also needs fresh telemetry and a still wheel. Rechecked right before sending.
-- Switches write immediately (no confirmation dialog). Sliders sit inside expandable rows and are sent with Apply.
-- Success is decided only by a fresh read-back; failures are shown, there is no automatic retry.
-- Wheel lock is offered on every supported V12 (proven on the HT only) and uses the observed security exchange before sending the lock frame (see `docs/rolling-handoff.md`).
-- Pedal tilt is in 0.01° on the wire (1° = 100) for both read and write.
+> Ion is a hobby project. It is not made, endorsed or supported by INMOTION.
+
+## Screenshots
+
+| Ride | History | Trip |
+|:---:|:---:|:---:|
+| <img src="docs/readme/en/ride.png" width="250" alt="Live ride dashboard"> | <img src="docs/readme/en/history.png" width="250" alt="Ride history"> | <img src="docs/readme/en/trip.png" width="250" alt="Trip detail"> |
+| **Settings** | **Lights** | **Light editor** |
+| <img src="docs/readme/en/settings.png" width="250" alt="Settings overview"> | <img src="docs/readme/en/lights.png" width="250" alt="Lights settings"> | <img src="docs/readme/en/editor.png" width="250" alt="LED-by-LED light editor"> |
+
+## Features
+
+**Ride**
+- Live speed, battery, PWM load, voltage, current, power, temperatures, trip distance, odometer and remaining range.
+- A dashboard you arrange yourself: reorder, hide or repeat tiles.
+- Spoken and vibration alerts. Danger alerts (critical battery, overheating, wheel errors, speed) interrupt anything else being said.
+
+**Trips**
+- Every ride is recorded on its own, with optional GPS.
+- History grouped by month, with lifetime totals.
+- Each trip has a summary of distance, pace, energy and load, plus a ride explorer. The explorer shows the map (full screen if you like), a chart of speed, power, battery and PWM, and every reading at the point you pick.
+- Export a ride as CSV (all telemetry) or GPX (the route). "All rides (ZIP)" exports everything at once and doubles as a backup that "Import" restores.
+
+**Wheel settings**
+- Headlights, brightness and auto light.
+- Volume and sound previews.
+- Ride modes, maximum speed, pedal tilt and sensitivity, Split Mode and alarm thresholds.
+- Handle button, transport mode, wheel lock and standby timer.
+
+**Side lights**
+- The modes (off, music, speed or personalised), switched from the app.
+- A full-screen editor with the 70 LEDs drawn where they sit on the wheel. Paint by tapping or dragging, build up to 60 frames, preview them and set the frame length.
+- Templates to start from: solid, blink, breathe, gradient, chase, rainbow and halves.
+- Ion uploads effects to the wheel, turns on any effect stored there and cleans up unfinished uploads.
+
+**Everyday**
+- On Android 12+, the wheel is linked as a companion device, so the connection survives in the background. Reconnects automatically (3 attempts by default, up to unlimited).
+- Home-screen widget and a Quick Settings tile.
+- Light, dark or system theme.
+- Updates from GitHub releases inside the app.
+
+## Supported wheels
+
+INMOTION V12 HT, HS and PRO (series 7, variants 1–3) over Bluetooth LE. All three use the same protocol. So far Ion has been tested on real hardware with a V12 HT only.
+
+## Install
+
+Download the latest APK from [Releases](https://github.com/0CYBER/ion/releases) and install it. Every push to `main` publishes a signed prerelease. Ion then finds newer builds by itself.
+
+Requires Android 8.0 (API 26) or newer, with Bluetooth LE.
+
+## Safety
+
+Changing settings on a moving wheel is dangerous, so Ion is deliberately careful:
+
+- **Two tiers.** Lights and sound need a live, verified link. Ride modes, pedals and service settings also need fresh telemetry showing that the wheel is standing still. Both are rechecked right before anything is sent.
+- **Read-back.** A change counts as done only when a fresh read-back from the wheel confirms it. Failures are shown and never retried automatically.
+- **Controls.** Switches apply at once. Sliders sit in expandable rows and are sent with Apply.
 
 This is not a certified safety interlock. Stop the wheel before changing ride settings.
 
-## Build
-JDK 21, Android SDK 37, AGP 9.3.1, Gradle 9.7.1. Min API 26, target API 35.
+## Build from source
+
+You need JDK 21 and Android SDK 37 (AGP 9.3.1, Gradle 9.7.1). The minimum API is 26 and the target is 35.
 
 ```powershell
-.\gradlew.bat testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
 ```
 
-APK: `app/build/outputs/apk/debug/app-debug.apk` (debug-signed personal build).
+The debug APK lands in `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Signed release
+<details>
+<summary>Signed release, startup check and README images</summary>
 
-Place the existing Ion PKCS#12 keystore on the build machine and create an ignored
-`keystore.properties` in the repository root. Set `storeFile` to the keystore path
-(use forward slashes on Windows) and `storePassword` to its password. The key alias
-is `ion-release`, and the key and store use the same password.
+**Signed release.** Put the Ion PKCS#12 keystore on the build machine and create an ignored `keystore.properties` in the repository root. It needs `storeFile` (the keystore path, with forward slashes on Windows) and `storePassword`. The key alias is `ion-release`, and the key password is the same as the store password.
 
 ```powershell
 .\gradlew.bat --no-configuration-cache :app:assembleRelease
 ```
 
-The signed APK is `app/build/outputs/apk/release/app-release.apk`. GitHub Actions
-uses the same keystore through `ION_RELEASE_KEYSTORE_BASE64` and
-`ION_RELEASE_STORE_PASSWORD`. Pull requests build an unsigned APK without signing
-credentials. Keep a secure backup of the keystore and password for future updates.
+GitHub Actions uses the same keystore through the `ION_RELEASE_KEYSTORE_BASE64` and `ION_RELEASE_STORE_PASSWORD` secrets. Pull requests build an unsigned APK.
 
-## Docs
-- `docs/design-system.md` — Material 3 Expressive design code: visual direction, tokens, components, motion, states and implementation rules. Redesign based on commit `3b82cd3` (0.4.0).
-- `handoff.md` — current implementation: status, verified lock protocol, modules, build, CI.
-- `docs/rolling-handoff.md` — full running work log: lock RE (hypotheses, refutations, evidence) and app evolution.
-
-Protocol derived from WheelLog (GPL-3.0); see `THIRD_PARTY.md` and `third-party/WheelLog-LICENSE.txt` before redistribution.
-
-
-## Release APK startup check
-
-Before handing out an optimized APK, test the packaged release on a fully booted isolated emulator. Debug/JVM tests and a successful build do not exercise R8 startup failures.
+**Startup check.** Before handing out an optimised APK, launch the packaged release on an emulator. Unit tests do not catch R8 startup failures.
 
 ```powershell
 .\tools\Test-ApkStartup.ps1 -Apk app/build/outputs/apk/release/app-release.apk -Serial emulator-5580
 ```
 
-This installs without clearing app data, performs two cold launches, and checks the process, resumed activity and crash log after each launch. It captures no screenshots. Version 0.9.1-ai/v19 failed this check; use the fixed 0.9.2-ai/v20 or later.
+**README images.** The banner and screenshots are rendered by Robolectric tests straight into `docs/readme/`:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest -PreadmeShots --tests "com.freecyber.ion.ReadmeShots*"
+```
+
+</details>
+
+## Project layout
+
+| Path | What is inside |
+|---|---|
+| `core/` | Pure Kotlin: the V12 protocol, trip recording, light-effect files. Tested on the JVM. |
+| `app/` | The Android app: Bluetooth, the UI, the widget and the background service. |
+| `docs/design-system.md` | Ion's Material 3 Expressive design rules. |
+| `handoff.md` | Current state: verified protocols (lock, sounds, lights), modules, build and CI. |
+| `docs/rolling-handoff.md` | The full running work log. |
+
+## Thanks
+
+Ion stands on the work of others:
+
+- [**WheelLog**](https://github.com/Wheellog/Wheellog.Android): the V12 protocol, field layouts and test packets come from its INMOTION adapter.
+- [**osmdroid**](https://github.com/osmdroid/osmdroid) draws the trip maps, and the map data comes from [**OpenStreetMap**](https://www.openstreetmap.org/copyright) contributors.
+- [**Onest**](https://github.com/google/fonts/tree/main/ofl/onest) and [**JetBrains Mono**](https://github.com/JetBrains/JetBrainsMono) are the fonts.
+- Google's [**Jetpack Compose**](https://developer.android.com/compose), [**Material 3**](https://m3.material.io/), [**Glance**](https://developer.android.com/develop/ui/compose/glance) and the rest of AndroidX, plus JetBrains' [**Kotlin**](https://kotlinlang.org/) and [**kotlinx.coroutines**](https://github.com/Kotlin/kotlinx.coroutines).
+- [**Robolectric**](https://robolectric.org/), [**Roborazzi**](https://github.com/takahirom/roborazzi) and [**JUnit**](https://junit.org/junit4/) run the tests and render the screenshots above.
+
+## License
+
+Ion is released under the [GNU General Public License v3.0](LICENSE).
+
+Third-party components keep their own licenses. Details are in [THIRD_PARTY.md](THIRD_PARTY.md), and license texts in [`third-party/`](third-party).
+
+| Component | License |
+|---|---|
+| WheelLog (protocol reference, test fixtures) | GPL-3.0 |
+| osmdroid | Apache-2.0 |
+| OpenStreetMap data | ODbL 1.0 |
+| Onest, JetBrains Mono | SIL OFL 1.1 |
+| AndroidX, Jetpack Compose, Material 3, Glance | Apache-2.0 |
+| Kotlin, kotlinx.coroutines | Apache-2.0 |
+| Robolectric (tests) | MIT |
+| Roborazzi (tests) | Apache-2.0 |
+| JUnit 4 (tests) | EPL-1.0 |
+
+INMOTION and V12 are trademarks of their owner and are used here only to name the supported wheels.
