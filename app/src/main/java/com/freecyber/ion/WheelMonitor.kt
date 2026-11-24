@@ -222,13 +222,14 @@ class WheelMonitor(private val graph: IonGraph) {
             return
         }
         val first = ReconnectPolicy.decide(userStopped, true, bg.autoReconnect, bg.keepAlive,
-            wasLive = lastPhase == Phase.CONNECTED, retrying = false, attempt = 0, restoringSavedWheel = true)
+            wasLive = lastPhase == Phase.CONNECTED, retrying = false, attempt = 0, restoringSavedWheel = true,
+            limit = ReconnectPolicy.limit(bg.reconnectAttempts))
         if (first !is ReconnectPolicy.Decision.Retry) return
 
         reconnectingState.value = true
         reconnectJob = graph.scope.launch {
             try {
-                for (attempt in first.attempt until ReconnectPolicy.MAX_ATTEMPTS) {
+                for (attempt in first.attempt until ReconnectPolicy.limit(bg.reconnectAttempts)) {
                     delay(if (attempt == first.attempt) first.delayMs else ReconnectPolicy.delayFor(attempt))
                     attemptState.value = attempt + 1
                     graph.ble.connect(device, fromSaved = true)

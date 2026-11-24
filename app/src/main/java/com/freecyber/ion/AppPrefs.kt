@@ -47,12 +47,14 @@ class AppPrefs(context: Context) {
     private fun loadBackground() = BackgroundConfig(
         true, prefs.getBoolean("bg_reconnect", true),
         prefs.getBoolean("bg_live_notification", false), prefs.getBoolean("keep_screen_on", false),
-        prefs.getBoolean("bg_connect_on_launch", true), prefs.getBoolean("bg_gps_track", false))
+        prefs.getBoolean("bg_connect_on_launch", true), prefs.getBoolean("bg_gps_track", false),
+        prefs.getInt("bg_reconnect_attempts", ReconnectPolicy.DEFAULT_ATTEMPTS))
     fun setBackground(value: BackgroundConfig) {
         backgroundState.value = value
         prefs.edit { putBoolean("bg_reconnect", value.autoReconnect)
             .putBoolean("bg_live_notification", value.liveNotification).putBoolean("keep_screen_on", value.keepScreenOn)
-            .putBoolean("bg_connect_on_launch", value.connectOnLaunch).putBoolean("bg_gps_track", value.gpsTrack) }
+            .putBoolean("bg_connect_on_launch", value.connectOnLaunch).putBoolean("bg_gps_track", value.gpsTrack)
+            .putInt("bg_reconnect_attempts", value.reconnectAttempts) }
     }
 
     private val updatesState = MutableStateFlow(UpdateConfig(

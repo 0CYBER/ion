@@ -35,4 +35,6 @@ data class BackgroundConfig(
     val connectOnLaunch: Boolean = true,
     /** Record a GPS track with every ride. */
     val gpsTrack: Boolean = true,
+    /** Automatic reconnect attempts after the link drops; 0 is "no limit" (see [ReconnectPolicy.limit]). */
+    val reconnectAttempts: Int = ReconnectPolicy.DEFAULT_ATTEMPTS,
 )

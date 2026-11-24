@@ -116,6 +116,9 @@ internal object EditorSample {
                     actions.setBackground(bg.copy(connectOnLaunch=it))}
                 SwitchRow(Icons.Rounded.Autorenew,stringResource(R.string.bg_reconnect),bg.autoReconnect,stringResource(R.string.bg_reconnect_hint),true) {
                     actions.setBackground(bg.copy(autoReconnect=it))}
+                androidx.compose.animation.AnimatedVisibility(bg.autoReconnect) {
+                    ReconnectAttempts(bg.reconnectAttempts) {actions.setBackground(bg.copy(reconnectAttempts=it))}
+                }
                 SwitchRow(Icons.Rounded.Notifications,stringResource(R.string.bg_live),bg.liveNotification,stringResource(R.string.bg_live_hint),true) {
                     actions.setBackground(bg.copy(liveNotification=it))}
                 SwitchRow(Icons.Rounded.LightMode,stringResource(R.string.bg_screen_on),bg.keepScreenOn,stringResource(R.string.bg_screen_on_hint),true) {
@@ -156,6 +159,23 @@ internal object EditorSample {
 }
 
 /** Slider that only commits on release, so dragging never spams preference writes. */
+/** How many times a dropped link is retried: 1, 3 (default), 5, 10 or no limit. */
+@Composable private fun ReconnectAttempts(value: Int,change: (Int)->Unit) {
+    val choices=ReconnectPolicy.CHOICES
+    Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xs)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.bg_reconnect_attempts),style=MaterialTheme.typography.titleMedium)
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                choices.forEachIndexed {i,n ->
+                    val label=if(n==0) stringResource(R.string.bg_reconnect_unlimited) else n.toString()
+                    SegmentedButton(selected=value==n || (n==0 && value !in choices),onClick={change(n)},
+                        shape=SegmentedButtonDefaults.itemShape(i,choices.size),label={Text(label,maxLines=1)})
+                }
+            }
+        }
+    }
+}
+
 @Composable private fun ThresholdSlider(label: String,value: Int,range: IntRange,describe: @Composable (Int)->String,steps: Int=0,commit: (Int)->Unit) {
     var draft by remember(value) {mutableFloatStateOf(value.toFloat())}
     val shown=draft.roundToInt()

@@ -47,3 +47,14 @@ class PowerOffTailTest {
         assertEquals(60.0, low.stats.value.minVoltage!!, 1e-9)
     }
 }
+
+class ReconnectLimitTest {
+    @Test fun configuredAttemptsBoundRetriesAndNoLimitStillStops() {
+        assertEquals(3, ReconnectPolicy.limit(BackgroundConfig().reconnectAttempts))
+        assertEquals(ReconnectPolicy.MAX_ATTEMPTS, ReconnectPolicy.limit(0))
+        val retry = ReconnectPolicy.decide(false, true, true, true, wasLive = true, retrying = true, attempt = 2, limit = 3)
+        assertTrue(retry is ReconnectPolicy.Decision.Retry)
+        assertEquals(ReconnectPolicy.Decision.Cancel,
+            ReconnectPolicy.decide(false, true, true, true, wasLive = true, retrying = true, attempt = 3, limit = 3))
+    }
+}

@@ -119,6 +119,8 @@
     <string name="setup_connect_without_pairing">Continue without linking</string>
     <string name="bg_reconnect">Auto-reconnect</string>
     <string name="bg_reconnect_hint">Restore the link if it drops</string>
+    <string name="bg_reconnect_attempts">Reconnect attempts</string>
+    
     <string name="bg_live">Live notification</string>
     <string name="bg_live_hint">Speed, battery and temperature in the notification shade. When off, only the background connection status appears.</string>
     <string name="bg_screen_on">Keep screen on</string>

@@ -119,6 +119,8 @@
     <string name="setup_connect_without_pairing">Продолжить без привязки</string>
     <string name="bg_reconnect">Авто­пере­подклю­чение</string>
     <string name="bg_reconnect_hint">Восстанавливать связь, если она оборвалась</string>
+    <string name="bg_reconnect_attempts">Попыток переподключения</string>
+    <string name="bg_reconnect_unlimited" translatable="false">∞</string>
     <string name="bg_live">Живое уведомление</string>
     <string name="bg_live_hint">Скорость, заряд и температура в шторке. При отключении виден только статус фоновой связи.</string>
     <string name="bg_screen_on">Не гасить экран</string>
