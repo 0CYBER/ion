@@ -285,4 +285,7 @@
     <string name="light_tpl_chase">Chase</string>
     <string name="light_tpl_rainbow">Rainbow</string>
     <string name="light_tpl_halves">Halves</string>
+    <string name="delete">Delete</string>
+    <string name="light_ion_effect">From Ion No. %1$d</string>
+    <string name="light_upload_no_list">could not read the effect list from the wheel</string>
 </resources>

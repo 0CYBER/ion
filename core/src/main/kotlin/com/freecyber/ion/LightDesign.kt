@@ -10,17 +10,18 @@ import kotlin.math.roundToInt
  * mapped), except that "halves" splits LEDs 0–34 / 35–69 and "chase" runs along the LED order.
  */
 data class LightDesign(
-    /** 1..[SLOTS]; the effect is stored on the wheel as `<ION_ID_BASE + slot>.rgb`. */
+    /** 1..[SLOTS]: the design's place in Ion. */
     val slot: Int,
     val name: String,
     val template: Template = Template.SOLID,
     val color1: Int = 0xFF0000,
     val color2: Int = 0x0000FF,
     val intervalMs: Int = 100,
+    /** Id of the copy last uploaded to the wheel. Every upload takes a fresh id: the wheel refuses to rename a new
+     * file onto an existing `<id>.rgb`, which left a half-written `.tmp` effect behind when an id was reused. */
+    val wheelId: Long? = null,
 ) {
     enum class Template { SOLID, BLINK, BREATHE, GRADIENT, CHASE, RAINBOW, HALVES }
-
-    val id: Long get() = LightEffects.ION_ID_BASE + slot
 
     fun frames(): List<IntArray> {
         val n = LightEffects.LEDS
@@ -42,10 +43,11 @@ data class LightDesign(
         }
     }
 
-    fun file(): ByteArray = LightEffects.file(id, frames(), intervalMs)
+    fun file(id: Long): ByteArray = LightEffects.file(id, frames(), intervalMs)
 
+    /** `slot;template;color1;color2;interval;wheelId;name` (the first build wrote no wheelId field). */
     fun encode(): String = listOf(slot, template.name, "%06X".format(color1), "%06X".format(color2), intervalMs,
-        name.replace('\n', ' ').replace(';', ',')).joinToString(";")
+        wheelId?.toString().orEmpty(), name.replace('\n', ' ').replace(';', ',')).joinToString(";")
 
     companion object {
         const val SLOTS = 9
@@ -59,21 +61,28 @@ data class LightDesign(
             0x0070FF, 0x0000FF, 0x8A00FF, 0xFF00D4, 0xFFFFFF, 0x000000)
 
         fun decode(line: String): LightDesign? {
-            val p = line.split(';', limit = 6)
-            if (p.size < 6) return null
+            val parts = line.split(';')
+            if (parts.size < 6) return null
+            // Names never contain ';', so 6 fields is the first build's layout and 7 the one with the wheel id.
+            val p = if (parts.size >= 7) parts.take(5) + parts[6] else parts
+            val wheelId = if (parts.size >= 7) parts[5].toLongOrNull() else null
             val slot = p[0].toIntOrNull()?.takeIf { it in 1..SLOTS } ?: return null
             val template = Template.entries.firstOrNull { it.name == p[1] } ?: return null
             val c1 = p[2].toIntOrNull(16)?.takeIf { it in 0..0xFFFFFF } ?: return null
             val c2 = p[3].toIntOrNull(16)?.takeIf { it in 0..0xFFFFFF } ?: return null
             val interval = p[4].toIntOrNull()?.takeIf { it in LightEffects.INTERVAL_MS } ?: return null
-            return LightDesign(slot, p[5].take(MAX_NAME), template, c1, c2, interval)
+            return LightDesign(slot, p[5].take(MAX_NAME), template, c1, c2, interval, wheelId)
         }
         fun decodeAll(text: String?): List<LightDesign> =
             text?.lineSequence()?.mapNotNull(::decode)?.distinctBy { it.slot }?.sortedBy { it.slot }?.toList().orEmpty()
         fun encodeAll(list: List<LightDesign>) = list.joinToString("\n") { it.encode() }
         fun freeSlot(list: List<LightDesign>): Int? = (1..SLOTS).firstOrNull { s -> list.none { it.slot == s } }
-        /** Our effect's slot for a stored id, or null for one made in the vendor app. */
-        fun slotOf(id: Long): Int? = (id - LightEffects.ION_ID_BASE).takeIf { it in 1..SLOTS.toLong() }?.toInt()
+        /** Whether a stored effect was uploaded by Ion (the vendor app's ids come from InMotion's server). */
+        fun isIonId(id: Long) = id > LightEffects.ION_ID_BASE
+
+        /** A fresh id above every Ion id the wheel or this phone knows of, so an upload never lands on an existing file. */
+        fun nextId(stored: List<LightEffects.Stored>, designs: List<LightDesign>): Long =
+            maxOf(LightEffects.ION_ID_BASE, (stored.map { it.id } + designs.mapNotNull { it.wheelId }).filter(::isIonId).maxOrNull() ?: 0L) + 1
 
         fun scale(rgb: Int, k: Double): Int = rgbOf((rgb shr 16 and 0xff) * k, (rgb shr 8 and 0xff) * k, (rgb and 0xff) * k)
         fun mix(a: Int, b: Int, t: Double): Int {

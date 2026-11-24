@@ -39,6 +39,9 @@ internal data class LightUi(
     val clearTransfer: () -> Unit = {},
 )
 
+/** The name shown everywhere: the rider's, or "Effect N" for an unnamed one. */
+@Composable private fun LightDesign.title() = name.ifBlank { stringResource(R.string.light_unnamed, slot) }
+
 @Composable private fun templateLabel(t: LightDesign.Template) = stringResource(when (t) {
     LightDesign.Template.SOLID -> R.string.light_tpl_solid
     LightDesign.Template.BLINK -> R.string.light_tpl_blink
@@ -64,6 +67,15 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
     var deleting by remember { mutableStateOf<LightDesign?>(null) }
     // The stored list is read once per screen visit; it is a few hundred bytes.
     LaunchedEffect(ui.connected) { if (ui.connected && wheel.storedLights == null) lights.list() }
+    // A finished upload records the id it got, so the design knows which copy on the wheel is its own.
+    val transfer = wheel.lightTransfer
+    LaunchedEffect(transfer?.done, transfer?.id) {
+        val id = transfer?.id
+        if (transfer?.done == true && transfer.error == null && id != null)
+            lights.designs.firstOrNull { it.slot == transfer.slot && it.wheelId != id }?.let { d ->
+                lights.setDesigns(lights.designs.map { if (it.slot == d.slot) it.copy(wheelId = id) else it })
+            }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         GroupColumn {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -87,7 +99,7 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
         if (lights.designs.isEmpty()) Text(stringResource(R.string.light_mine_empty), style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         lights.designs.forEach { d ->
-            DesignRow(d, active = mode == V12Protocol.LightEffect.PERSONAL.id && wheel.storedLights?.any { it.id == d.id } == true,
+            DesignRow(d, active = d.wheelId != null && wheel.storedLights?.any { it.id == d.wheelId } == true,
                 canSend = safe && wheel.lightTransfer?.done != false, edit = { editing = d }, delete = { deleting = d }) { lights.upload(d) }
         }
         LightDesign.freeSlot(lights.designs)?.let { slot ->
@@ -106,15 +118,15 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
         }
     }
     deleting?.let { d ->
-        AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.light_delete_title, d.name)) },
+        AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.light_delete_title, d.title())) },
             text = { Text(stringResource(R.string.light_delete_text)) },
-            confirmButton = { TextButton(onClick = { lights.setDesigns(lights.designs - d); deleting = null }) { Text(stringResource(R.string.trips_delete)) } },
+            confirmButton = { TextButton(onClick = { lights.setDesigns(lights.designs - d); deleting = null }) { Text(stringResource(R.string.delete)) } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } })
     }
 }
 
 @Composable private fun TransferCard(t: LightTransfer, designs: List<LightDesign>, clear: () -> Unit) {
-    val name = designs.firstOrNull { it.id == t.id }?.name ?: t.id.toString()
+    val name = designs.firstOrNull { it.slot == t.slot }?.title() ?: t.id.toString()
     Surface(color = if (t.error != null) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(IonShapes.l)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -134,12 +146,12 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(d.name.ifBlank { stringResource(R.string.light_unnamed, d.slot) }, style = MaterialTheme.typography.titleMedium)
+                    Text(d.title(), style = MaterialTheme.typography.titleMedium)
                     Text(templateLabel(d.template) + " · " + stringResource(R.string.light_interval_value, (d.intervalMs / 1000.0).fmt(2)),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = edit) { Icon(Icons.Rounded.Edit, stringResource(R.string.light_edit)) }
-                IconButton(onClick = delete) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.trips_delete)) }
+                IconButton(onClick = delete) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.delete)) }
             }
             LedStrip(d)
             Button(onClick = send, enabled = canSend, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -177,11 +189,11 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
                 stored.isEmpty() -> Text(stringResource(R.string.light_on_wheel_empty), style = MaterialTheme.typography.bodyMedium)
                 else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     stored.forEach { e ->
-                        val mine = LightDesign.slotOf(e.id)?.let { slot -> designs.firstOrNull { it.slot == slot } }
+                        val mine = designs.firstOrNull { it.wheelId == e.id }
                         AssistChip(onClick = { turnOn(e.id) }, enabled = safe, modifier = Modifier.heightIn(min = 48.dp),
-                            label = { Text(mine?.name?.ifBlank { null } ?: if (LightDesign.slotOf(e.id) != null)
-                                stringResource(R.string.light_unnamed, LightDesign.slotOf(e.id)!!) else stringResource(R.string.light_vendor_effect, e.id)) },
-                            leadingIcon = { Icon(if (mine != null) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, null, Modifier.size(18.dp)) })
+                            label = { Text(mine?.title() ?: if (LightDesign.isIonId(e.id)) stringResource(R.string.light_ion_effect, e.id)
+                                else stringResource(R.string.light_vendor_effect, e.id)) },
+                            leadingIcon = { Icon(if (LightDesign.isIonId(e.id)) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, null, Modifier.size(18.dp)) })
                     }
                 }
             }

@@ -41,7 +41,7 @@ data class WheelDevice(
 }
 data class PacketRecord(val read: V12Protocol.Read, val frame: V12Protocol.Frame? = null, val at: Long? = null, val status: String = "Ещё не запрошено")
 /** A personal light effect upload: [progress] 0..1 over the file chunks, [error] set when a step failed. */
-data class LightTransfer(val id: Long, val progress: Float, val done: Boolean = false, val error: String? = null)
+data class LightTransfer(val slot: Int, val id: Long?, val progress: Float, val done: Boolean = false, val error: String? = null)
 
 data class WheelState(
     val phase: Phase = Phase.OFFLINE,
@@ -100,7 +100,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         data object ReadAll : Work
         data class ReadOne(val read: V12Protocol.Read) : Work
         data class Write(val command: V12Protocol.Write) : Work
-        data class LightUpload(val id: Long, val file: ByteArray) : Work
+        data class LightUpload(val design: LightDesign, val designs: List<LightDesign>) : Work
         data object LightList : Work
     }
     private val fileResponses = Channel<LightEffects.Reply>(Channel.BUFFERED)
@@ -135,11 +135,11 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         enqueue(Work.Write(command))
     }
     /** Uploads a personal light effect file and makes it the active effect, as the vendor app does. */
-    fun uploadLight(id: Long, file: ByteArray) {
+    fun uploadLight(design: LightDesign, designs: List<LightDesign>) {
         if (!mayWrite(V12Protocol.Tier.SAFE, mutable.value.writeInFlight)) {
             mutable.update { it.copy(writeMessage = str(R.string.ble_write_no_link)) }; return
         }
-        if (enqueue(Work.LightUpload(id, file))) mutable.update { it.copy(lightTransfer = LightTransfer(id, 0f)) }
+        if (enqueue(Work.LightUpload(design, designs))) mutable.update { it.copy(lightTransfer = LightTransfer(design.slot, null, 0f)) }
         else mutable.update { it.copy(writeMessage = str(R.string.light_upload_busy)) }
     }
     fun listLights() { enqueue(Work.LightList) }
@@ -415,8 +415,13 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                 is Work.LightList -> listStoredLights(link, write)
                                 is Work.LightUpload -> {
                                     mutable.update { it.copy(writeInFlight=true) }
-                                    val error = uploadLight(link, write, job.id, job.file)
-                                    mutable.update { it.copy(lightTransfer = LightTransfer(job.id, if (error == null) 1f else
+                                    // A fresh id the wheel does not have yet: renaming onto an existing file fails.
+                                    listStoredLights(link, write)
+                                    val stored = mutable.value.storedLights
+                                    val id = stored?.let { LightDesign.nextId(it, job.designs) }
+                                    val error = if (id == null) str(R.string.light_upload_no_list)
+                                        else uploadLight(link, write, job.design.slot, id, job.design.file(id))
+                                    mutable.update { it.copy(lightTransfer = LightTransfer(job.design.slot, id, if (error == null) 1f else
                                         it.lightTransfer?.progress ?: 0f, done = true, error = error)) }
                                     // The selected effect shows up as personal mode in the settings, and in the list.
                                     optionalRead(link, write, V12Protocol.Read.SETTINGS)
@@ -580,7 +585,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
     }
 
     /** The vendor app's upload sequence ([LightEffects.upload]); returns null on success or what failed. */
-    private suspend fun uploadLight(g: BluetoothGatt, c: BluetoothGattCharacteristic, id: Long, file: ByteArray): String? {
+    private suspend fun uploadLight(g: BluetoothGatt, c: BluetoothGattCharacteristic, slot: Int, id: Long, file: ByteArray): String? {
         // The app writes 191-byte chunk frames in one go; ask for room for them (the floor still allows small chunks).
         if (!ensureMtu(g, 200, 247) && negotiatedMtu < 64) return str(R.string.light_upload_mtu)
         val steps = runCatching { LightEffects.upload(id, file, negotiatedMtu - 3) }.getOrElse { return str(R.string.light_upload_mtu) }
@@ -594,7 +599,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 if (!reply.ok) return str(R.string.light_upload_refused, step.label)
                 if (step.label == "chunk") {
                     sent++
-                    mutable.update { it.copy(lightTransfer = LightTransfer(id, sent.toFloat() / chunks)) }
+                    mutable.update { it.copy(lightTransfer = LightTransfer(slot, id, sent.toFloat() / chunks)) }
                 }
             }
             return null

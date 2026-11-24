@@ -102,12 +102,12 @@ class ScreenshotTest {
         TripDetailScreen(trips.first(), track, {}, {}, {}, moments = moments)
     }
     @Test fun lightEffects() = shot("light_effects", dark = true) {
-        val designs = listOf(LightDesign(1, "testclaude", LightDesign.Template.BLINK, 0xFF0000, 0x008000, 100),
+        val designs = listOf(LightDesign(1, "testclaude", LightDesign.Template.BLINK, 0xFF0000, 0x008000, 100, LightEffects.ION_ID_BASE + 1),
             LightDesign(2, "Ночной", LightDesign.Template.CHASE, 0x00E5FF, 0x000000, 150),
             LightDesign(3, "", LightDesign.Template.RAINBOW, intervalMs = 200))
         val live = Samples.live()
         val ui = live.copy(wheel = live.wheel.copy(storedLights = listOf(LightEffects.Stored(25032, 230), LightEffects.Stored(30321, 440),
-            LightEffects.Stored(LightEffects.ION_ID_BASE + 1, 440)), lightTransfer = LightTransfer(LightEffects.ION_ID_BASE + 2, 0.6f)))
+            LightEffects.Stored(LightEffects.ION_ID_BASE + 1, 440)), lightTransfer = LightTransfer(2, LightEffects.ION_ID_BASE + 2, 0.6f)))
         androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) { LightEffectsSection(ui, true, LightUi(designs)) {} }
     }
     @Test fun tripExplorer() = shot("trip_explorer", dark = true) {

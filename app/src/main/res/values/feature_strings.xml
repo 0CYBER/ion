@@ -297,4 +297,7 @@
     <string name="light_tpl_chase">Бегущий огонь</string>
     <string name="light_tpl_rainbow">Радуга</string>
     <string name="light_tpl_halves">Половинки</string>
+    <string name="delete">Удалить</string>
+    <string name="light_ion_effect">Из Ion № %1$d</string>
+    <string name="light_upload_no_list">не удалось получить список эффектов с колеса</string>
 </resources>

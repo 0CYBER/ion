@@ -182,7 +182,7 @@ class MainActivity : ComponentActivity() {
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
                     setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,
-                    lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d.id, d.file()) },
+                    lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d, model.prefs.lightDesigns.value) },
                         list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer),setAlerts=model.prefs::setAlerts,setBackground={ config ->
                         model.prefs.setBackground(config)
                         if ((config.gpsTrack && !background.gpsTrack && !locationAllowed) ||
