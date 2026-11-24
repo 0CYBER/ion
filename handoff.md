@@ -114,3 +114,15 @@ Instrumentation (изолированный эмулятор, отдельный
 - Проигрывание: `0x14/0x60 [0x51, id, 0x01]` (как `playSound` в WheelLog), id 24 = `0x18` — гудок WheelLog на V12. Ion предлагает слоты 0–31: раньше было 0–15 + 24, а владелец слышал, что части звуков нет.
 - **Названий в протоколе и APK нет**: что звучит в слоте, зависит от звукового пакета на колесе, а офф. приложение берёт имена с сервера вместе с паком (`/product/sound-pack/…`, `SoundItemModel`; в строках Dart есть только ключи UI). Поэтому имена задаёт райдер: долгое нажатие подписывает или скрывает слот (`SoundLabels`, prefs `sound_labels`). Когда владелец пришлёт список «слот → звук», можно зашить имена по умолчанию.
 - Не сделано: смена паков и DIY-звуки (загрузка файла на колесо, `EzcanSoundFileUploadManager`/`EzCANSoundPackFileConfig`, `/download_soundPack_file.rmf`). Формат передачи не разобран.
+
+## Пользовательская подсветка (не сделано, разведка)
+
+В офф. приложении у V12 три варианта подсветки: «Выключить», «В такт музыке» и «Пользовательский» (покадровый редактор с шаблонами, хранится на колесе). Что известно из строк Dart 8.1.34:
+- Редактор и превью: `creation_center/light/edit/widget/edit/edit_v12.dart`, `preview/widget/preview_v12.dart`, `LightEffectEditV12`. Модель кадров: `LightEffectFrameModel`, `keyFrameType`, `keyFrameCount`, `text_light_effect_frame_interval`, `LightEffectFrameTransition`.
+- Файл эффекта собирают генераторы (`LorinLightEffectFileGenerator`, `V8V10LightEffectFileGenerator`, `light_effect_file_generator.dart`) и грузят на колесо менеджеры (`EzcanLightEffectFileUploadManager`, `LorinLightEffectFileUploadManager`). Какой генератор и менеджер у V12, не установлено.
+- Включение: `genSetLightEffectModeMsg` = `0x33 [mode, p0..p3]`. Ion шлёт `p = ff ff ff ff` для «выкл» (0) и «музыка» (2). Для режима «световой пакет» (`text_light_effect_mode_light_package`) строка `Param [param] for 'genSetLightEffectModeMsg' must be set in V12.` показывает, что V12 требует параметр, вероятно id эффекта (`genRequestLightEffectIdMsg`, `lightEffectId`).
+
+Как продвинуться без записи наугад:
+1. Экспорт настроек Ion до и после выбора «Пользовательский» в офф. приложении (как с оценкой пробега): найти байт режима и, возможно, id.
+2. HCI snoop log (Android «Журнал Bluetooth HCI») во время сохранения эффекта в офф. приложении: из него виден протокол загрузки файла и формат кадров.
+3. Затем по шагам: (а) «включить сохранённый пользовательский эффект» = `0x33 [mode, id]` с read-back; (б) загрузка своих кадров, только после разбора формата и проверки на колесе.
