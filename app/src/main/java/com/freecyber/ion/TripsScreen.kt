@@ -26,13 +26,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.DateFormat
 import java.util.Date
 
 /** Ride log: lifetime totals, then every stored ride newest first. Per-ride exports live in the detail; the log
  * itself exports every ride at once as a zip of CSVs. */
 @Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,openTrip: (TripSummary)->Unit) {
-    var confirmClear by rememberSaveable {mutableStateOf(false)}
     // Keyed by startedAt so the pending question survives rotation; one tap on the bin must not lose a ride.
     var pendingDelete by rememberSaveable {mutableStateOf<Long?>(null)}
     val totals=remember(trips) {TripTotals.of(trips)}
@@ -56,9 +56,6 @@ import java.util.Date
                     Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_all))
                 }
                 ImportButton(actions.importTrips)
-                TextButton(onClick={confirmClear=true},modifier=Modifier.heightIn(min=48.dp)) {
-                    Icon(Icons.Rounded.DeleteSweep,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_clear))
-                }
             }
         }
         months.forEach {month ->
@@ -68,10 +65,6 @@ import java.util.Date
                 TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt},modifier=Modifier.animateItem())}
         }
     }
-    if(confirmClear) AlertDialog(onDismissRequest={confirmClear=false},title={Text(stringResource(R.string.trips_clear_title))},
-        text={Text(stringResource(R.string.trips_clear_message))},
-        confirmButton={TextButton(onClick={confirmClear=false;actions.clearTrips()}) {Text(stringResource(R.string.trips_clear))}},
-        dismissButton={TextButton(onClick={confirmClear=false}) {Text(stringResource(R.string.cancel))}})
     trips.firstOrNull {it.startedAt==pendingDelete}?.let {trip ->
         AlertDialog(onDismissRequest={pendingDelete=null},title={Text(stringResource(R.string.trips_delete_title))},
             text={Text(stringResource(R.string.trips_delete_message))},
@@ -98,22 +91,19 @@ import java.util.Date
 @Composable private fun TotalsCard(t: TripTotals) {
     val ion=ionColors()
     Surface(color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
-        Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-            Text(stringResource(R.string.trips_total),style=MaterialTheme.typography.labelLarge)
-            Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.displayMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
-                Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
+        // One compact row: the lifetime distance, then how many rides and how long in motion.
+        Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=18.dp),verticalAlignment=Alignment.CenterVertically,
+            horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.weight(1.3f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                Text(stringResource(R.string.trips_total),style=MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                    Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.headlineLarge.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1,
+                        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=18.sp,maxFontSize=MaterialTheme.typography.headlineLarge.fontSize))
+                    Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=4.dp))
+                }
             }
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trips_count),t.count.toString(),"",Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_max),t.maxSpeed.fmt(1),stringResource(R.string.unit_kmh),Modifier.weight(1f))
-            }
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_energy),(t.energyWh/1000).fmt(2),stringResource(R.string.unit_kwh),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_consumption),
-                    t.consumption?.fmt(1) ?: "—",stringResource(R.string.unit_wh_km),Modifier.weight(1f))
-            }
+            TripFigure(stringResource(R.string.trips_count),t.count.toString(),"",Modifier.weight(0.8f))
+            TripFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",Modifier.weight(1f))
         }
     }
 }

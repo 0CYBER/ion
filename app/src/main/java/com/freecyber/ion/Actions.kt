@@ -14,7 +14,6 @@ internal data class Actions(
     val shareCsv: (TripSummary) -> Unit = {},
     val shareGpx: (TripSummary) -> Unit = {},
     val deleteTrip: (TripSummary) -> Unit = {},
-    val clearTrips: () -> Unit = {},
     /** One CSV row per stored ride (TripSummary.csv), for spreadsheets. */
     val shareAllCsv: () -> Unit = {},
     /** Opens the file picker for an "All rides (ZIP)" archive to restore. */

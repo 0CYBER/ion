@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
                             (config.liveNotification && !background.liveNotification && !notificationsAllowed)) onboarding = true
                     },
                     resetTrip=model::resetTrip,shareCsv={exportTrip(it,false)},shareGpx={exportTrip(it,true)},
-                    deleteTrip=model.history::delete,clearTrips=model.history::clear,shareAllCsv=::exportAllTrips,
+                    deleteTrip=model.history::delete,shareAllCsv=::exportAllTrips,
                     importTrips={ backupPicker.launch(arrayOf("application/zip","application/x-zip-compressed","application/octet-stream")) },
                     tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,
                     tripTimeline={ id -> model.journal.csv(id).takeIf { it.isFile }?.useLines { TripTimeline.parse(it) }.orEmpty() },update=updateActions),

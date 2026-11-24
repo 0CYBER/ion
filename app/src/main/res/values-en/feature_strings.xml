@@ -175,9 +175,6 @@
     <string name="trips_import_none">No new rides in the archive</string>
     <string name="trips_import_wrong">Not an Ion archive: pick an &quot;All rides (ZIP)&quot; file</string>
     <string name="trips_import_failed">Could not read the archive</string>
-    <string name="trips_clear">Clear</string>
-    <string name="trips_clear_title">Delete the whole history?</string>
-    <string name="trips_clear_message">All saved rides will be removed from this phone.</string>
     <string name="trips_delete">Delete ride</string>
     <string name="trip_duration">Duration</string>
     <string name="trips_details">Details</string>
