@@ -196,8 +196,8 @@ internal class SliderSpec(val label: String,value: Int,val range: IntRange,val t
     var showHidden by rememberSaveable {mutableStateOf(false)}
     val haptics=LocalHapticFeedback.current
     @Composable fun label(id: Int)=labels.name(id) ?: if(id==SoundLabels.HORN) stringResource(R.string.sound_horn) else stringResource(R.string.sound_number,id)
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow).padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.sound_preview),style=MaterialTheme.typography.titleMedium)
+    // Collapsed by default: a test tool for finding what each slot plays, not an everyday control.
+    ExpandRow(Icons.Rounded.GraphicEq,stringResource(R.string.sound_preview),stringResource(R.string.sound_preview_summary)) {
         Text(stringResource(R.string.sound_preview_hint),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             V12Protocol.soundIds.filter {showHidden || it !in labels.hidden}.forEach {id ->

@@ -64,4 +64,5 @@
     <string name="light_upload_no_answer">Колесо не ответило на шаге «%1$s»</string>
     <string name="light_upload_refused">Колесо отклонило шаг «%1$s»</string>
     <string name="light_upload_busy">Колесо занято другой командой, попробуйте ещё раз</string>
+    <string name="sound_preview_summary">Тестовая функция: звуки колеса по номерам</string>
 </resources>

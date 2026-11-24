@@ -64,4 +64,5 @@
     <string name="light_upload_no_answer">The wheel did not answer at step &quot;%1$s&quot;</string>
     <string name="light_upload_refused">The wheel refused step &quot;%1$s&quot;</string>
     <string name="light_upload_busy">The wheel is busy with another command, try again</string>
+    <string name="sound_preview_summary">Test feature: wheel sounds by slot number</string>
 </resources>

@@ -118,6 +118,9 @@ class ScreenshotTest {
             GroupColumn { LightModeRow(Samples.live(), true, LightUi(), true, {}) {} }
         }
     }
+    @Test fun soundSettings() = shot("sound_settings", dark = true) {
+        ControlScreen(Samples.live(), ControlCategory.SOUND, {}, {}) {}
+    }
     @Test fun lightEditor() {
         rule.setContent {
             IonTheme(true) {
