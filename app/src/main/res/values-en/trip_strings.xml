@@ -7,7 +7,6 @@
     <string name="trip_min_voltage">Min voltage</string>
     <string name="trip_regen">Regeneration</string>
     <string name="trip_stopped">Stopped time</string>
-    <string name="trip_power_hint">Battery power (V × A). Average draw is time-weighted over measured intervals, including stops; regeneration is separate.</string>
     <string name="trip_export_help">CSV contains every wheel sample with time and GPS. GPX contains the route, elevation and timestamps for maps and navigation.</string>
     <string name="trip_csv_missing">Detailed samples were not saved for this older ride. CSV is available for newly recorded rides.</string>
     <string name="trip_export_failed">Could not export the ride file. Check free storage and try again.</string>

@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt
@@ -125,31 +126,53 @@ import kotlinx.coroutines.CancellationException
                 Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
                 Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
             }
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(trip.movingMs/1000),"",Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_max),trip.maxSpeed.fmt(1),stringResource(R.string.unit_kmh),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_avg),trip.avgSpeed.fmt(1),stringResource(R.string.unit_kmh),Modifier.weight(1f))
-            }
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_energy),(trip.energyWh-trip.regenWh).fmt(0),stringResource(R.string.unit_wh),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_consumption),trip.consumption?.fmt(1) ?: "—",stringResource(R.string.unit_wh_km),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_battery_used),trip.batteryUsed?.fmt(0) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
-            }
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_max_power),trip.maxPower?.fmt(0) ?: "—",stringResource(R.string.unit_watts),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_avg_power),trip.avgPower?.fmt(0) ?: "—",stringResource(R.string.unit_watts),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_max_pwm),trip.maxPwm?.fmt(1) ?: "—",stringResource(R.string.unit_percent),Modifier.weight(1f))
-            }
-            Text(stringResource(R.string.trip_power_hint),style=MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_max_current),trip.maxCurrent?.fmt(1) ?: "—",stringResource(R.string.unit_amps),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_min_voltage),trip.minVoltage?.fmt(1) ?: "—",stringResource(R.string.unit_volts),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_max_temp),trip.maxTemp?.toString() ?: "—",stringResource(R.string.unit_celsius),Modifier.weight(1f))
-            }
-            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                TripFigure(stringResource(R.string.trip_regen),trip.regenWh.fmt(1),stringResource(R.string.unit_wh),Modifier.weight(1f))
-                TripFigure(stringResource(R.string.trip_stopped),V12Protocol.formatDuration((trip.durationMs-trip.movingMs).coerceAtLeast(0)/1000),"",Modifier.weight(1f))
+            val unitKmh=stringResource(R.string.unit_kmh);val unitWh=stringResource(R.string.unit_wh);val unitW=stringResource(R.string.unit_watts)
+            val unitPct=stringResource(R.string.unit_percent)
+            FigureGrid(listOf(
+                Figure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(trip.movingMs/1000),""),
+                Figure(stringResource(R.string.trip_max),trip.maxSpeed.fmt(1),unitKmh),
+                Figure(stringResource(R.string.trip_avg),trip.avgSpeed.fmt(1),unitKmh),
+                Figure(stringResource(R.string.trip_stopped),V12Protocol.formatDuration((trip.durationMs-trip.movingMs).coerceAtLeast(0)/1000),""),
+                Figure(stringResource(R.string.trip_energy),(trip.energyWh-trip.regenWh).fmt(0),unitWh),
+                Figure(stringResource(R.string.trip_consumption),trip.consumption?.fmt(1) ?: "—",stringResource(R.string.unit_wh_km)),
+                Figure(stringResource(R.string.trip_battery_used),trip.batteryUsed?.fmt(0) ?: "—",unitPct),
+                Figure(stringResource(R.string.trip_regen),trip.regenWh.fmt(1),unitWh),
+                Figure(stringResource(R.string.trip_max_power),trip.maxPower?.fmt(0) ?: "—",unitW),
+                Figure(stringResource(R.string.trip_avg_power),trip.avgPower?.fmt(0) ?: "—",unitW),
+                Figure(stringResource(R.string.trip_max_pwm),trip.maxPwm?.fmt(1) ?: "—",unitPct),
+                Figure(stringResource(R.string.trip_max_current),trip.maxCurrent?.fmt(1) ?: "—",stringResource(R.string.unit_amps)),
+                Figure(stringResource(R.string.trip_min_voltage),trip.minVoltage?.fmt(1) ?: "—",stringResource(R.string.unit_volts)),
+                Figure(stringResource(R.string.trip_max_temp),trip.maxTemp?.toString() ?: "—",stringResource(R.string.unit_celsius)),
+            ))
+        }
+    }
+}
+
+internal data class Figure(val label: String,val value: String,val unit: String)
+
+/** Ride figures four to a row (three on narrow screens or with large text), so the whole ride fits in little height.
+ * Labels take up to two lines and values shrink to fit, so a long label or "1:23:45" never clips. */
+@Composable internal fun FigureGrid(figures: List<Figure>) {
+    val config=androidx.compose.ui.platform.LocalConfiguration.current
+    val columns=if(config.screenWidthDp<340 || config.fontScale>1.3f) 3 else 4
+    Column(verticalArrangement=Arrangement.spacedBy(14.dp)) {
+        figures.chunked(columns).forEach {row ->
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                row.forEach {GridFigure(it,Modifier.weight(1f))}
+                repeat(columns-row.size) {Spacer(Modifier.weight(1f))}
             }
         }
+    }
+}
+
+@Composable private fun GridFigure(f: Figure,modifier: Modifier) {
+    val secondary=LocalContentColor.current.copy(alpha=0.78f)
+    val spoken=if(f.value=="—") "${f.label}, ${stringResource(R.string.no_data)}" else "${f.label}, ${f.value} ${f.unit}"
+    Column(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},verticalArrangement=Arrangement.spacedBy(2.dp)) {
+        Text(f.label,style=MaterialTheme.typography.labelSmall,color=secondary,minLines=2,maxLines=2,
+            overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Text(f.value,style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1,
+            autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=10.sp,maxFontSize=MaterialTheme.typography.titleMedium.fontSize))
+        Text(f.unit,style=MaterialTheme.typography.labelSmall,color=secondary,maxLines=1)
     }
 }

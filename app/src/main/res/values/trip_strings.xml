@@ -7,7 +7,6 @@
     <string name="trip_min_voltage">Мин. напряжение</string>
     <string name="trip_regen">Рекуперация</string>
     <string name="trip_stopped">Время остановок</string>
-    <string name="trip_power_hint">Мощность батареи (V × A). Средняя — потребление по времени замеров, включая остановки; рекуперация отдельно.</string>
     <string name="trip_export_help">CSV — все замеры колеса за поездку с временем и GPS. GPX — маршрут с координатами, высотой и временем для карт и навигации.</string>
     <string name="trip_csv_missing">В этой старой поездке подробные замеры не сохранялись. CSV доступен для новых поездок.</string>
     <string name="trip_export_failed">Не удалось экспортировать файл поездки. Проверьте свободное место и повторите.</string>
