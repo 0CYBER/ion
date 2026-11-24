@@ -269,7 +269,7 @@
     <string name="light_on_wheel">On the wheel</string>
     <string name="light_on_wheel_unknown">List not received yet</string>
     <string name="light_on_wheel_empty">No personal effects on the wheel</string>
-    <string name="light_on_wheel_hint">Tap to turn one on. Effects from the INMOTION app show their number: their names live on the INMOTION server.</string>
+    <string name="light_on_wheel_hint">Effects from the INMOTION app show their number: their names live on the INMOTION server.</string>
     <string name="light_vendor_effect">No. %1$d</string>
     <string name="light_refresh">Refresh list</string>
     <string name="light_uploading">Uploading &quot;%1$s&quot; to the wheel…</string>
@@ -288,4 +288,16 @@
     <string name="delete">Delete</string>
     <string name="light_ion_effect">From Ion No. %1$d</string>
     <string name="light_upload_no_list">could not read the effect list from the wheel</string>
+    <string name="light_turn_on">Turn on</string>
+    <string name="light_delete_failed">The wheel did not confirm the delete</string>
+    <string name="light_delete_text_wheel">Delete the effect from Ion only, or together with its copy on the wheel?</string>
+    <string name="light_delete_everywhere">Everywhere</string>
+    <string name="light_delete_ion_only">Ion only</string>
+    <string name="light_delete_wheel_title">Delete &quot;%1$s&quot; from the wheel?</string>
+    <string name="light_delete_wheel_text">The effect file is removed from the wheel; this cannot be undone. Effects from the INMOTION app can be loaded there again.</string>
+    <string name="light_clean">Clean up</string>
+    <plurals name="light_leftovers">
+        <item quantity="one">%d unfinished effect: the wheel shows it as an empty one</item>
+        <item quantity="other">%d unfinished effects: the wheel shows them as empty ones</item>
+    </plurals>
 </resources>

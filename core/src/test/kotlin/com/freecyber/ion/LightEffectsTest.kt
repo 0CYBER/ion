@@ -47,6 +47,22 @@ class LightEffectsTest {
         assertEquals(440L, listing.last().size)
     }
 
+    @Test fun deleteAndLeftoversMatchTheSecondCapture() {
+        val second = File("../docs/evidence/light-delete-frames.txt").readLines()
+        val written = second.mapNotNull { it.substringAfter("values: ", "").takeIf(String::isNotEmpty) }
+        // The vendor app deleting its throwaway effect 30323.
+        assertTrue(written.contains("aaaa131b02000486303a2f6c696768742f6469792f33303332332e72676200cf"))
+        assertEquals("aaaa131b02000486303a2f6c696768742f6469792f33303332332e72676200cf",
+            LightEffects.delete(30323).bytes.joinToString("") { "%02x".format(it.toInt() and 0xff) })
+        val replies = second.mapNotNull { it.substringAfter("bytes:", "").takeIf(String::isNotEmpty) }.map(::hex)
+            .flatMap(::frames).mapNotNull(LightEffects::reply)
+        assertTrue(replies.any { it.answers(LightEffects.delete(30323)) && it.ok })
+        // The half-written upload from Ion's first build shows up as 900001.TMP.
+        val listing = replies.firstNotNullOf(LightEffects::parseList)
+        assertEquals(listOf(25032L, 25448L, 25473L, 900_001L), listing.map { it.id })
+        assertEquals(listOf(false, false, false, true), listing.map { it.temporary })
+    }
+
     @Test fun escapedBytesShrinkTheChunkToFitTheLink() {
         // The colour curve never yields 0xAA/0xA5, but an id can: those header bytes need escapes, so the first
         // 176-byte chunk (191 bytes unescaped) no longer fits a 191-byte write and must shrink.

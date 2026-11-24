@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -37,6 +38,7 @@ internal data class LightUi(
     val upload: (LightDesign) -> Unit = {},
     val list: () -> Unit = {},
     val clearTransfer: () -> Unit = {},
+    val delete: (List<LightEffects.Stored>) -> Unit = {},
 )
 
 /** The name shown everywhere: the rider's, or "Effect N" for an unnamed one. */
@@ -65,6 +67,7 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
     val mode = wheel.settings?.lightEffect
     var editing by remember { mutableStateOf<LightDesign?>(null) }
     var deleting by remember { mutableStateOf<LightDesign?>(null) }
+    var deletingStored by remember { mutableStateOf<LightEffects.Stored?>(null) }
     // The stored list is read once per screen visit; it is a few hundred bytes.
     LaunchedEffect(ui.connected) { if (ui.connected && wheel.storedLights == null) lights.list() }
     // A finished upload records the id it got, so the design knows which copy on the wheel is its own.
@@ -108,7 +111,8 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
             }
         }
         SectionHeader(stringResource(R.string.light_on_wheel))
-        StoredEffects(wheel.storedLights, lights.designs, safe, refresh = lights.list) { id ->
+        StoredEffects(wheel.storedLights, lights.designs, safe, refresh = lights.list,
+            clean = { lights.delete(it) }, delete = { deletingStored = it }) { id ->
             request(V12Protocol.Write(V12Protocol.Control.LIGHT_PACKAGE, id.toInt()))
         }
     }
@@ -118,10 +122,27 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
         }
     }
     deleting?.let { d ->
+        // Its copy on the wheel can go too, when there is one and the wheel is reachable.
+        val copy = wheel.storedLights?.firstOrNull { it.id == d.wheelId && !it.temporary }
         AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.light_delete_title, d.title())) },
-            text = { Text(stringResource(R.string.light_delete_text)) },
-            confirmButton = { TextButton(onClick = { lights.setDesigns(lights.designs - d); deleting = null }) { Text(stringResource(R.string.delete)) } },
+            text = { Text(stringResource(if (copy != null) R.string.light_delete_text_wheel else R.string.light_delete_text)) },
+            confirmButton = {
+                Row {
+                    if (copy != null) TextButton(onClick = { lights.setDesigns(lights.designs - d); lights.delete(listOf(copy)); deleting = null },
+                        enabled = safe) { Text(stringResource(R.string.light_delete_everywhere)) }
+                    TextButton(onClick = { lights.setDesigns(lights.designs - d); deleting = null }) {
+                        Text(stringResource(if (copy != null) R.string.light_delete_ion_only else R.string.delete))
+                    }
+                }
+            },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } })
+    }
+    deletingStored?.let { e ->
+        val title = storedTitle(e, lights.designs)
+        AlertDialog(onDismissRequest = { deletingStored = null }, title = { Text(stringResource(R.string.light_delete_wheel_title, title)) },
+            text = { Text(stringResource(R.string.light_delete_wheel_text)) },
+            confirmButton = { TextButton(onClick = { lights.delete(listOf(e)); deletingStored = null }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { deletingStored = null }) { Text(stringResource(R.string.cancel)) } })
     }
 }
 
@@ -180,25 +201,47 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
     }
 }
 
-@Composable private fun StoredEffects(stored: List<LightEffects.Stored>?, designs: List<LightDesign>, safe: Boolean, refresh: () -> Unit, turnOn: (Long) -> Unit) {
+@Composable private fun storedTitle(e: LightEffects.Stored, designs: List<LightDesign>): String =
+    designs.firstOrNull { it.wheelId == e.id }?.title() ?: if (LightDesign.isIonId(e.id)) stringResource(R.string.light_ion_effect, e.id)
+        else stringResource(R.string.light_vendor_effect, e.id)
+
+/** What the wheel holds: each effect can be turned on or deleted; unfinished uploads are offered for clean-up. */
+@Composable private fun StoredEffects(stored: List<LightEffects.Stored>?, designs: List<LightDesign>, safe: Boolean, refresh: () -> Unit,
+    clean: (List<LightEffects.Stored>) -> Unit, delete: (LightEffects.Stored) -> Unit, turnOn: (Long) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.l)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            val effects = stored?.filterNot { it.temporary }
+            val leftovers = stored?.filter { it.temporary }.orEmpty()
             when {
                 stored == null -> Text(stringResource(R.string.light_on_wheel_unknown), style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                stored.isEmpty() -> Text(stringResource(R.string.light_on_wheel_empty), style = MaterialTheme.typography.bodyMedium)
-                else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    stored.forEach { e ->
-                        val mine = designs.firstOrNull { it.wheelId == e.id }
-                        AssistChip(onClick = { turnOn(e.id) }, enabled = safe, modifier = Modifier.heightIn(min = 48.dp),
-                            label = { Text(mine?.title() ?: if (LightDesign.isIonId(e.id)) stringResource(R.string.light_ion_effect, e.id)
-                                else stringResource(R.string.light_vendor_effect, e.id)) },
-                            leadingIcon = { Icon(if (LightDesign.isIonId(e.id)) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, null, Modifier.size(18.dp)) })
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                effects.isNullOrEmpty() -> Text(stringResource(R.string.light_on_wheel_empty), style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                else -> effects.forEach { e ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 16.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(if (LightDesign.isIonId(e.id)) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, null,
+                            Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(storedTitle(e, designs), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { turnOn(e.id) }, enabled = safe) { Text(stringResource(R.string.light_turn_on)) }
+                        IconButton(onClick = { delete(e) }, enabled = safe) {
+                            Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.light_delete_wheel_title, storedTitle(e, designs)))
+                        }
                     }
                 }
             }
-            Text(stringResource(R.string.light_on_wheel_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = refresh, enabled = safe, modifier = Modifier.heightIn(min = 48.dp)) {
+            if (leftovers.isNotEmpty()) Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(IonShapes.m),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(pluralStringResource(R.plurals.light_leftovers, leftovers.size, leftovers.size), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { clean(leftovers) }, enabled = safe, modifier = Modifier.heightIn(min = 48.dp).testTag("light-clean")) {
+                        Icon(Icons.Rounded.CleaningServices, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.light_clean))
+                    }
+                }
+            }
+            Text(stringResource(R.string.light_on_wheel_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            TextButton(onClick = refresh, enabled = safe, modifier = Modifier.padding(horizontal = 8.dp).heightIn(min = 48.dp)) {
                 Icon(Icons.Rounded.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.light_refresh))
             }
         }

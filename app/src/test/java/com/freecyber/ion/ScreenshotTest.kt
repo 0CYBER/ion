@@ -107,7 +107,7 @@ class ScreenshotTest {
             LightDesign(3, "", LightDesign.Template.RAINBOW, intervalMs = 200))
         val live = Samples.live()
         val ui = live.copy(wheel = live.wheel.copy(storedLights = listOf(LightEffects.Stored(25032, 230), LightEffects.Stored(30321, 440),
-            LightEffects.Stored(LightEffects.ION_ID_BASE + 1, 440)), lightTransfer = LightTransfer(2, LightEffects.ION_ID_BASE + 2, 0.6f)))
+            LightEffects.Stored(LightEffects.ION_ID_BASE + 1, 440), LightEffects.Stored(LightEffects.ION_ID_BASE + 2, 440, temporary = true)), lightTransfer = LightTransfer(2, LightEffects.ION_ID_BASE + 2, 0.6f)))
         androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) { LightEffectsSection(ui, true, LightUi(designs)) {} }
     }
     @Test fun tripExplorer() = shot("trip_explorer", dark = true) {

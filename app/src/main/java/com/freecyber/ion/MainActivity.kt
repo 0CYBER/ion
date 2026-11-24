@@ -183,7 +183,7 @@ class MainActivity : ComponentActivity() {
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
                     setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,
                     lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d, model.prefs.lightDesigns.value) },
-                        list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer),setAlerts=model.prefs::setAlerts,setBackground={ config ->
+                        list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer,delete=model.ble::deleteLights),setAlerts=model.prefs::setAlerts,setBackground={ config ->
                         model.prefs.setBackground(config)
                         if ((config.gpsTrack && !background.gpsTrack && !locationAllowed) ||
                             (config.liveNotification && !background.liveNotification && !notificationsAllowed)) onboarding = true

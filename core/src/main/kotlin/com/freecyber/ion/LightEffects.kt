@@ -14,7 +14,8 @@ import java.util.zip.CRC32
  * Upload, one request and one reply at a time, as the app does it: a capability ping (channel 2), a storage query
  * (channel 5), then on channel 4 open `<id>.tmp` (0x81), chunks of up to [CHUNK] bytes (0x82, numbered frames with
  * flag 0x40), close with size and CRC-32 (0x83), finish (0x84), rename to `.rgb` (0x87, addressed to 0), and finally
- * select the effect (control 0x60, `0x2d` + id). The effect list is a directory listing (0x08) of `0:/light/diy`.
+ * select the effect (control 0x60, `0x2d` + id). The effect list is a directory listing (0x08) of `0:/light/diy`;
+ * a file is deleted with 0x86 + path (addressed to 0), as the app does it (`docs/evidence/light-delete-frames.txt`).
  */
 object LightEffects {
     const val LEDS = 70
@@ -70,7 +71,7 @@ object LightEffects {
      * than [maxWrite] (the link's MTU − 3); offsets are explicit, so the wheel does not need equal chunks.
      */
     fun upload(id: Long, file: ByteArray, maxWrite: Int = 244): List<Step> {
-        val tmp = "$DIR/$id.tmp"; val rgb = "$DIR/$id.rgb"
+        val tmp = path(id, true); val rgb = path(id, false)
         val steps = mutableListOf(
             Step("ping", message(0x16, 0x21, 0x02, byteArrayOf()), 0x82),
             Step("storage", message(0x13, 0x00, 0x05, byteArrayOf(0x01, 0x00)), 0x85, 0x01),
@@ -94,6 +95,12 @@ object LightEffects {
         steps += select(id)
         return steps
     }
+
+    fun path(id: Long, temporary: Boolean) = "$DIR/$id." + if (temporary) "tmp" else "rgb"
+
+    /** Deletes an effect file; the app sends exactly this for its own "delete". The file system ignores case. */
+    fun delete(id: Long, temporary: Boolean = false) =
+        Step("delete", message(0x13, 0x00, 0x04, byteArrayOf(0x86.toByte()) + path(id, temporary).ascii() + 0), 0x84, 0x86)
 
     /** Makes a stored effect the active one (the app sends this right after an upload). */
     fun select(id: Long) = Step("select", message(0x16, 0x21, 0x60, byteArrayOf(0x2d) + le32(id)), 0xe0, 0x2d)
@@ -122,8 +129,9 @@ object LightEffects {
         }
     }
 
-    /** An effect file on the wheel. */
-    data class Stored(val id: Long, val size: Long)
+    /** An effect file on the wheel. [temporary]: a `.tmp` left by an upload that never finished; the wheel offers
+     * it as an effect that does nothing, the vendor app hides it. */
+    data class Stored(val id: Long, val size: Long, val temporary: Boolean = false)
 
     /** Parses the directory listing reply: status, 4 bytes, folder name, count, then name/size/checksum entries. */
     fun parseList(r: Reply): List<Stored>? {
@@ -141,7 +149,8 @@ object LightEffects {
             at += n
             val size = (0..3).sumOf { (d[at + it].toLong()) shl (8 * it) }
             at += 8
-            name.substringBefore('.').toLongOrNull()?.let { out += Stored(it, size) }
+            val ext = name.substringAfterLast('.', "").uppercase()
+            if (ext == "RGB" || ext == "TMP") name.substringBefore('.').toLongOrNull()?.let { out += Stored(it, size, ext == "TMP") }
         }
         return out
     }

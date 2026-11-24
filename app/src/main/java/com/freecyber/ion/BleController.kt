@@ -102,6 +102,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         data class Write(val command: V12Protocol.Write) : Work
         data class LightUpload(val design: LightDesign, val designs: List<LightDesign>) : Work
         data object LightList : Work
+        data class LightDelete(val files: List<LightEffects.Stored>) : Work
     }
     private val fileResponses = Channel<LightEffects.Reply>(Channel.BUFFERED)
     @Volatile private var awaitingFile = false
@@ -143,6 +144,11 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         else mutable.update { it.copy(writeMessage = str(R.string.light_upload_busy)) }
     }
     fun listLights() { enqueue(Work.LightList) }
+    /** Deletes effect files from the wheel (also the `.tmp` left by an unfinished upload), then lists again. */
+    fun deleteLights(files: List<LightEffects.Stored>) {
+        if (files.isEmpty()) return
+        if (!enqueue(Work.LightDelete(files))) mutable.update { it.copy(writeMessage = str(R.string.light_upload_busy)) }
+    }
     fun clearLightTransfer() = mutable.update { it.copy(lightTransfer = null) }
     private fun enqueue(item: Work): Boolean {
         if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedV12 || mutable.value.workPending) return false
@@ -413,14 +419,27 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                                 }
                                 is Work.ReadOne -> optionalRead(link,write,job.read)
                                 is Work.LightList -> listStoredLights(link, write)
+                                is Work.LightDelete -> {
+                                    mutable.update { it.copy(writeInFlight=true) }
+                                    val failed = deleteFiles(link, write, job.files)
+                                    if (failed > 0) mutable.update { it.copy(writeMessage = str(R.string.light_delete_failed)) }
+                                    listStoredLights(link, write)
+                                }
                                 is Work.LightUpload -> {
                                     mutable.update { it.copy(writeInFlight=true) }
                                     // A fresh id the wheel does not have yet: renaming onto an existing file fails.
                                     listStoredLights(link, write)
                                     val stored = mutable.value.storedLights
+                                    // Ion's own half-written uploads go first: the wheel offers each one as an empty effect.
+                                    stored?.filter { it.temporary && LightDesign.isIonId(it.id) }?.let { deleteFiles(link, write, it) }
                                     val id = stored?.let { LightDesign.nextId(it, job.designs) }
                                     val error = if (id == null) str(R.string.light_upload_no_list)
                                         else uploadLight(link, write, job.design.slot, id, job.design.file(id))
+                                    if (id != null && error != null) deleteFiles(link, write, listOf(LightEffects.Stored(id, 0, temporary = true)))
+                                    // The design's previous copy is replaced by this one, so it does not pile up on the wheel.
+                                    val previous = job.design.wheelId
+                                    if (error == null && previous != null && previous != id && stored?.any { it.id == previous && !it.temporary } == true)
+                                        deleteFiles(link, write, listOf(LightEffects.Stored(previous, 0)))
                                     mutable.update { it.copy(lightTransfer = LightTransfer(job.design.slot, id, if (error == null) 1f else
                                         it.lightTransfer?.progress ?: 0f, done = true, error = error)) }
                                     // The selected effect shows up as personal mode in the settings, and in the list.
@@ -603,6 +622,17 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 }
             }
             return null
+        } finally {
+            awaitingFile = false
+            while (fileResponses.tryReceive().isSuccess) { }
+        }
+    }
+
+    /** Deletes each file; returns how many the wheel did not confirm. */
+    private suspend fun deleteFiles(g: BluetoothGatt, c: BluetoothGattCharacteristic, files: List<LightEffects.Stored>): Int {
+        awaitingFile = true
+        try {
+            return files.count { f -> fileStep(g, c, LightEffects.delete(f.id, f.temporary))?.ok != true }
         } finally {
             awaitingFile = false
             while (fileResponses.tryReceive().isSuccess) { }
