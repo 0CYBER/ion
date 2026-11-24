@@ -84,6 +84,9 @@ class ScreenshotTest {
     @Test fun dashboardEditor() = shot("dashboard_editor") { DashboardEditorScreen(Samples.live(), DashboardLayout.DEFAULT, {}, {}) }
     @Test fun background() = shot("background") { BackgroundScreen(PrefsUi(), Actions(), {}) }
     @Test fun tripsList() = shot("trips") { TripsScreen(trips, Actions(), {}) }
+    @Test fun tripsLongTotals() = shot("trips_long", fontScale = 1.15f) {
+        TripsScreen(listOf(TripSummary(1_762_400_000_000, 460_000_000, 450_000_000, 1234.5, 58.0, 24.3, 41000.0, 900.0, 18.0, 52)), Actions(), {})
+    }
     @Test fun tripsEmpty() = shot("trips_empty", dark = true) { TripsScreen(emptyList(), Actions(), {}) }
     @Test fun settings() = shot("settings") { SettingsScreen({}, {}) }
     /** Ride detail with a synthetic GPS loop: the route canvas, scrubber and per-point stats. */

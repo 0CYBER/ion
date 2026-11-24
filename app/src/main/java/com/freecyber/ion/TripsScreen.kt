@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
 import java.text.DateFormat
 import java.util.Date
 
@@ -90,21 +91,33 @@ import java.util.Date
 
 @Composable private fun TotalsCard(t: TripTotals) {
     val ion=ionColors()
+    val km=stringResource(R.string.unit_km)
     Surface(color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
-        // One compact row: the lifetime distance, then how many rides and how long in motion.
-        Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=18.dp),verticalAlignment=Alignment.CenterVertically,
-            horizontalArrangement=Arrangement.spacedBy(16.dp)) {
-            Column(Modifier.weight(1.3f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.trips_total),style=MaterialTheme.typography.labelLarge)
-                Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                    Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.headlineLarge.copy(fontFeatureSettings="tnum"),fontFamily=IonSans,maxLines=1,
-                        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=18.sp,maxFontSize=MaterialTheme.typography.headlineLarge.fontSize))
-                    Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=4.dp))
-                }
-            }
-            TripFigure(stringResource(R.string.trips_count),t.count.toString(),"",Modifier.weight(0.8f))
-            TripFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",Modifier.weight(1f))
+        // One compact row: the lifetime distance, then how many rides and how long in motion. Every value is one line
+        // that shrinks to fit, so "1234,5 km" or "123:45:06" never wraps or clips.
+        Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=18.dp),verticalAlignment=Alignment.Bottom,
+            horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+            TotalFigure(stringResource(R.string.trips_total),t.distanceKm.fmt(1),km,MaterialTheme.typography.headlineLarge,Modifier.weight(1.25f))
+            TotalFigure(stringResource(R.string.trips_count),t.count.toString(),"",MaterialTheme.typography.titleLarge,Modifier.weight(0.7f))
+            TotalFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",MaterialTheme.typography.titleLarge,Modifier.weight(1.05f))
         }
+    }
+}
+
+@Composable private fun TotalFigure(label: String,value: String,unit: String,style: androidx.compose.ui.text.TextStyle,modifier: Modifier) {
+    val secondary=LocalContentColor.current.copy(alpha=0.78f)
+    Column(modifier.semantics(mergeDescendants=true) {contentDescription="$label, $value $unit"},verticalArrangement=Arrangement.spacedBy(2.dp)) {
+        Text(label,style=MaterialTheme.typography.labelMedium,color=secondary,maxLines=1,
+            autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=9.sp,maxFontSize=MaterialTheme.typography.labelMedium.fontSize))
+        val valueStyle=style.copy(fontFeatureSettings="tnum",fontFamily=IonSans)
+        Text(androidx.compose.ui.text.buildAnnotatedString {
+                append(value)
+                if(unit.isNotEmpty()) {
+                    append("\u00a0")
+                    pushStyle(androidx.compose.ui.text.SpanStyle(fontSize=MaterialTheme.typography.titleMedium.fontSize)); append(unit); pop()
+                }
+            },style=valueStyle,maxLines=1,softWrap=false,
+            autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=12.sp,maxFontSize=valueStyle.fontSize))
     }
 }
 
