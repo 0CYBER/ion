@@ -26,6 +26,8 @@ internal data class Actions(
     val update: UpdateActions = UpdateActions(),
     val setSoundLabels: (SoundLabels) -> Unit = {},
     val lights: LightUi = LightUi(),
+    /** Turns the wheel password off (null) or sets this PIN. */
+    val password: (String?) -> Unit = {},
 )
 
 /** App-level preferences rendered by settings screens; separate from wheel state so it changes rarely. */

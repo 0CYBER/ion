@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity() {
                 ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
                     themeFollowsSystem=preference==null,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns,lightLast=lightLast),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
-                    readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,
+                    readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,password=model.ble::setPassword,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
                     setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,
                     lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d, model.prefs.lightDesigns.value) },

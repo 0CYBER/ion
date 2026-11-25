@@ -101,4 +101,11 @@
     <string name="control_range_estimate">Range estimate</string>
     <string name="control_max_speed">Max speed</string>
     <string name="control_max_speed_label">Speed limit</string>
+    <string name="control_password">Wheel password</string>
+    <string name="control_password_off">Off</string>
+    <string name="control_password_pin">PIN</string>
+    <string name="control_password_change">Change PIN</string>
+    <string name="control_password_set_title">Wheel PIN</string>
+    <string name="control_password_hint">4 or 6 digits</string>
+    <string name="control_password_set">Set</string>
 </resources>

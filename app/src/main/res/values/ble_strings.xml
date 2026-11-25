@@ -55,4 +55,6 @@
     <string name="ble_request_error">Ошибка BLE-запроса (%1$d).</string>
     <string name="ble_unsupported_model">Поддерживаются V12 HT и HS. Получена модель %1$s. Опрос остановлен.</string>
     <string name="ble_error_code">Ошибка BLE %1$d</string>
+    <string name="password_no_answer">Пароль не изменён: колесо не ответило</string>
+    <string name="password_refused">Пароль не изменён: колесо отказало</string>
 </resources>

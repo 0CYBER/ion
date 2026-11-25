@@ -11,12 +11,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 @Composable internal fun ControlScreen(ui: VelaUi,category: ControlCategory,readSettings: ()->Unit,request: (V12Protocol.Write)->Unit,
-    sounds: SoundLabels=SoundLabels(),setSounds: (SoundLabels)->Unit={},lights: LightUi=LightUi(),onBack: ()->Unit) {
+    sounds: SoundLabels=SoundLabels(),setSounds: (SoundLabels)->Unit={},lights: LightUi=LightUi(),password: (String?)->Unit={},onBack: ()->Unit) {
     val t=ui.wheel.telemetry; val s=ui.wheel.settings
     val safe=ui.safeWrite
     val stopped=ui.stoppedWrite
@@ -98,6 +102,7 @@ import kotlin.math.roundToInt
                 SwitchRow(Icons.Rounded.TouchApp,stringResource(R.string.control_handle),s?.handleEnabled,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.HANDLE_BUTTON,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.LocalShipping,stringResource(R.string.control_transport),s?.transport,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.TRANSPORT,if(it)1 else 0))}
                 SwitchRow(Icons.Rounded.Lock,stringResource(R.string.control_lock),s?.locked,enabled=settingsStopped) {request(V12Protocol.Write(V12Protocol.Control.LOCK,if(it)1 else 0))}
+                PasswordRow(ui.wheel.passwordType,stopped,password)
                 // Only changes the wheel's range calculation, so it stays available while riding (SAFE tier).
                 SwitchRow(Icons.Rounded.Navigation,stringResource(R.string.control_range_estimate),s?.rangeEstimate,enabled=settingsSafe) {
                     request(V12Protocol.Write(V12Protocol.Control.RANGE_ESTIMATE,if(it)1 else 0))}
@@ -114,6 +119,51 @@ import kotlin.math.roundToInt
     }
 }
 
+
+/** The wheel password: off or a PIN, picked like the light modes; choosing the PIN (or changing it) asks for the digits first. */
+@Composable internal fun PasswordRow(type: Int?,enabled: Boolean,set: (String?)->Unit) {
+    var asking by remember {mutableStateOf(false)}
+    val options=listOf(WheelPassword.OFF to R.string.control_password_off,WheelPassword.PIN to R.string.control_password_pin)
+    val summary=options.firstOrNull {it.first==type}?.let {stringResource(it.second)} ?: "—"
+    ExpandRow(Icons.Rounded.Password,stringResource(R.string.control_password),summary) {
+        if(type==null) { MissingSetting(stringResource(R.string.no_data)); return@ExpandRow }
+        Column(Modifier.selectableGroup()) {
+            options.forEach { (option,label) ->
+                Row(Modifier.fillMaxWidth().heightIn(min=52.dp).clip(RoundedCornerShape(IonShapes.m))
+                    .selectable(option==type,enabled=enabled,role=Role.RadioButton) {
+                        if(option==type) return@selectable
+                        if(option==WheelPassword.PIN) asking=true else set(null)
+                    }.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                    RadioButton(selected=option==type,onClick=null,enabled=enabled)
+                    Text(stringResource(label),style=MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+        if(type==WheelPassword.PIN) TextButton(onClick={asking=true},enabled=enabled) {
+            Icon(Icons.Rounded.Edit,null,Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.control_password_change))
+        }
+    }
+    if(asking) PinDialog({asking=false}) {pin -> asking=false; set(pin)}
+}
+
+@Composable private fun PinDialog(dismiss: ()->Unit,confirm: (String)->Unit) {
+    var pin by remember {mutableStateOf("")}
+    AlertDialog(onDismissRequest=dismiss,icon={Icon(Icons.Rounded.Password,null)},
+        title={Text(stringResource(R.string.control_password_set_title))},
+        text={ PinField(pin) {pin=it} },
+        confirmButton={TextButton(onClick={confirm(pin)},enabled=WheelPassword.valid(pin)) {Text(stringResource(R.string.control_password_set))}},
+        dismissButton={TextButton(onClick=dismiss) {Text(stringResource(R.string.cancel))}})
+}
+
+/** Digits only, at most six; shown as typed so a mistake is visible before it reaches the wheel. */
+@Composable internal fun PinField(pin: String,change: (String)->Unit) {
+    OutlinedTextField(pin,{v -> change(v.filter {it in '0'..'9'}.take(6))},singleLine=true,
+        label={Text(stringResource(R.string.control_password_pin))},supportingText={Text(stringResource(R.string.control_password_hint))},
+        textStyle=MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings="tnum",letterSpacing=androidx.compose.ui.unit.TextUnit(4f,androidx.compose.ui.unit.TextUnitType.Sp)),
+        keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+        modifier=Modifier.fillMaxWidth())
+}
 
 /** Categories whose writes are only allowed with the wheel standing still (see VelaUi.stoppedWrite). */
 private val STATIONARY_CATEGORIES=setOf(ControlCategory.RIDE,ControlCategory.PEDALS,ControlCategory.SERVICE)

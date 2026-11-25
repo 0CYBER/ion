@@ -101,4 +101,11 @@
     <string name="control_range_estimate">Оценка остатка пробега</string>
     <string name="control_max_speed">Максимальная скорость</string>
     <string name="control_max_speed_label">Ограничение скорости</string>
+    <string name="control_password">Пароль колеса</string>
+    <string name="control_password_off">Отключён</string>
+    <string name="control_password_pin">Пин-код</string>
+    <string name="control_password_change">Сменить пин-код</string>
+    <string name="control_password_set_title">Пин-код колеса</string>
+    <string name="control_password_hint">4 или 6 цифр</string>
+    <string name="control_password_set">Задать</string>
 </resources>

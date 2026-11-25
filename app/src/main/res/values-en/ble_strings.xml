@@ -55,4 +55,6 @@
     <string name="ble_request_error">BLE request error (%1$d).</string>
     <string name="ble_unsupported_model">Supported models are V12 HT and HS. The wheel reported %1$s. Polling stopped.</string>
     <string name="ble_error_code">BLE error %1$d</string>
+    <string name="password_no_answer">Password not changed: the wheel did not answer</string>
+    <string name="password_refused">Password not changed: the wheel refused</string>
 </resources>

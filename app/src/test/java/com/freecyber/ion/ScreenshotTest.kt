@@ -121,6 +121,13 @@ class ScreenshotTest {
             GroupColumn { LightModeRow(Samples.live(), true, LightUi(), true, {}) {} }
         }
     }
+    @Test fun serviceSettings() = shot("service_settings", dark = true) {
+        val live = Samples.live()
+        ControlScreen(live.copy(wheel = live.wheel.copy(passwordType = WheelPassword.PIN)), ControlCategory.SERVICE, {}, {}) {}
+    }
+    @Test fun pinField() = shot("pin_field", dark = true) {
+        androidx.compose.foundation.layout.Box(Modifier.padding(24.dp)) { PinField("1357") {} }
+    }
     @Test fun soundSettings() = shot("sound_settings", dark = true) {
         ControlScreen(Samples.live(), ControlCategory.SOUND, {}, {}) {}
     }

@@ -68,6 +68,8 @@ data class WheelState(
     val lightTransfer: LightTransfer? = null,
     /** Effect files on the wheel from the last listing; null until listed. */
     val storedLights: List<LightEffects.Stored>? = null,
+    /** The wheel's password type ([WheelPassword.OFF] or [WheelPassword.PIN]); null until read. */
+    val passwordType: Int? = null,
 ) {
     val verifiedV12 get() = model?.isSupported == true
 }
@@ -103,7 +105,10 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         data class LightUpload(val design: LightDesign, val designs: List<LightDesign>) : Work
         data object LightList : Work
         data class LightDelete(val files: List<LightEffects.Stored>) : Work
+        /** Turns the wheel password off ([pin] null) or sets a PIN (turning the PIN type on first when needed). */
+        data class Password(val pin: String?) : Work
     }
+    private val passwordResponses = Channel<WheelPassword.Reply>(Channel.BUFFERED)
     private val fileResponses = Channel<LightEffects.Reply>(Channel.BUFFERED)
     @Volatile private var awaitingFile = false
     private val work = Channel<Work>(1)
@@ -150,6 +155,14 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         if (!enqueue(Work.LightDelete(files))) mutable.update { it.copy(writeMessage = str(R.string.light_upload_busy)) }
     }
     fun clearLightTransfer() = mutable.update { it.copy(lightTransfer = null) }
+    /** Turns the wheel password off (null) or sets [pin] as the wheel's PIN. Only with the wheel standing still. */
+    fun setPassword(pin: String?) {
+        require(pin == null || WheelPassword.valid(pin))
+        if (!mayWrite(V12Protocol.Tier.STATIONARY, mutable.value.writeInFlight)) {
+            mutable.update { it.copy(writeMessage = str(R.string.ble_write_moving)) }; return
+        }
+        if (!enqueue(Work.Password(pin))) mutable.update { it.copy(writeMessage = str(R.string.light_upload_busy)) }
+    }
     private fun enqueue(item: Work): Boolean {
         if(mutable.value.phase != Phase.CONNECTED || !mutable.value.verifiedV12 || mutable.value.workPending) return false
         if(!work.trySend(item).isSuccess) return false
@@ -247,6 +260,11 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         scope.launch {
             if (g !== gatt || uuid.toString() != V12Protocol.NOTIFY) return@launch
             for (f in decoder.feed(value)) {
+                // The password unit (0x23) answers on the addressed bus; its type is kept whoever asked for it.
+                WheelPassword.reply(f)?.let { r ->
+                    r.type?.let { t -> mutable.update { it.copy(passwordType = t) } }
+                    passwordResponses.trySend(r); continue
+                }
                 // File transfer and effect replies use the addressed layout too; only while a transfer waits for them.
                 if (awaitingFile) LightEffects.reply(f)?.let { fileResponses.trySend(it); continue }
                 // Security replies use a different address layout, not the legacy response bit.
@@ -339,6 +357,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 while (events.tryReceive().isSuccess) { /* clear previous session */ }
                 while (responses.tryReceive().isSuccess) { }
                 while (securityResponses.tryReceive().isSuccess) { }
+                while (passwordResponses.tryReceive().isSuccess) { }
                 awaitingSecurity = false
                 negotiatedMtu = 23
                 decoder = V12Protocol.Decoder()
@@ -394,6 +413,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                 )
                 mutable.update { it.copy(model = model, deviceName = model.label, message = str(R.string.ble_waiting_telemetry)) }
                 optionalRead(link,write,V12Protocol.Read.SETTINGS)
+                readPasswordType(link, write)
                 var missed = 0
                 var saved = false
                 var statisticsDue = SystemClock.elapsedRealtime()
@@ -413,9 +433,17 @@ class BleController(private val context: Context, private val scope: CoroutineSc
                     if(job != null) {
                         try {
                             when(job) {
-                                Work.ReadAll -> for(read in V12Protocol.Read.entries) {
-                                    optionalRead(link,write,read)
-                                    if(read != V12Protocol.Read.TELEMETRY) optionalRead(link,write,V12Protocol.Read.TELEMETRY)
+                                Work.ReadAll -> {
+                                    for(read in V12Protocol.Read.entries) {
+                                        optionalRead(link,write,read)
+                                        if(read != V12Protocol.Read.TELEMETRY) optionalRead(link,write,V12Protocol.Read.TELEMETRY)
+                                    }
+                                    readPasswordType(link, write)
+                                }
+                                is Work.Password -> {
+                                    mutable.update { it.copy(writeInFlight=true, writeMessage=null) }
+                                    val error = changePassword(link, write, job.pin)
+                                    mutable.update { it.copy(writeMessage=error) }
                                 }
                                 is Work.ReadOne -> optionalRead(link,write,job.read)
                                 is Work.LightList -> listStoredLights(link, write)
@@ -579,6 +607,47 @@ class BleController(private val context: Context, private val scope: CoroutineSc
             while (securityResponses.tryReceive().isSuccess) { }
         }
     }
+    /** Reads the password type; the reply updates [WheelState.passwordType] on its way in. */
+    private suspend fun readPasswordType(g: BluetoothGatt, c: BluetoothGattCharacteristic): Int? =
+        passwordStep(g, c, WheelPassword.readType()) { it.type != null }?.type
+
+    private suspend fun passwordStep(g: BluetoothGatt, c: BluetoothGattCharacteristic, bytes: ByteArray,
+                                     answers: (WheelPassword.Reply) -> Boolean): WheelPassword.Reply? {
+        while (passwordResponses.tryReceive().isSuccess) { }
+        send(g, c, bytes)
+        return withTimeoutOrNull(2_000) {
+            var r = passwordResponses.receive()
+            while (!answers(r)) r = passwordResponses.receive()
+            r
+        }
+    }
+
+    /**
+     * As the vendor app: the lock's security exchange, then the type (only when it changes), then the PIN; the type
+     * read afterwards is the confirmation. Returns null on success or what went wrong. Nothing is retried.
+     */
+    private suspend fun changePassword(g: BluetoothGatt, c: BluetoothGattCharacteristic, pin: String?): String? {
+        if (!mayWrite(V12Protocol.Tier.STATIONARY, pending = true, ignorePending = true)) return str(R.string.ble_not_sent_moving)
+        val target = if (pin == null) WheelPassword.OFF else WheelPassword.PIN
+        val before = readPasswordType(g, c) ?: return str(R.string.password_no_answer)
+        if (!prepareLockSecurity(g, c)) return str(R.string.password_refused)
+        if (!mayWrite(V12Protocol.Tier.STATIONARY, pending = true, ignorePending = true)) return str(R.string.ble_not_sent_moving)
+        if (before != target) {
+            val r = passwordStep(g, c, WheelPassword.setType(target)) { it.answersType() } ?: return str(R.string.password_no_answer)
+            if (!r.typeSet) return str(R.string.password_refused)
+        }
+        if (pin != null) {
+            val r = passwordStep(g, c, WheelPassword.setPin(pin)) { it.answersPin() } ?: return str(R.string.password_no_answer)
+            if (!r.pinSet) return str(R.string.password_refused)
+        }
+        delay(200)
+        return when (readPasswordType(g, c) ?: readPasswordType(g, c)) {
+            target -> null
+            null -> str(R.string.ble_apply_no_answer)
+            else -> str(R.string.ble_apply_mismatch)
+        }
+    }
+
     /** Asks for a larger MTU when the link is below [minimum]; returns whether it is at least [minimum] now. */
     private suspend fun ensureMtu(g: BluetoothGatt, minimum: Int, request: Int): Boolean {
         if (negotiatedMtu >= minimum) return true
@@ -681,7 +750,7 @@ class BleController(private val context: Context, private val scope: CoroutineSc
         clearWork(); stopScan(); session?.cancel(); session = null
         val old = gatt; gatt = null
         runCatching { old?.disconnect(); old?.close() }
-        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), model = null, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0, lightTransfer = null, storedLights = null) }
+        mutable.update { it.copy(phase = Phase.OFFLINE, message = str(R.string.ble_offline), model = null, telemetry = null, settings = null, lastPacketAt = null, packets = 0, settingsAt = null, records = emptyMap(), workPending = false, writeMessage = null, stationaryPackets = 0, lightTransfer = null, storedLights = null, passwordType = null) }
     }
     /** A connection failure whose message is already localized for the rider. */
     private class LinkFailure(message: String) : Exception(message)
