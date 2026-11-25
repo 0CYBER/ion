@@ -4,7 +4,18 @@ on:
   push:
     # Every branch gets a signed release APK; tags are left out on purpose.
     branches: [ '**' ]
+    # Documentation alone does not change the APK, so it builds nothing (a push mixing docs and code still builds).
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'third-party/**'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'third-party/**'
 
 permissions:
   contents: read

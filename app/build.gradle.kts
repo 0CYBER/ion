@@ -38,7 +38,7 @@ android {
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = ionVersionCode
-        versionName = "1.0"
+        versionName = "1.1"
     }
     signingConfigs {
         if (releaseCredentials != null) {
