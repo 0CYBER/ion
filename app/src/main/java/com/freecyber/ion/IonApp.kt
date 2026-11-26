@@ -25,8 +25,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -35,12 +37,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.IntOffset
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /** Navigation order. Ride history is a destination of its own, between the ride screen and settings. */
 internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETTINGS = 2; const val WHEEL = 3 }
@@ -164,45 +161,33 @@ private val DockMargin=12.dp
 @Composable private fun IonDock(tab: Int,select: (Int)->Unit) {
     val scheme=MaterialTheme.colorScheme
     val motion=MaterialTheme.motionScheme
-    val density=LocalDensity.current
     // Very large fonts: the selected label stays an accessible name only, so four destinations still fit.
-    val showLabel=density.fontScale<=1.3f
-    val bounds=remember {mutableStateMapOf<Int,Pair<Float,Float>>()}
-    val target=bounds[tab]
-    val x=remember {Animatable(0f)}
-    val w=remember {Animatable(0f)}
-    LaunchedEffect(target) {
-        val (tx,tw)=target ?: return@LaunchedEffect
-        if(w.value==0f) {x.snapTo(tx);w.snapTo(tw);return@LaunchedEffect}
-        launch {x.animateTo(tx,motion.defaultSpatialSpec())}
-        launch {w.animateTo(tw,motion.defaultSpatialSpec())}
-    }
+    val showLabel=LocalDensity.current.fontScale<=1.3f
     Surface(Modifier.testTag("navigation-dock").height(DockHeight),shape=CircleShape,color=scheme.surfaceContainer,
         shadowElevation=6.dp,tonalElevation=3.dp) {
-        Box(Modifier.padding(8.dp)) {
-            if(w.value>0f) Box(Modifier.offset {IntOffset(x.value.roundToInt(),0)}.width(with(density) {w.value.toDp()})
-                .fillMaxHeight().clip(CircleShape).background(scheme.primary))
-            Row(Modifier.selectableGroup().fillMaxHeight(),horizontalArrangement=Arrangement.spacedBy(4.dp),verticalAlignment=Alignment.CenterVertically) {
-                DockLabels.forEachIndexed {index,label ->
-                    val selected=tab==index
-                    val title=stringResource(label)
-                    val tint by animateColorAsState(if(selected) scheme.onPrimary else scheme.onSurfaceVariant,motion.fastEffectsSpec(),label="dock-tint")
-                    val interaction=remember {MutableInteractionSource()}
-                    val pressed by interaction.collectIsPressedAsState()
-                    val scale by animateFloatAsState(if(pressed) .88f else 1f,motion.fastSpatialSpec(),label="dock-press")
-                    Row(Modifier.fillMaxHeight().widthIn(min=48.dp).clip(CircleShape)
-                        .onPlaced {bounds[index]=it.positionInParent().x to it.size.width.toFloat()}
-                        .selectable(selected=selected,role=Role.Tab,interactionSource=interaction,indication=ripple(),onClick={select(index)})
-                        .semantics {contentDescription=title}
-                        .padding(horizontal=if(selected && showLabel) 18.dp else 12.dp),
-                        horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
-                        Icon(if(selected) DockIcons[index] else DockIconsOutlined[index],null,
-                            Modifier.size(24.dp).graphicsLayer {scaleX=scale;scaleY=scale},tint=tint)
-                        AnimatedVisibility(selected && showLabel,
-                            enter=expandHorizontally(motion.defaultSpatialSpec())+fadeIn(motion.defaultEffectsSpec()),
-                            exit=shrinkHorizontally(motion.fastSpatialSpec())+fadeOut(motion.fastEffectsSpec())) {
-                            Row {Spacer(Modifier.width(8.dp));Text(title,style=MaterialTheme.typography.labelLargeEmphasized,color=tint,maxLines=1)}
-                        }
+        Row(Modifier.selectableGroup().fillMaxHeight().padding(8.dp),horizontalArrangement=Arrangement.spacedBy(4.dp),verticalAlignment=Alignment.CenterVertically) {
+            DockLabels.forEachIndexed {index,label ->
+                val selected=tab==index
+                val title=stringResource(label)
+                // The pill belongs to the item itself: colour, width and label move together on the fast spring,
+                // so the dock settles with the page transition instead of trailing behind it.
+                val pill by animateColorAsState(if(selected) scheme.primary else Color.Transparent,motion.fastEffectsSpec(),label="dock-pill")
+                val tint by animateColorAsState(if(selected) scheme.onPrimary else scheme.onSurfaceVariant,motion.fastEffectsSpec(),label="dock-tint")
+                val side by animateDpAsState(if(selected && showLabel) 18.dp else 12.dp,motion.fastSpatialSpec(),label="dock-padding")
+                val interaction=remember {MutableInteractionSource()}
+                val pressed by interaction.collectIsPressedAsState()
+                val scale by animateFloatAsState(if(pressed) .88f else 1f,motion.fastSpatialSpec(),label="dock-press")
+                Row(Modifier.fillMaxHeight().widthIn(min=48.dp).clip(CircleShape).drawBehind {drawRect(pill)}
+                    .selectable(selected=selected,role=Role.Tab,interactionSource=interaction,indication=ripple(),onClick={select(index)})
+                    .semantics {contentDescription=title}
+                    .padding(horizontal=side),
+                    horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
+                    Icon(if(selected) DockIcons[index] else DockIconsOutlined[index],null,
+                        Modifier.size(24.dp).graphicsLayer {scaleX=scale;scaleY=scale},tint=tint)
+                    AnimatedVisibility(selected && showLabel,
+                        enter=expandHorizontally(motion.fastSpatialSpec())+fadeIn(motion.fastEffectsSpec()),
+                        exit=shrinkHorizontally(motion.fastSpatialSpec())+fadeOut(motion.fastEffectsSpec())) {
+                        Row {Spacer(Modifier.width(8.dp));Text(title,style=MaterialTheme.typography.labelLargeEmphasized,color=tint,maxLines=1)}
                     }
                 }
             }
