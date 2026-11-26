@@ -17,19 +17,29 @@ import org.robolectric.annotation.GraphicsMode
 class NavigationTest {
     @get:Rule val rule = createComposeRule()
 
-    @Test fun appChildBackReturnsToAppMenu() {
+    @Test fun appChildBackReturnsToSettings() {
         rule.setContent { IonTheme(false) { IonApp(VelaUi(), false, PrefsUi(), Actions(), initialTab = Tabs.SETTINGS) } }
-        rule.onNodeWithContentDescription("Приложение").performClick()
         rule.onNodeWithText("Оформление").performClick()
-        rule.onNodeWithText("Назад").performClick()
+        // Pages below a tab hide the navigation bar and carry a back button in their top app bar.
+        rule.onNodeWithTag("navigation-dock").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Назад").performClick()
         rule.onNodeWithText("Обновления").assertIsDisplayed()
+        rule.onNodeWithTag("navigation-dock").assertIsDisplayed()
+    }
+
+    @Test fun themeModeIsOneConnectedGroup() {
+        val picked = mutableListOf<ThemeMode>()
+        rule.setContent { IonTheme(false) { AppearanceScreen(false, ThemeSettings(ThemeMode.LIGHT, false), Actions(themeMode = { picked += it })) {} } }
+        rule.onNodeWithText("Тёмная").performClick()
+        rule.onNodeWithText("Система").performClick()
+        rule.runOnIdle { org.junit.Assert.assertEquals(listOf(ThemeMode.DARK, ThemeMode.SYSTEM), picked) }
     }
 
     @Test fun historyIsTheSecondDockTabWithoutBack() {
         rule.setContent { IonTheme(false) { IonApp(VelaUi(), false, PrefsUi(), Actions()) } }
         rule.onNodeWithContentDescription("История").performClick()
         rule.onNodeWithText("Пока нет завершённых поездок", substring = true).assertExists()
-        rule.onAllNodesWithText("Назад").assertCountEquals(0)
+        rule.onAllNodesWithContentDescription("Назад").assertCountEquals(0)
     }
 
     @Test fun staticSettingsDoNotReadOrObserveLiveTelemetry() {

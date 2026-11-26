@@ -24,6 +24,8 @@ The font files are bundled locally. No font downloads occur in the application.
 ## Android / Compose
 AndroidX, Material 3, Kotlin and kotlinx.coroutines retain their upstream licenses. The build resolves dependencies from Google's Maven repository and Maven Central.
 
+- MaterialKolor 5.0.1: https://github.com/jordond/MaterialKolor (MIT); generates the Material You Tonal Spot scheme from a seed colour when wallpaper colours are off or unavailable. It bundles a Kotlin port of Google's material-color-utilities (Apache-2.0).
+
 ## Trip maps
 
 - osmdroid 6.1.20: https://github.com/osmdroid/osmdroid (Apache-2.0); native map rendering and HTTP-aware tile cache. The upstream repository is archived; the dependency is pinned.

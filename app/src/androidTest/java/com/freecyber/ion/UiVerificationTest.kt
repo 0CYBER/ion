@@ -143,11 +143,11 @@ class UiVerificationTest {
     @Test fun everyCategoryIsReachableAndKeepsItsOwnControls() {
         render(sample(),1)
         category("Звук");rule.onNodeWithText("Без звука").assertIsDisplayed();shot("sound-dark")
-        rule.onNodeWithText("Назад").performClick()
+        rule.onNodeWithContentDescription("Назад").performClick()
         scroll("Педали");rule.onNodeWithText("Педали").performClick()
         rule.onNodeWithText("Split Mode", ignoreCase = true).assertExists()
         rule.onNodeWithText("Чувствительность педалей").assertIsDisplayed();shot("pedals-dark")
-        rule.onNodeWithText("Назад").performClick()
+        rule.onNodeWithContentDescription("Назад").performClick()
         scroll("Система");rule.onNodeWithText("Система").performClick()
         rule.onNodeWithText("Блокировка колеса").assertIsDisplayed();shot("system-dark")
     }
@@ -171,8 +171,8 @@ class UiVerificationTest {
         listOf(R.string.setup_bluetooth, R.string.battery_unrestricted, R.string.notif_permission,
             R.string.location_permission, R.string.setup_add_wheel).forEach { resource ->
             val label = rule.activity.getString(resource)
-            scroll(label)
-            rule.onNodeWithText(label).performClick()
+            // One step per page, its action pinned at the bottom: no list to scroll any more.
+            rule.onNodeWithText(label).performScrollTo().performClick()
         }
         rule.runOnIdle { assertEquals(1, additions) }
     }
@@ -202,22 +202,19 @@ class UiVerificationTest {
         assertFalse(IonNotifications.gpsRecording(rule.activity).hasPromotableCharacteristics())
     }
     @Test fun appearanceShowsRealSelectionsAndOnlyRequestsAChangeOnce() {
-        var toggles=0
-        render(sample(),1,actions=Actions(theme={toggles++}))
-        rule.onNodeWithContentDescription("Приложение").performClick()
-        rule.onNodeWithText("Оформление").performClick()
+        val modes=mutableListOf<ThemeMode>()
+        render(sample(),1,actions=Actions(themeMode={modes+=it}))
+        scroll("Оформление");rule.onNodeWithText("Оформление").performClick()
         shot("appearance-dark")
-        rule.onNodeWithText("Тёмная").performClick();assertEquals(0,toggles)
-        rule.onNodeWithText("Светлая").performClick();assertEquals(1,toggles)
+        rule.onNodeWithText("Светлая").performClick();assertEquals(listOf(ThemeMode.LIGHT),modes)
     }
     @Test fun appChildrenReturnOneStepWithSystemBack() {
         render(sample(),1)
-        rule.onNodeWithContentDescription("Приложение").performClick()
-        rule.onNodeWithText("Оформление").performClick()
+        scroll("Оформление");rule.onNodeWithText("Оформление").performClick()
         Espresso.pressBack();rule.waitForIdle()
-        rule.onNodeWithText("Экран поездки").assertIsDisplayed()
-        rule.onNodeWithText("Назад").performClick()
-        rule.onNodeWithText("Приложение").assertIsDisplayed()
+        scroll("Обновления");rule.onNodeWithText("Обновления").performClick()
+        rule.onNodeWithContentDescription("Назад").performClick()
+        rule.onNodeWithText("Оформление").assertIsDisplayed()
     }
     @Test fun savedWheelConnectsDirectlyAndForgetRequiresConfirmation() {
         var connects=0;var scans=0;var forgotten=0

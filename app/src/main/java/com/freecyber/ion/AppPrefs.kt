@@ -22,6 +22,14 @@ class AppPrefs(context: Context) {
         darkState.value = value
         prefs.edit { if (value == null) remove("dark") else putBoolean("dark", value) }
     }
+    /** Material You: wallpaper colours on Android 12+, on by default. */
+    private val dynamicState = MutableStateFlow(prefs.getBoolean("dynamic_color", true))
+    val dynamicColor: StateFlow<Boolean> = dynamicState.asStateFlow()
+    fun setDynamicColor(value: Boolean) { dynamicState.value = value; prefs.edit { putBoolean("dynamic_color", value) } }
+    /** Seed of the generated scheme when wallpaper colours are off or unavailable. */
+    private val paletteState = MutableStateFlow(IonPalette.of(prefs.getString("palette", null)))
+    val palette: StateFlow<IonPalette> = paletteState.asStateFlow()
+    fun setPalette(value: IonPalette) { paletteState.value = value; prefs.edit { putString("palette", value.name) } }
 
     private val alertState = MutableStateFlow(loadAlerts())
     val alerts: StateFlow<AlertConfig> = alertState.asStateFlow()

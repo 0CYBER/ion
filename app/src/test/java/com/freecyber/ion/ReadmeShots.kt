@@ -98,10 +98,10 @@ abstract class ReadmeShots(private val lang: String) {
     /** The README banner: the app icon on the brand hero, with the name and what Ion is for. */
     @Config(qualifiers = "+w640dp-h300dp")
     @Test fun banner() = shot("banner", dark = true) {
-        val ion = ionColors()
+        val c = MaterialTheme.colorScheme
         val tagline = if (lang == "ru") "Приложение для моноколёс INMOTION V12" else "A companion app for INMOTION V12 wheels"
         val points = if (lang == "ru") "Поездки · Свет · Настройки · Виджет" else "Rides · Lights · Settings · Widget"
-        Row(Modifier.fillMaxSize().background(ion.hero).padding(horizontal = 48.dp, vertical = 28.dp),
+        Row(Modifier.fillMaxSize().background(c.primaryContainer).padding(horizontal = 48.dp, vertical = 28.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(40.dp)) {
             // The launcher icon as the phone shows it: the foreground on its near-black tile.
             Box(Modifier.size(200.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(52.dp))
@@ -110,9 +110,9 @@ abstract class ReadmeShots(private val lang: String) {
                     Modifier.fillMaxSize().scale(1.5f))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Ion", style = IonType.page.copy(fontSize = 88.sp, lineHeight = 88.sp), color = ion.onHero)
-                Text(tagline, style = MaterialTheme.typography.headlineSmall, color = ion.onHero)
-                Text(points, style = MaterialTheme.typography.titleMedium, color = ion.onHero.copy(alpha = .7f))
+                Text("Ion", style = MaterialTheme.typography.displayLargeEmphasized.copy(fontSize = 88.sp, lineHeight = 88.sp), color = c.onPrimaryContainer)
+                Text(tagline, style = MaterialTheme.typography.headlineSmall, color = c.onPrimaryContainer)
+                Text(points, style = MaterialTheme.typography.titleMedium, color = c.onPrimaryContainer.copy(alpha = .7f))
             }
         }
     }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="palette_violet">Violet</string>
+    <string name="palette_blue">Blue</string>
+    <string name="palette_teal">Teal</string>
+    <string name="palette_green">Green</string>
+    <string name="palette_amber">Amber</string>
+    <string name="palette_rose">Rose</string>
+    <string name="theme_mode_system">System</string>
+    <string name="dynamic_color">Wallpaper colours</string>
+    <string name="dynamic_color_hint">Material You palette from your wallpaper</string>
+    <string name="dynamic_color_unavailable">Wallpaper colours need Android 12 or newer</string>
+    <string name="palette_title">Palette</string>
+    <string name="palette_hint">The colour the whole app scheme is built from</string>
+    <string name="color_title">Colour</string>
+    <string name="settings_section_wheel">Wheel</string>
+    <string name="settings_section_app">App</string>
+    <string name="more_options">More options</string>
+    <string name="trip_export_section">Export</string>
+    <string name="trip_export_csv_hint">All telemetry of the ride, for spreadsheets</string>
+    <string name="trip_export_gpx_hint">The route, for maps and Strava</string>
+</resources>

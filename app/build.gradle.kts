@@ -101,6 +101,8 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3:1.5.0-beta01")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    // Material You: tonal schemes from a seed colour when the wallpaper palette is unavailable or turned off.
+    implementation("com.materialkolor:material-kolor:5.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("org.osmdroid:osmdroid-android:6.1.20")

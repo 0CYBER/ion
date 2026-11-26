@@ -27,8 +27,12 @@ import kotlin.math.roundToInt
     val settingsSafe=safe && ui.settingsFresh && s!=null
     val settingsStopped=stopped && ui.settingsFresh && s!=null
     var personalPicked by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(false)}
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        animatedItem(key="intro",contentType="intro") {DetailHeading(stringResource(category.title),stringResource(category.subtitle),onBack)}
+    IonPage(stringResource(category.title),stringResource(category.subtitle),onBack,actions={
+        // Re-read from the wheel; the spinner replaces the icon while a read is in flight.
+        IconButton(onClick={readSettings()},enabled=ui.connected && !ui.wheel.workPending,shapes=IconButtonDefaults.shapes()) {
+            if(ui.connected && ui.wheel.workPending) LoadingIndicator(Modifier.size(24.dp)) else Icon(Icons.Rounded.Refresh,stringResource(R.string.control_read_settings))
+        }
+    }) {
         if(!ui.connected) animatedItem(key="offline",contentType="banner") {Banner(stringResource(R.string.wheel_offline),Icons.Rounded.BluetoothDisabled) }
         else if(t?.firmwareUpdate==true) animatedItem(key="firmware",contentType="banner") {Banner(stringResource(R.string.firmware_busy),Icons.Rounded.Lock,warning=true) }
         // Only failures are reported; a confirmed change is visible from the control itself.
@@ -111,11 +115,7 @@ import kotlin.math.roundToInt
                 ) {v -> request(V12Protocol.Write(V12Protocol.Control.STANDBY,v[0]))}
             } }
         }
-        animatedItem(key="read-settings",contentType="action") { OutlinedButton(onClick={readSettings()},enabled=ui.connected && !ui.wheel.workPending,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) {
-            // While a read is in flight the button says so instead of just greying out.
-            if(ui.connected && ui.wheel.workPending) LoadingIndicator(Modifier.size(20.dp)) else Icon(Icons.Rounded.Refresh,null)
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(if(ui.connected && ui.wheel.workPending) R.string.read_pending else R.string.control_read_settings),style=MaterialTheme.typography.labelLarge)} }
+
     }
 }
 
@@ -129,7 +129,7 @@ import kotlin.math.roundToInt
         if(type==null) { MissingSetting(stringResource(R.string.no_data)); return@ExpandRow }
         Column(Modifier.selectableGroup()) {
             options.forEach { (option,label) ->
-                Row(Modifier.fillMaxWidth().heightIn(min=52.dp).clip(RoundedCornerShape(IonShapes.m))
+                Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clip(RoundedCornerShape(IonShapes.l))
                     .selectable(option==type,enabled=enabled,role=Role.RadioButton) {
                         if(option==type) return@selectable
                         if(option==WheelPassword.PIN) asking=true else set(null)
@@ -139,8 +139,8 @@ import kotlin.math.roundToInt
                 }
             }
         }
-        if(type==WheelPassword.PIN) TextButton(onClick={asking=true},enabled=enabled) {
-            Icon(Icons.Rounded.Edit,null,Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
+        if(type==WheelPassword.PIN) FilledTonalButton(onClick={asking=true},enabled=enabled,shapes=ButtonDefaults.shapes()) {
+            Icon(Icons.Rounded.Edit,null,Modifier.size(ButtonDefaults.IconSize)); Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             Text(stringResource(R.string.control_password_change))
         }
     }

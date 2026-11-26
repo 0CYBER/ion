@@ -49,7 +49,7 @@
 **Everyday**
 - On Android 12+, the wheel is linked as a companion device, so the connection survives in the background. Reconnects automatically (3 attempts by default, up to unlimited).
 - Home-screen widget and a Quick Settings tile.
-- Light, dark or system theme.
+- Material You: colours from your wallpaper on Android 12+, or one of six palettes; light, dark or system theme.
 - Updates from GitHub releases inside the app.
 
 ## Supported wheels
@@ -140,6 +140,7 @@ Third-party components keep their own licenses. Details are in [THIRD_PARTY.md](
 | OpenStreetMap data | ODbL 1.0 |
 | Onest, JetBrains Mono | SIL OFL 1.1 |
 | AndroidX, Jetpack Compose, Material 3, Glance | Apache-2.0 |
+| MaterialKolor (Material You seed schemes) | MIT |
 | Kotlin, kotlinx.coroutines | Apache-2.0 |
 | Robolectric (tests) | MIT |
 | Roborazzi (tests) | Apache-2.0 |

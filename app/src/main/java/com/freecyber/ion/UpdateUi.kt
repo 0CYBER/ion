@@ -48,7 +48,7 @@ internal data class UpdateActions(
             icon = { Icon(Icons.Rounded.SystemUpdate, null) },
             title = { Text(stringResource(R.string.update_title)) },
             text = { ReleaseSummary(s.release, ui.build) },
-            confirmButton = { Button(onClick = { actions.download(s.release) }) { Text(stringResource(R.string.update_install)) } },
+            confirmButton = { Button(onClick = { actions.download(s.release) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.update_install)) } },
             dismissButton = { TextButton(onClick = actions.dismiss) { Text(stringResource(R.string.update_later)) } })
         is UpdateState.Downloading -> AlertDialog(onDismissRequest = {},
             icon = { Icon(Icons.Rounded.Download, null) },
@@ -69,7 +69,7 @@ internal data class UpdateActions(
             icon = { Icon(Icons.Rounded.Security, null) },
             title = { Text(stringResource(R.string.update_permission_title)) },
             text = { Text(stringResource(R.string.update_permission_text)) },
-            confirmButton = { Button(onClick = actions.openInstallSettings) { Text(stringResource(R.string.update_permission_open)) } },
+            confirmButton = { Button(onClick = actions.openInstallSettings, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.update_permission_open)) } },
             dismissButton = { TextButton(onClick = actions.dismiss) { Text(stringResource(R.string.update_later)) } })
         is UpdateState.Failed -> if (s.release != null) AlertDialog(onDismissRequest = actions.dismiss,
             icon = { Icon(Icons.Rounded.ErrorOutline, null) },
@@ -96,7 +96,7 @@ private fun failureText(reason: UpdateState.Reason) = when (reason) {
     Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(release.title, style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (release.prerelease) Surface(color = ionColors().warning, contentColor = ionColors().onWarning, shape = RoundedCornerShape(50)) {
+            if (release.prerelease) Surface(color = ionColors().warning, contentColor = ionColors().onWarning, shape = RoundedCornerShape(IonShapes.s)) {
                 Text(stringResource(R.string.update_prerelease), style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
             }
@@ -110,13 +110,12 @@ private fun failureText(reason: UpdateState.Reason) = when (reason) {
 
 /** App → Updates: installed version, channel, launch check and a manual check with its result. */
 @Composable internal fun UpdatesScreen(ui: UpdateUi, actions: UpdateActions, onBack: () -> Unit) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PagePadding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item(key = "heading", contentType = "heading") { DetailHeading(stringResource(R.string.updates_title), stringResource(R.string.updates_hint), onBack) }
+    IonPage(stringResource(R.string.updates_title), stringResource(R.string.updates_hint), onBack) {
         item(key = "installed", contentType = "status") { CheckCard(ui, actions) }
         item(key = "channel-title", contentType = "section") { SectionHeader(stringResource(R.string.updates_channel)) }
         item(key = "channel", contentType = "group") {
             GroupColumn {
-                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(IonSpacing.seam)) {
                     ChannelRow(UpdateChannel.STABLE, R.string.updates_channel_stable, R.string.updates_channel_stable_hint, Icons.Rounded.Verified, ui, actions)
                     ChannelRow(UpdateChannel.PRERELEASE, R.string.updates_channel_pre, R.string.updates_channel_pre_hint, Icons.Rounded.Science, ui, actions)
                 }
@@ -130,32 +129,41 @@ private fun failureText(reason: UpdateState.Reason) = when (reason) {
         }
         item(key = "releases", contentType = "link") {
             ActionRow(stringResource(R.string.updates_releases), Updates.RELEASES_PAGE.removePrefix("https://"),
-                Icons.AutoMirrored.Rounded.OpenInNew) { actions.openPage(null) }
+                Icons.AutoMirrored.Rounded.OpenInNew, BadgeTone.NEUTRAL, MaterialShapes.Circle) { actions.openPage(null) }
         }
     }
 }
 
+/** Installed build and the last check, with the check action; the badge turns while a check runs. */
 @Composable private fun CheckCard(ui: UpdateUi, actions: UpdateActions) {
-    val ion = ionColors()
-    Surface(color = ion.hero, contentColor = ion.onHero, shape = IonShapes.hero) {
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(R.string.updates_installed, ui.version, ui.build.toInt()), style = MaterialTheme.typography.titleLarge)
+    val scheme = MaterialTheme.colorScheme
+    Surface(color = scheme.primaryContainer, contentColor = scheme.onPrimaryContainer, shape = IonShapes.card) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             val checking = ui.state is UpdateState.Checking
-            val status = when (val s = ui.state) {
-                UpdateState.Checking -> stringResource(R.string.updates_checking)
-                UpdateState.UpToDate -> stringResource(R.string.updates_up_to_date)
-                is UpdateState.Failed -> stringResource(failureText(s.reason))
-                is UpdateState.Available -> stringResource(R.string.updates_found, s.release.build)
-                else -> if (ui.checkedAt > 0) stringResource(R.string.updates_last_checked,
-                    remember(ui.checkedAt) { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(ui.checkedAt)) })
-                    else stringResource(R.string.updates_never)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                    if (checking) LoadingIndicator(Modifier.size(56.dp), color = scheme.primary)
+                    else ShapeBadge(if (ui.state is UpdateState.Available) Icons.Rounded.Download else Icons.Rounded.SystemUpdate, size = 56.dp,
+                        polygon = MaterialShapes.Cookie9Sided, containerColor = scheme.primary, contentColor = scheme.onPrimary)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(stringResource(R.string.updates_installed, ui.version, ui.build.toInt()), style = MaterialTheme.typography.titleLargeEmphasized)
+                    val status = when (val s = ui.state) {
+                        UpdateState.Checking -> stringResource(R.string.updates_checking)
+                        UpdateState.UpToDate -> stringResource(R.string.updates_up_to_date)
+                        is UpdateState.Failed -> stringResource(failureText(s.reason))
+                        is UpdateState.Available -> stringResource(R.string.updates_found, s.release.build)
+                        else -> if (ui.checkedAt > 0) stringResource(R.string.updates_last_checked,
+                            remember(ui.checkedAt) { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(ui.checkedAt)) })
+                            else stringResource(R.string.updates_never)
+                    }
+                    Text(status, style = MaterialTheme.typography.bodyMedium)
+                }
             }
-            Text(status, style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = actions.check, enabled = !checking && ui.state !is UpdateState.Downloading,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ion.accent, contentColor = ion.onAccent)) {
-                if (checking) LoadingIndicator(Modifier.size(22.dp), color = ion.onAccent) else Icon(Icons.Rounded.Refresh, null, Modifier.size(22.dp))
-                Spacer(Modifier.width(10.dp)); Text(stringResource(R.string.updates_check_now))
+            Button(onClick = actions.check, enabled = !checking && ui.state !is UpdateState.Downloading, shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), contentPadding = ButtonDefaults.MediumContentPadding) {
+                Icon(Icons.Rounded.Refresh, null, Modifier.size(ButtonDefaults.MediumIconSize))
+                Spacer(Modifier.width(ButtonDefaults.MediumIconSpacing)); Text(stringResource(R.string.updates_check_now), style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -164,16 +172,15 @@ private fun failureText(reason: UpdateState.Reason) = when (reason) {
 @Composable private fun ChannelRow(channel: UpdateChannel, title: Int, hint: Int, icon: androidx.compose.ui.graphics.vector.ImageVector,
     ui: UpdateUi, actions: UpdateActions) {
     val selected = ui.config.channel == channel
-    Surface(color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(IonShapes.xs)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 76.dp)
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = rowShape()) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 72.dp)
             .selectable(selected = selected, role = Role.RadioButton) { actions.setConfig(ui.config.copy(channel = channel)) }
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            SettingIcon(icon, selected)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(title), style = MaterialTheme.typography.titleMediumEmphasized)
+                Text(stringResource(hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             RadioButton(selected = selected, onClick = null)
         }

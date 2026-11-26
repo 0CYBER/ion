@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -107,8 +108,7 @@ internal object EditorSample {
 /** Background link, live notification and alert thresholds in one place. */
 @Composable internal fun BackgroundScreen(prefs: PrefsUi,actions: Actions,onBack: ()->Unit) {
     val bg=prefs.background; val al=prefs.alerts
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item(key="heading",contentType="heading") {DetailHeading(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),onBack)}
+    IonPage(stringResource(R.string.bg_title),stringResource(R.string.bg_hint),onBack) {
         item(key="bg-title",contentType="section") {SectionHeader(stringResource(R.string.bg_section))}
         item(key="bg",contentType="group") {
             GroupColumn {
@@ -158,39 +158,53 @@ internal object EditorSample {
     }
 }
 
-/** Slider that only commits on release, so dragging never spams preference writes. */
-/** How many times a dropped link is retried: 1, 3 (default), 5, 10 or no limit. */
+/** How many times a dropped link is retried: 1, 3 (default), 5, 10 or no limit — a connected button group. */
 @Composable private fun ReconnectAttempts(value: Int,change: (Int)->Unit) {
     val choices=ReconnectPolicy.CHOICES
-    Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xs)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            Text(stringResource(R.string.bg_reconnect_attempts),style=MaterialTheme.typography.titleMedium)
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=rowShape()) {
+        Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.bg_reconnect_attempts),style=MaterialTheme.typography.titleMediumEmphasized)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)) {
                 choices.forEachIndexed {i,n ->
                     val label=if(n==0) stringResource(R.string.bg_reconnect_unlimited) else n.toString()
-                    SegmentedButton(selected=value==n || (n==0 && value !in choices),onClick={change(n)},
-                        shape=SegmentedButtonDefaults.itemShape(i,choices.size),label={Text(label,maxLines=1)})
+                    val selected=value==n || (n==0 && value !in choices)
+                    ToggleButton(checked=selected,onCheckedChange={change(n)},
+                        shapes=when(i) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            choices.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                        },
+                        colors=ToggleButtonDefaults.colors(containerColor=MaterialTheme.colorScheme.surfaceContainerHighest),
+                        modifier=Modifier.weight(if(n==0) 1.6f else 1f).heightIn(min=48.dp)
+                            .semantics {role=androidx.compose.ui.semantics.Role.RadioButton},
+                        contentPadding=PaddingValues(horizontal=4.dp)) {
+                        Text(label,maxLines=1,style=MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
         }
     }
 }
 
+/** Slider that only commits on release, so dragging never spams preference writes. */
 @Composable private fun ThresholdSlider(label: String,value: Int,range: IntRange,describe: @Composable (Int)->String,steps: Int=0,commit: (Int)->Unit) {
     var draft by remember(value) {mutableFloatStateOf(value.toFloat())}
     val shown=draft.roundToInt()
     val shownText=if(shown==0) stringResource(R.string.alert_off) else describe(shown)
-    Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xs)) {
-    Column(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=12.dp)) {
-        Row(verticalAlignment=Alignment.CenterVertically) {
-            Text(label,style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
-            // An alert switched off (0) reads quieter than an armed threshold.
-            Text(shownText,style=MaterialTheme.typography.labelLarge,
-                color=if(shown==0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+    val scheme=MaterialTheme.colorScheme
+    Surface(color=scheme.surfaceContainer,shape=rowShape()) {
+        Column(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=14.dp,bottom=6.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                Text(label,style=MaterialTheme.typography.titleMediumEmphasized,modifier=Modifier.weight(1f))
+                // An alert switched off (0) reads quieter than an armed threshold.
+                Surface(color=if(shown==0) scheme.surfaceContainerHighest else scheme.secondaryContainer,
+                    contentColor=if(shown==0) scheme.onSurfaceVariant else scheme.onSecondaryContainer,shape=RoundedCornerShape(IonShapes.s)) {
+                    Text(shownText,style=MaterialTheme.typography.labelLarge.copy(fontFeatureSettings="tnum"),modifier=Modifier.padding(horizontal=10.dp,vertical=4.dp))
+                }
+            }
+            Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
+                valueRange=range.first.toFloat()..range.last.toFloat(),steps=steps,
+                modifier=Modifier.semantics {contentDescription=label;stateDescription=shownText})
         }
-        Slider(value=draft,onValueChange={draft=it},onValueChangeFinished={commit(draft.roundToInt())},
-            valueRange=range.first.toFloat()..range.last.toFloat(),steps=steps,
-            modifier=Modifier.semantics {contentDescription=label;stateDescription=shownText})
-    }
     }
 }

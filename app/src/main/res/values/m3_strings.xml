@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material You: appearance -->
+    <string name="palette_violet">Фиалка</string>
+    <string name="palette_blue">Синий</string>
+    <string name="palette_teal">Бирюза</string>
+    <string name="palette_green">Зелень</string>
+    <string name="palette_amber">Янтарь</string>
+    <string name="palette_rose">Роза</string>
+    <string name="theme_mode_system">Система</string>
+    <string name="dynamic_color">Цвета обоев</string>
+    <string name="dynamic_color_hint">Палитра Material You из обоев телефона</string>
+    <string name="dynamic_color_unavailable">Цвета обоев доступны на Android 12 и новее</string>
+    <string name="palette_title">Палитра</string>
+    <string name="palette_hint">Цвет, из которого строится вся схема приложения</string>
+    <string name="color_title">Цвет</string>
+    <string name="settings_section_wheel">Колесо</string>
+    <string name="settings_section_app">Приложение</string>
+    <string name="more_options">Ещё</string>
+    <string name="trip_export_section">Экспорт</string>
+    <string name="trip_export_csv_hint">Вся телеметрия поездки, для таблиц</string>
+    <string name="trip_export_gpx_hint">Маршрут для карт и Strava</string>
+</resources>

@@ -49,7 +49,7 @@
 **Каждый день**
 - На Android 12+ колесо привязывается как сопутствующее устройство, поэтому связь держится в фоне. Автопереподключение (по умолчанию 3 попытки, можно без ограничений).
 - Виджет на главный экран и плитка в быстрых настройках.
-- Светлая, тёмная или системная тема.
+- Material You: цвета из обоев на Android 12+ или одна из шести палитр; светлая, тёмная или системная тема.
 - Обновления из релизов GitHub прямо в приложении.
 
 ## Поддерживаемые колёса
@@ -140,6 +140,7 @@ Ion распространяется по [GNU General Public License v3.0](LICE
 | Данные OpenStreetMap | ODbL 1.0 |
 | Onest, JetBrains Mono | SIL OFL 1.1 |
 | AndroidX, Jetpack Compose, Material 3, Glance | Apache-2.0 |
+| MaterialKolor (схемы Material You из seed-цвета) | MIT |
 | Kotlin, kotlinx.coroutines | Apache-2.0 |
 | Robolectric (тесты) | MIT |
 | Roborazzi (тесты) | Apache-2.0 |

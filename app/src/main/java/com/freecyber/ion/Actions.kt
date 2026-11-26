@@ -7,6 +7,9 @@ internal data class Actions(
     val theme: () -> Unit = {}, val permissions: () -> Unit = {},
     /** true = follow the phone's dark mode; false = pin the theme currently shown. */
     val followSystemTheme: (Boolean) -> Unit = {},
+    val themeMode: (ThemeMode) -> Unit = {},
+    val dynamicColor: (Boolean) -> Unit = {},
+    val palette: (IonPalette) -> Unit = {},
     val setDashboard: (DashboardLayout) -> Unit = {},
     val setAlerts: (AlertConfig) -> Unit = {},
     val setBackground: (BackgroundConfig) -> Unit = {},
@@ -37,6 +40,7 @@ internal data class PrefsUi(
     val background: BackgroundConfig = BackgroundConfig(),
     val trips: List<TripSummary> = emptyList(),
     val themeFollowsSystem: Boolean = false,
+    val theme: ThemeSettings = ThemeSettings(dynamic = false),
     val update: UpdateUi = UpdateUi(),
     val sounds: SoundLabels = SoundLabels(),
     val lightDesigns: List<LightDesign> = emptyList(),

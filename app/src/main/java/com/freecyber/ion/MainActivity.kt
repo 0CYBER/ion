@@ -50,6 +50,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val ui = model.ui.collectAsStateWithLifecycle()
             val preference by model.dark.collectAsStateWithLifecycle()
+            val dynamicColor by model.dynamicColor.collectAsStateWithLifecycle()
+            val palette by model.palette.collectAsStateWithLifecycle()
+            val themeSettings = ThemeSettings(when (preference) { null -> ThemeMode.SYSTEM; true -> ThemeMode.DARK; false -> ThemeMode.LIGHT },
+                dynamicColor, palette)
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
             val alerts by model.prefs.alerts.collectAsStateWithLifecycle()
             val background by model.prefs.background.collectAsStateWithLifecycle()
@@ -163,7 +167,7 @@ class MainActivity : ComponentActivity() {
                 isAppearanceLightStatusBars=!dark; isAppearanceLightNavigationBars=!dark
             } }
             KeepRideScreenOn(ui,background.keepScreenOn)
-            IonTheme(dark) {
+            IonTheme(dark, themeSettings) {
                 BackHandler(onboarding) { finishOnboarding(false) }
                 if (onboarding) ConnectionOnboarding(
                     bluetoothAllowed, notificationsAllowed, locationAllowed, batteryUnrestricted,
@@ -178,10 +182,12 @@ class MainActivity : ComponentActivity() {
                     requestLocationServices = { runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                     addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
                 ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
-                    themeFollowsSystem=preference==null,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns,lightLast=lightLast),Actions(scan={permitted(null)},connect={permitted(it)},
+                    themeFollowsSystem=preference==null,theme=themeSettings,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns,lightLast=lightLast),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,password=model.ble::setPassword,
-                    theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},permissions={onboarding=true},
+                    theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},
+                    themeMode={ model.setDark(when (it) { ThemeMode.SYSTEM -> null; ThemeMode.LIGHT -> false; ThemeMode.DARK -> true }) },
+                    dynamicColor=model.prefs::setDynamicColor,palette=model.prefs::setPalette,permissions={onboarding=true},
                     setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,
                     lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d, model.prefs.lightDesigns.value) },
                         list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer,delete=model.ble::deleteLights,setLast=model.prefs::setLightLast),setAlerts=model.prefs::setAlerts,setBackground={ config ->

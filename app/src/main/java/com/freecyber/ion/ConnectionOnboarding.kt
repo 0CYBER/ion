@@ -1,6 +1,7 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,16 @@ import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +49,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun ConnectionOnboarding(
     bluetoothAllowed: Boolean,
@@ -82,30 +94,22 @@ internal fun ConnectionOnboarding(
     val progress by androidx.compose.animation.core.animateFloatAsState((6 - stepsLeft) / 6f,
         MaterialTheme.motionScheme.slowSpatialSpec(), label = "setup-progress")
     val motion = MaterialTheme.motionScheme
-    val colors = ionColors()
-    Surface(Modifier.fillMaxSize()) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(Modifier.fillMaxSize(), color = scheme.surface) {
         Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
-            LazyColumn(Modifier.widthIn(max = 520.dp).fillMaxSize(), contentPadding = PagePadding,
-                verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                item {
-                    Surface(shape = IonShapes.hero, color = colors.hero, contentColor = colors.onHero) {
-                        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            Text(stringResource(R.string.setup_connection), style = MaterialTheme.typography.headlineLarge)
-                            Text(stringResource(R.string.setup_step, stepNumber, 6), style = MaterialTheme.typography.labelLarge,
-                                color = colors.onHero.copy(alpha = 0.8f))
-                            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth(),
-                                color = colors.accent, trackColor = colors.onHero.copy(alpha = 0.19f))
-                        }
-                    }
+            Column(Modifier.widthIn(max = 520.dp).fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
+                // Where the rider is in the setup: the Expressive wavy indicator and "Step 2 of 6".
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.setup_connection), style = MaterialTheme.typography.titleMediumEmphasized, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.setup_step, stepNumber, 6), style = MaterialTheme.typography.labelLarge, color = scheme.onSurfaceVariant)
                 }
-                item {
-                    // Each granted step slides away and the next one comes in, so the change is noticed.
-                    androidx.compose.animation.AnimatedContent(step, contentKey = { it.title }, transitionSpec = {
-                        (androidx.compose.animation.fadeIn(motion.defaultEffectsSpec()) +
-                            androidx.compose.animation.slideInHorizontally(motion.defaultSpatialSpec()) { it / 8 }) togetherWith
-                            androidx.compose.animation.fadeOut(motion.fastEffectsSpec())
-                    }, label = "setup-step") { shown -> PermissionStep(shown) }
-                }
+                LinearWavyProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+                // Each granted step slides away and the next one comes in, so the change is noticed.
+                androidx.compose.animation.AnimatedContent(step, contentKey = { it.title }, modifier = Modifier.weight(1f).fillMaxWidth(), transitionSpec = {
+                    (androidx.compose.animation.fadeIn(motion.defaultEffectsSpec()) +
+                        androidx.compose.animation.slideInHorizontally(motion.defaultSpatialSpec()) { it / 8 }) togetherWith
+                        androidx.compose.animation.fadeOut(motion.fastEffectsSpec())
+                }, label = "setup-step") { shown -> PermissionStep(shown, stepNumber) }
             }
         }
     }
@@ -116,22 +120,34 @@ private data class SetupStep(
     val request: () -> Unit, val skip: () -> Unit,
 )
 
+/** Every step has its own Material shape; the mark slowly turns, so the page feels alive while the rider reads. */
+private val StepShapes get() = listOf(MaterialShapes.Cookie9Sided, MaterialShapes.Clover4Leaf, MaterialShapes.Sunny,
+    MaterialShapes.Cookie6Sided, MaterialShapes.Flower, MaterialShapes.SoftBurst)
+
 @Composable
-private fun PermissionStep(step: SetupStep) {
-    val colors = ionColors()
-    Surface(shape = RoundedCornerShape(IonShapes.xl), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(shape = RoundedCornerShape(IonShapes.m), color = colors.lilac.container, contentColor = colors.lilac.content) {
-                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) { Icon(step.icon, contentDescription = null) }
-                }
-                Text(stringResource(step.title), style = MaterialTheme.typography.titleLarge)
+private fun PermissionStep(step: SetupStep, number: Int) {
+    val scheme = MaterialTheme.colorScheme
+    val turn = androidx.compose.animation.core.rememberInfiniteTransition(label = "setup-mark").animateFloat(0f, 360f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(40_000, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "setup-turn")
+    Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(top = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Box(Modifier.size(144.dp).align(Alignment.CenterHorizontally), contentAlignment = Alignment.Center) {
+            Box(Modifier.matchParentSize().graphicsLayer { rotationZ = turn.value }
+                .clip(StepShapes[(number - 1).coerceIn(0, 5)].toShape()).background(scheme.primaryContainer))
+            Icon(step.icon, contentDescription = null, Modifier.size(56.dp), tint = scheme.onPrimaryContainer)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(step.title), style = MaterialTheme.typography.headlineMediumEmphasized)
+        Text(stringResource(step.hint), style = MaterialTheme.typography.bodyLarge, color = scheme.onSurfaceVariant)
+        Spacer(Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = step.request, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                contentPadding = ButtonDefaults.MediumContentPadding) {
+                Text(stringResource(step.label), style = MaterialTheme.typography.titleMedium)
             }
-            Text(stringResource(step.hint), style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Button(onClick = step.request, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(step.label)) }
-                TextButton(onClick = step.skip) { Text(stringResource(R.string.setup_later)) }
+            TextButton(onClick = step.skip, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.setup_later))
             }
         }
     }

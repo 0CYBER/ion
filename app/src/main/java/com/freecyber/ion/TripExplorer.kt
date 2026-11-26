@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
 import androidx.compose.foundation.background
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,7 +54,7 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
 @Composable private fun seriesColor(s: RideSeries): Color = when (s) {
     RideSeries.SPEED -> MaterialTheme.colorScheme.primary
     RideSeries.POWER -> MaterialTheme.colorScheme.tertiary
-    RideSeries.BATTERY -> ionColors().blue.content
+    RideSeries.BATTERY -> MaterialTheme.colorScheme.secondary
     RideSeries.PWM -> MaterialTheme.colorScheme.error
 }
 
@@ -67,20 +69,21 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
     val visible = RideSeries.entries.filter { it.name !in hidden }
     val toggle: (RideSeries) -> Unit = { s -> hidden = if (s.name in hidden) hidden - s.name else hidden + s.name }
     val pick: (Long) -> Unit = onCursor
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(Modifier.padding(start = 20.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = IonShapes.card) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(Modifier.padding(start = 20.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                ShapeBadge(Icons.Rounded.Map, polygon = MaterialShapes.Cookie6Sided)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(R.string.trips_track), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.trips_track), style = MaterialTheme.typography.titleMediumEmphasized)
                     if (data.hasMap) Text(stringResource(R.string.trips_track_length, (data.cumulativeKm.lastOrNull() ?: 0.0).fmt(2)),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (data.hasMap) FilledTonalIconButton(onClick = { fullScreen = true }, modifier = Modifier.size(48.dp).testTag("trip-expand")) {
+                if (data.hasMap) FilledTonalIconButton(onClick = { fullScreen = true }, shapes = IconButtonDefaults.shapes(), modifier = Modifier.testTag("trip-expand")) {
                     Icon(Icons.Rounded.OpenInFull, stringResource(R.string.trip_expand))
                 }
             }
             if (data.hasMap) TripMap(data.track, data.trackIndex(cursor).coerceAtLeast(0),
-                Modifier.padding(horizontal = 12.dp).fillMaxWidth().height(260.dp).clip(RoundedCornerShape(IonShapes.l)), pick = pick)
+                Modifier.padding(horizontal = 12.dp).fillMaxWidth().height(260.dp).clip(RoundedCornerShape(IonShapes.li)), pick = pick)
             else Banner(stringResource(R.string.trips_track_missing), Icons.Rounded.LocationOff)
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (data.hasChart) {
@@ -97,7 +100,7 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxWidth().weight(1f)) {
                     TripMap(data.track, data.trackIndex(cursor).coerceAtLeast(0), Modifier.fillMaxSize(), pick = pick)
-                    FilledTonalIconButton(onClick = { fullScreen = false },
+                    FilledTonalIconButton(onClick = { fullScreen = false }, shapes = IconButtonDefaults.shapes(),
                         modifier = Modifier.statusBarsPadding().padding(12.dp).size(48.dp).testTag("trip-collapse")) {
                         Icon(Icons.Rounded.Close, stringResource(R.string.trip_collapse))
                     }
@@ -120,7 +123,7 @@ internal class RideData(val track: List<TrackPoint>, val moments: List<Moment>) 
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         RideSeries.entries.forEach { s ->
             val on = s in visible
-            FilterChip(selected = on, onClick = { toggle(s) }, label = { Text(stringResource(s.label)) },
+            FilterChip(selected = on, onClick = { toggle(s) }, label = { Text(stringResource(s.label)) }, shape = RoundedCornerShape(IonShapes.s),
                 leadingIcon = { Box(Modifier.size(10.dp).background(seriesColor(s).copy(alpha = if (on) 1f else .35f), CircleShape)) })
         }
     }

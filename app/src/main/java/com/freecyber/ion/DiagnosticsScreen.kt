@@ -37,16 +37,15 @@ import androidx.compose.ui.text.style.TextAlign
     val selectedReads=V12Protocol.Read.entries.filter {when(mode) {1 -> it==V12Protocol.Read.TELEMETRY;2 -> it==V12Protocol.Read.SETTINGS;else -> true}}
         .filter {read -> query.isBlank() || read.label.contains(query,true) ||
             ui.wheel.records[read]?.frame?.let(V12Protocol::fields).orEmpty().any {(it.key+it.label+it.value).contains(query,true)}}
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        item(key="intro",contentType="intro") {DetailHeading(stringResource(R.string.diagnostics_title),stringResource(R.string.data_subtitle),onBack)}
-        item(key="status",contentType="status") {Status(ui)}
+    IonPage(stringResource(R.string.diagnostics_title),stringResource(R.string.data_subtitle),onBack) {
+        item(key="status",contentType="status") {Box(Modifier.padding(start=4.dp)) {Status(ui)}}
         if(!ui.connected) item(key="offline",contentType="banner") {Banner(stringResource(R.string.wheel_offline),Icons.Rounded.SensorsOff)}
         item(key="search",contentType="search") {
             TextField(value=query,onValueChange={query=it},modifier=Modifier.fillMaxWidth(),singleLine=true,
                 keyboardOptions=KeyboardOptions(imeAction=ImeAction.Search),keyboardActions=KeyboardActions(onSearch={focusManager.clearFocus()}),
-                label={Text(stringResource(R.string.data_search))},leadingIcon={Icon(Icons.Rounded.Search,null)},
+                placeholder={Text(stringResource(R.string.data_search))},leadingIcon={Icon(Icons.Rounded.Search,null)},
                 trailingIcon={if(query.isNotEmpty()) IconButton(onClick={query=""}) {Icon(Icons.Rounded.Close,stringResource(R.string.data_clear_search))}},
-                shape=RoundedCornerShape(IonShapes.xl),colors=TextFieldDefaults.colors(
+                shape=RoundedCornerShape(IonShapes.xxl),colors=TextFieldDefaults.colors(
                     focusedIndicatorColor=Color.Transparent,unfocusedIndicatorColor=Color.Transparent,
                     focusedContainerColor=MaterialTheme.colorScheme.surfaceContainerHigh,unfocusedContainerColor=MaterialTheme.colorScheme.surfaceContainerHigh))
         }
@@ -54,17 +53,17 @@ import androidx.compose.ui.text.style.TextAlign
         item(key="filters",contentType="filters") {
             Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 listOf(stringResource(R.string.data_filter_all),stringResource(R.string.data_filter_telemetry),stringResource(R.string.data_filter_settings),stringResource(R.string.data_filter_raw)).forEachIndexed {index,label ->
-                    val corner by animateDpAsState(if(mode==index) IonShapes.row else IonShapes.s,MaterialTheme.motionScheme.fastSpatialSpec(),label="filter-shape")
-                    FilterChip(selected=mode==index,onClick={mode=index},shape=RoundedCornerShape(corner),
+                    FilterChip(selected=mode==index,onClick={mode=index},shape=RoundedCornerShape(IonShapes.s),
                         leadingIcon=if(mode==index) ({Icon(Icons.Rounded.Check,null,Modifier.size(18.dp))}) else null,label={Text(label)})
                 }
             }
         }
         if(selectedReads.isEmpty()) animatedItem(key="empty",contentType="empty") {
-            Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
-                Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.data_no_results),style=MaterialTheme.typography.titleLarge)
-                    Text(stringResource(R.string.data_no_results_hint),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=IonShapes.card) {
+                Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(8.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+                    ShapeBadge(Icons.Rounded.SearchOff,size=64.dp,polygon=MaterialShapes.Cookie6Sided)
+                    Text(stringResource(R.string.data_no_results),style=MaterialTheme.typography.titleLargeEmphasized)
+                    Text(stringResource(R.string.data_no_results_hint),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,textAlign=TextAlign.Center)
                 }
             }
         }
@@ -88,8 +87,8 @@ import androidx.compose.ui.text.style.TextAlign
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
         }.isSuccess
         if(!shared) android.widget.Toast.makeText(ctx,if(file!=null) savedMessage.format(file.name) else emptyMessage,android.widget.Toast.LENGTH_LONG).show()
-    },enabled=ui.wheel.records.isNotEmpty(),modifier=modifier.heightIn(min=48.dp)) {
-        Icon(Icons.Rounded.IosShare,null,Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_export),style=MaterialTheme.typography.bodyMedium)
+    },enabled=ui.wheel.records.isNotEmpty(),shapes=ButtonDefaults.shapes(),modifier=modifier.heightIn(min=48.dp)) {
+        Icon(Icons.Rounded.IosShare,null,Modifier.size(ButtonDefaults.IconSize)); Spacer(Modifier.width(ButtonDefaults.IconSpacing)); Text(stringResource(R.string.data_export))
     }
 }
 
@@ -97,25 +96,26 @@ import androidx.compose.ui.text.style.TextAlign
     var expanded by rememberSaveable(read) { mutableStateOf(read in listOf(V12Protocol.Read.TELEMETRY,V12Protocol.Read.SETTINGS)) }
     var raw by rememberSaveable(read) { mutableStateOf(false) }
     val expandState=stringResource(if(expanded) R.string.expanded else R.string.collapsed)
-    Surface(shape=RoundedCornerShape(IonShapes.xl),color=MaterialTheme.colorScheme.surfaceContainerLow) {
-        Column(Modifier.fillMaxWidth().animateContentSize()) {
+    Surface(shape=IonShapes.card,color=MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.fillMaxWidth().animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())) {
             Row(Modifier.fillMaxWidth().clickable(enabled=!rawMode,role=androidx.compose.ui.semantics.Role.Button) {expanded=!expanded}
-                .then(if(rawMode) Modifier else Modifier.semantics {stateDescription=expandState}).padding(start=18.dp,top=10.dp,bottom=10.dp,end=6.dp),verticalAlignment=Alignment.CenterVertically) {
+                .then(if(rawMode) Modifier else Modifier.semantics {stateDescription=expandState}).padding(start=16.dp,top=12.dp,bottom=12.dp,end=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                ShapeBadge(when(read) {V12Protocol.Read.TELEMETRY -> Icons.Rounded.Speed;V12Protocol.Read.SETTINGS -> Icons.Rounded.Tune;else -> Icons.Rounded.DataObject},
+                    polygon=MaterialShapes.Square,containerColor=MaterialTheme.colorScheme.tertiaryContainer,contentColor=MaterialTheme.colorScheme.onTertiaryContainer)
                 Column(Modifier.weight(1f)) {
-                    Text(read.label,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Medium)
+                    Text(read.label,style=MaterialTheme.typography.titleMediumEmphasized)
                     PacketAge(record,now)
                 }
-                IconButton(onClick=refresh,enabled=enabled) { Icon(Icons.Rounded.Refresh,stringResource(R.string.data_refresh,read.label)) }
-                if(!rawMode) Icon(if(expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,null,Modifier.size(24.dp))
-                Spacer(Modifier.width(10.dp))
+                IconButton(onClick=refresh,enabled=enabled,shapes=IconButtonDefaults.shapes()) { Icon(Icons.Rounded.Refresh,stringResource(R.string.data_refresh,read.label)) }
+                if(!rawMode) Icon(if(expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             AnimatedVisibility(expanded || rawMode) {
-                Column(Modifier.padding(horizontal=18.dp).padding(bottom=16.dp)) {
+                Column(Modifier.padding(horizontal=16.dp).padding(bottom=16.dp)) {
                     if(!rawMode) fields.forEach { field -> FieldRow(field) }
                     if(record?.frame==null) Text(stringResource(R.string.data_no_answer),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     else {
-                        if(!rawMode) TextButton(onClick={raw=!raw}) { Icon(Icons.Rounded.Code,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(if(raw || rawMode) stringResource(R.string.data_raw_collapse) else stringResource(R.string.data_raw_show)) }
-                        if(raw || rawMode) Surface(color=MaterialTheme.colorScheme.surfaceContainerHigh,shape=RoundedCornerShape(IonShapes.s)) {
+                        if(!rawMode) TextButton(onClick={raw=!raw},shapes=ButtonDefaults.shapes()) { Icon(Icons.Rounded.Code,null,Modifier.size(ButtonDefaults.IconSize));Spacer(Modifier.width(ButtonDefaults.IconSpacing));Text(if(raw || rawMode) stringResource(R.string.data_raw_collapse) else stringResource(R.string.data_raw_show)) }
+                        if(raw || rawMode) Surface(color=MaterialTheme.colorScheme.surfaceContainerHighest,shape=RoundedCornerShape(IonShapes.m)) {
                             SelectionContainer { Text(V12Protocol.raw(record.frame),fontFamily=IonMono,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.fillMaxWidth().padding(12.dp).horizontalScroll(rememberScrollState())) }
                         }
                     }
@@ -128,7 +128,7 @@ import androidx.compose.ui.text.style.TextAlign
     Column(Modifier.fillMaxWidth().padding(vertical=12.dp)) {
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically) {
             Text(field.label,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.weight(1f))
-            SelectionContainer { Text(field.value,style=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum"),fontWeight=FontWeight.Medium,fontFamily=IonSans,modifier=Modifier.widthIn(max=155.dp),textAlign=TextAlign.End) }
+            SelectionContainer { Text(field.value,style=MaterialTheme.typography.titleMediumEmphasized.copy(fontFeatureSettings="tnum"),modifier=Modifier.widthIn(max=155.dp),textAlign=TextAlign.End) }
         }
         if(field.note.isNotEmpty()) Text(field.note,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=5.dp))
     }

@@ -45,12 +45,12 @@ import kotlinx.coroutines.CancellationException
     }
     val loaded=track
     if(loaded==null) {
-        Column(Modifier.fillMaxSize().padding(PagePadding),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            DetailHeading(rememberTripDate(trip.startedAt),V12Protocol.formatDuration(trip.durationMs/1000),onBack)
-            if(failed) {
-                Banner(stringResource(R.string.trip_load_failed),Icons.Rounded.ErrorOutline,warning=true)
-                TextButton(onClick={retry++}) {Text(stringResource(R.string.trip_retry))}
-            } else LoadingIndicator()
+        IonPage(rememberTripDate(trip.startedAt),V12Protocol.formatDuration(trip.durationMs/1000),onBack) {
+            item(key="state",contentType="state") {
+                if(failed) Banner(stringResource(R.string.trip_load_failed),Icons.Rounded.ErrorOutline,warning=true) {
+                    TextButton(onClick={retry++}) {Text(stringResource(R.string.trip_retry))}
+                } else Box(Modifier.fillMaxWidth().padding(top=48.dp),contentAlignment=Alignment.Center) {LoadingIndicator(Modifier.size(64.dp))}
+            }
         }
     } else TripDetailScreen(trip,loaded,{actions.shareGpx(trip)},{actions.deleteTrip(trip)},onBack,
         shareCsv={actions.shareCsv(trip)},hasCsv=hasCsv,moments=moments)
@@ -64,8 +64,9 @@ import kotlinx.coroutines.CancellationException
     val data=remember(track,moments) {RideData(track,moments)}
     // The cursor is a time on the ride clock; it starts at the end, like the old scrubber.
     var cursor by rememberSaveable(data.duration) {mutableLongStateOf(data.duration)}
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item(key="heading",contentType="heading") {DetailHeading(rememberTripDay(trip.startedAt),tripSpan(trip),onBack)}
+    IonPage(rememberTripDay(trip.startedAt),tripSpan(trip),onBack,actions={
+        IconButton(onClick={confirmDelete=true},shapes=IconButtonDefaults.shapes()) {Icon(Icons.Rounded.DeleteOutline,stringResource(R.string.trips_delete))}
+    }) {
         item(key="hero",contentType="stats") {TripHero(trip)}
         item(key="load",contentType="stats") {TripLoadCard(trip)}
         item(key="route",contentType="route") {
@@ -74,22 +75,21 @@ import kotlinx.coroutines.CancellationException
         }
         item(key="actions",contentType="action") {
             Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
-                    FilledTonalButton(onClick=shareCsv,enabled=hasCsv,modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
-                        Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export))
-                    }
-                    FilledTonalButton(onClick=shareGpx,enabled=track.size>=2,modifier=Modifier.weight(1f).heightIn(min=48.dp)) {
-                        Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_gpx))
-                    }
-                    OutlinedIconButton(onClick={confirmDelete=true},modifier=Modifier.size(48.dp)) {
-                        Icon(Icons.Rounded.DeleteOutline,stringResource(R.string.trips_delete),tint=MaterialTheme.colorScheme.error)
-                    }
+                SectionHeader(stringResource(R.string.trip_export_section),Modifier.padding(bottom=4.dp))
+                GroupColumn {
+                    ListRow(stringResource(R.string.trips_export),supporting=if(hasCsv) stringResource(R.string.trip_export_csv_hint) else stringResource(R.string.trip_csv_missing),
+                        leading={ShapeBadge(Icons.Rounded.TableChart,polygon=MaterialShapes.Square,containerColor=MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor=MaterialTheme.colorScheme.onTertiaryContainer)},
+                        trailing={Icon(Icons.Rounded.IosShare,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)},enabled=hasCsv,onClick=shareCsv)
+                    ListRow(stringResource(R.string.trips_export_gpx),supporting=stringResource(R.string.trip_export_gpx_hint),
+                        leading={ShapeBadge(Icons.Rounded.Route,polygon=MaterialShapes.Cookie6Sided,containerColor=MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor=MaterialTheme.colorScheme.onSecondaryContainer)},
+                        trailing={Icon(Icons.Rounded.IosShare,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)},enabled=track.size>=2,onClick=shareGpx)
                 }
-                if(!hasCsv) Text(stringResource(R.string.trip_csv_missing),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
-    if(confirmDelete) AlertDialog(onDismissRequest={confirmDelete=false},title={Text(stringResource(R.string.trips_delete_title))},
+    if(confirmDelete) AlertDialog(onDismissRequest={confirmDelete=false},icon={Icon(Icons.Rounded.DeleteOutline,null)},title={Text(stringResource(R.string.trips_delete_title))},
         text={Text(stringResource(R.string.trips_delete_message))},
         confirmButton={TextButton(onClick={confirmDelete=false;delete()}) {Text(stringResource(R.string.trips_delete))}},
         dismissButton={TextButton(onClick={confirmDelete=false}) {Text(stringResource(R.string.cancel))}})
@@ -120,12 +120,15 @@ import kotlinx.coroutines.CancellationException
 
 /** Distance and pace: the numbers a ride is remembered by. */
 @Composable private fun TripHero(trip: TripSummary) {
-    val ion=ionColors()
-    Surface(color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
-        Column(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMedium.copy(fontFeatureSettings="tnum"),fontFamily=IonSans)
-                Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(bottom=8.dp))
+    val scheme=MaterialTheme.colorScheme
+    Surface(color=scheme.primaryContainer,contentColor=scheme.onPrimaryContainer,shape=IonShapes.hero) {
+        Column(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                Row(Modifier.weight(1f),verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Text(trip.distanceKm.fmt(2),style=MaterialTheme.typography.displayMediumEmphasized.copy(fontFeatureSettings="tnum"))
+                    Text(stringResource(R.string.unit_km),style=MaterialTheme.typography.titleLargeEmphasized,modifier=Modifier.padding(bottom=8.dp))
+                }
+                ShapeBadge(Icons.Rounded.Route,size=56.dp,polygon=MaterialShapes.Cookie9Sided,containerColor=scheme.primary,contentColor=scheme.onPrimary)
             }
             val kmh=stringResource(R.string.unit_kmh)
             FigureGrid(listOf(
@@ -140,9 +143,13 @@ import kotlinx.coroutines.CancellationException
 
 /** Energy, power and the wheel's limits over the whole ride. */
 @Composable private fun TripLoadCard(trip: TripSummary) {
-    Surface(color=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(IonShapes.xl)) {
-        Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(R.string.trip_load_section),style=MaterialTheme.typography.titleMedium)
+    Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=IonShapes.card) {
+        Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+                ShapeBadge(Icons.Rounded.Bolt,polygon=MaterialShapes.Cookie6Sided,containerColor=MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor=MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(stringResource(R.string.trip_load_section),style=MaterialTheme.typography.titleMediumEmphasized)
+            }
             val wh=stringResource(R.string.unit_wh);val w=stringResource(R.string.unit_watts);val pct=stringResource(R.string.unit_percent)
             FigureGrid(listOf(
                 Figure(stringResource(R.string.trip_energy),(trip.energyWh-trip.regenWh).fmt(0),wh),
@@ -183,7 +190,7 @@ internal data class Figure(val label: String,val value: String,val unit: String)
     Column(modifier.semantics(mergeDescendants=true) {contentDescription=spoken},verticalArrangement=Arrangement.spacedBy(2.dp)) {
         Text(f.label,style=MaterialTheme.typography.labelMedium,color=secondary,maxLines=1,
             autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=9.sp,maxFontSize=MaterialTheme.typography.labelMedium.fontSize))
-        val value=MaterialTheme.typography.titleMedium.copy(fontFeatureSettings="tnum",fontFamily=IonSans)
+        val value=MaterialTheme.typography.titleMediumEmphasized.copy(fontFeatureSettings="tnum")
         val unit=MaterialTheme.typography.labelSmall
         Text(androidx.compose.ui.text.buildAnnotatedString {
                 append(f.value)

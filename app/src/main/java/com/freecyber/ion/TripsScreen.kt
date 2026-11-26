@@ -1,82 +1,98 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package com.freecyber.ion
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
 
-/** Ride log: lifetime totals, then every stored ride newest first. Per-ride exports live in the detail; the log
- * itself exports every ride at once as a zip of CSVs. */
+/** Shape of item [index] of [count] in a segmented list built from separate lazy items. */
+internal fun segmentShape(index: Int,count: Int): Shape {
+    val outer=IonShapes.group; val inner=IonShapes.seam
+    return when {
+        count<=1 -> RoundedCornerShape(outer)
+        index==0 -> RoundedCornerShape(outer,outer,inner,inner)
+        index==count-1 -> RoundedCornerShape(inner,inner,outer,outer)
+        else -> RoundedCornerShape(inner)
+    }
+}
+
+/** Ride log: lifetime totals, then every stored ride newest first, grouped by month. Per-ride exports live in the
+ * detail; the overflow menu exports every ride at once as a zip of CSVs, or restores such an archive. */
 @Composable internal fun TripsScreen(trips: List<TripSummary>,actions: Actions,openTrip: (TripSummary)->Unit) {
     // Keyed by startedAt so the pending question survives rotation; one tap on the bin must not lose a ride.
     var pendingDelete by rememberSaveable {mutableStateOf<Long?>(null)}
+    var menu by remember {mutableStateOf(false)}
     val totals=remember(trips) {TripTotals.of(trips)}
     val months=remember(trips) {TripMonths.group(trips,java.time.ZoneId.systemDefault())}
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PagePadding,verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item(key="heading",contentType="heading") {
-            // A dock tab: just the page title, like the other tabs.
-            Text(stringResource(R.string.nav_history),style=IonType.page,color=MaterialTheme.colorScheme.onBackground,
-                modifier=Modifier.fillMaxWidth().padding(top=8.dp,bottom=12.dp).semantics {heading()})
-        }
-        if(trips.isEmpty()) {
-            item(key="empty",contentType="note") {Banner(stringResource(R.string.trips_empty),Icons.Rounded.History)}
-            // A fresh install (or a new phone) restores its rides from here.
-            item(key="import",contentType="actions") {ImportButton(actions.importTrips)}
-            return@LazyColumn
-        }
-        item(key="totals",contentType="totals") {TotalsCard(totals)}
-        item(key="actions",contentType="actions") {
-            FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick=actions.shareAllCsv,modifier=Modifier.heightIn(min=48.dp)) {
-                    Icon(Icons.Rounded.IosShare,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_export_all))
-                }
-                ImportButton(actions.importTrips)
+    IonPage(stringResource(R.string.nav_history),spacing=IonSpacing.seam,actions={
+        if(trips.isNotEmpty()) Box {
+            IconButton(onClick={menu=true},shapes=IconButtonDefaults.shapes()) {Icon(Icons.Rounded.MoreVert,stringResource(R.string.more_options))}
+            DropdownMenu(menu,{menu=false},shape=RoundedCornerShape(IonShapes.l)) {
+                DropdownMenuItem(text={Text(stringResource(R.string.trips_export_all))},leadingIcon={Icon(Icons.Rounded.IosShare,null)},
+                    onClick={menu=false;actions.shareAllCsv()})
+                DropdownMenuItem(text={Text(stringResource(R.string.trips_import))},leadingIcon={Icon(Icons.Rounded.FileOpen,null)},
+                    onClick={menu=false;actions.importTrips()})
             }
         }
+    }) {
+        if(trips.isEmpty()) {
+            item(key="empty",contentType="note") {EmptyHistory(actions.importTrips)}
+            return@IonPage
+        }
+        item(key="totals",contentType="totals") {TotalsCard(totals)}
         months.forEach {month ->
-            item(key="month-${month.month}",contentType="month") {Box(Modifier.animateItem()) {MonthHeader(month)}}
-            items(month.trips,key={"${it.startedAt}-${it.distanceKm}"},contentType={"trip"}) {trip ->
+            item(key="month-${month.month}",contentType="month") {Box(Modifier.animateItem().padding(top=IonSpacing.item)) {MonthHeader(month)}}
+            item(key="month-gap-${month.month}",contentType="gap") {Spacer(Modifier.height(6.dp))}
+            itemsIndexed(month.trips,key={_,it -> "${it.startedAt}-${it.distanceKm}"},contentType={_,_ -> "trip"}) {index,trip ->
                 // animateItem: a deleted ride collapses away and the rest close the gap smoothly.
-                TripCard(trip,open={openTrip(trip)},delete={pendingDelete=trip.startedAt},modifier=Modifier.animateItem())}
+                TripRow(trip,segmentShape(index,month.trips.size),open={openTrip(trip)},delete={pendingDelete=trip.startedAt},modifier=Modifier.animateItem())
+            }
         }
     }
     trips.firstOrNull {it.startedAt==pendingDelete}?.let {trip ->
-        AlertDialog(onDismissRequest={pendingDelete=null},title={Text(stringResource(R.string.trips_delete_title))},
+        AlertDialog(onDismissRequest={pendingDelete=null},icon={Icon(Icons.Rounded.DeleteOutline,null)},
+            title={Text(stringResource(R.string.trips_delete_title))},
             text={Text(stringResource(R.string.trips_delete_message))},
             confirmButton={TextButton(onClick={pendingDelete=null;actions.deleteTrip(trip)}) {Text(stringResource(R.string.trips_delete))}},
             dismissButton={TextButton(onClick={pendingDelete=null}) {Text(stringResource(R.string.cancel))}})
     }
 }
 
-@Composable private fun ImportButton(onClick: ()->Unit) {
-    TextButton(onClick=onClick,modifier=Modifier.heightIn(min=48.dp)) {
-        Icon(Icons.Rounded.FileOpen,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.trips_import))
+/** Empty state: what will appear here and the one useful action, restoring a backup. */
+@Composable private fun EmptyHistory(import: ()->Unit) {
+    Column(Modifier.fillMaxWidth().padding(top=48.dp,start=24.dp,end=24.dp),horizontalAlignment=Alignment.CenterHorizontally,
+        verticalArrangement=Arrangement.spacedBy(20.dp)) {
+        ShapeBadge(Icons.Rounded.History,size=112.dp,polygon=MaterialShapes.Cookie12Sided,
+            containerColor=MaterialTheme.colorScheme.secondaryContainer,contentColor=MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(stringResource(R.string.trips_empty),style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+        FilledTonalButton(onClick=import,shapes=ButtonDefaults.shapes(),modifier=Modifier.heightIn(min=48.dp)) {
+            Icon(Icons.Rounded.FileOpen,null,Modifier.size(ButtonDefaults.IconSize));Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            Text(stringResource(R.string.trips_import))
+        }
     }
 }
 
@@ -89,82 +105,80 @@ import java.util.Date
     SectionHeader(stringResource(R.string.trips_month,name,month.distanceKm.fmt(1)))
 }
 
+/** Lifetime totals: the distance as the hero number, rides and time in motion beside it. */
 @Composable private fun TotalsCard(t: TripTotals) {
-    val ion=ionColors()
-    val km=stringResource(R.string.unit_km)
-    Surface(color=ion.hero,contentColor=ion.onHero,shape=IonShapes.hero) {
-        // One compact row: the lifetime distance, then how many rides and how long in motion. Every value is one line
-        // that shrinks to fit, so "1234,5 km" or "123:45:06" never wraps or clips.
-        Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=18.dp),verticalAlignment=Alignment.Top,
-            horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-            // The same label and value style for all three, so they line up as one row.
-            val style=MaterialTheme.typography.headlineSmall
-            TotalFigure(stringResource(R.string.trips_total),t.distanceKm.fmt(1),km,style,Modifier.weight(1f))
-            TotalFigure(stringResource(R.string.trips_count),t.count.toString(),"",style,Modifier.weight(1f))
-            TotalFigure(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),"",style,Modifier.weight(1f))
+    val scheme=MaterialTheme.colorScheme
+    Surface(color=scheme.primaryContainer,contentColor=scheme.onPrimaryContainer,shape=IonShapes.card) {
+        Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+            val km=stringResource(R.string.unit_km)
+            val total=stringResource(R.string.trips_total)
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).semantics(mergeDescendants=true) {contentDescription="$total, ${t.distanceKm.fmt(1)} $km"}) {
+                    Text(total,style=MaterialTheme.typography.labelLarge)
+                    Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                        Text(t.distanceKm.fmt(1),style=MaterialTheme.typography.displaySmallEmphasized.copy(fontFeatureSettings="tnum"),maxLines=1,softWrap=false,
+                            autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=androidx.compose.ui.unit.TextUnit(20f,androidx.compose.ui.unit.TextUnitType.Sp),
+                                maxFontSize=MaterialTheme.typography.displaySmallEmphasized.fontSize),modifier=Modifier.weight(1f,fill=false))
+                        Text(km,style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=6.dp))
+                    }
+                }
+                ShapeBadge(Icons.Rounded.Route,size=56.dp,polygon=MaterialShapes.Cookie9Sided,containerColor=scheme.primary,contentColor=scheme.onPrimary)
+            }
+            Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                TotalChip(stringResource(R.string.trips_count),t.count.toString(),Icons.Rounded.TripOrigin,Modifier.weight(1f))
+                TotalChip(stringResource(R.string.trip_moving),V12Protocol.formatDuration(t.movingMs/1000),Icons.Rounded.Timer,Modifier.weight(1f))
+            }
         }
     }
 }
 
-@Composable private fun TotalFigure(label: String,value: String,unit: String,style: androidx.compose.ui.text.TextStyle,modifier: Modifier) {
-    val secondary=LocalContentColor.current.copy(alpha=0.78f)
-    Column(modifier.semantics(mergeDescendants=true) {contentDescription="$label, $value $unit"},verticalArrangement=Arrangement.spacedBy(2.dp)) {
-        Text(label,style=MaterialTheme.typography.labelMedium,color=secondary,maxLines=1,
-            autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=9.sp,maxFontSize=MaterialTheme.typography.labelMedium.fontSize))
-        val valueStyle=style.copy(fontFeatureSettings="tnum",fontFamily=IonSans)
-        Text(androidx.compose.ui.text.buildAnnotatedString {
-                append(value)
-                if(unit.isNotEmpty()) {
-                    append("\u00a0")
-                    pushStyle(androidx.compose.ui.text.SpanStyle(fontSize=MaterialTheme.typography.titleSmall.fontSize)); append(unit); pop()
-                }
-            },style=valueStyle,maxLines=1,softWrap=false,
-            autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=12.sp,maxFontSize=valueStyle.fontSize))
+@Composable private fun TotalChip(label: String,value: String,icon: androidx.compose.ui.graphics.vector.ImageVector,modifier: Modifier) {
+    Surface(modifier.semantics(mergeDescendants=true) {contentDescription="$label, $value"},color=MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha=.55f),
+        shape=RoundedCornerShape(IonShapes.l)) {
+        Row(Modifier.padding(horizontal=12.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary)
+            Column {
+                Text(label,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
+                Text(value,style=MaterialTheme.typography.titleMediumEmphasized.copy(fontFeatureSettings="tnum"),color=MaterialTheme.colorScheme.onSurface,maxLines=1,
+                    softWrap=false,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=androidx.compose.ui.unit.TextUnit(10f,androidx.compose.ui.unit.TextUnitType.Sp),
+                        maxFontSize=MaterialTheme.typography.titleMediumEmphasized.fontSize))
+            }
+        }
     }
 }
 
-@Composable private fun TripCard(trip: TripSummary,open: ()->Unit,delete: ()->Unit,modifier: Modifier=Modifier) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
-    val date = remember(trip.startedAt, locale) {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(trip.startedAt))
-    }
-    val expansion = stringResource(if (expanded) R.string.trips_expanded else R.string.trips_collapsed)
-    val motion = MaterialTheme.motionScheme
-    val arrow by animateFloatAsState(if (expanded) 180f else 0f, motion.fastSpatialSpec(), label = "trip-chevron")
-    Surface(modifier, color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xl)) {
-        Column {
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                    .semantics { stateDescription = expansion }
-                    .clickable(role = Role.Button) { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(date, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Text("${trip.distanceKm.fmt(2)}\u00A0${stringResource(R.string.unit_km)}",
-                    style = MaterialTheme.typography.titleSmall, maxLines = 1, softWrap = false)
-                Icon(Icons.Rounded.ExpandMore, null, Modifier.rotate(arrow))
+/** One ride: the day in a badge, time and pace, distance at the end. Tap opens it; long press (or the TalkBack
+ * action) offers deletion behind a confirmation. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable private fun TripRow(trip: TripSummary,shape: Shape,open: ()->Unit,delete: ()->Unit,modifier: Modifier=Modifier) {
+    val locale=androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val date=remember(trip.startedAt,locale) {DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT,locale).format(Date(trip.startedAt))}
+    val zoned=remember(trip.startedAt) {java.time.Instant.ofEpochMilli(trip.startedAt).atZone(java.time.ZoneId.systemDefault())}
+    val day=zoned.dayOfMonth.toString()
+    val weekday=remember(zoned,locale) {zoned.format(java.time.format.DateTimeFormatter.ofPattern("EEE",locale)).replaceFirstChar {it.titlecase(locale)}}
+    val time=remember(trip.startedAt,locale) {DateFormat.getTimeInstance(DateFormat.SHORT,locale).format(Date(trip.startedAt))}
+    val haptics=LocalHapticFeedback.current
+    val deleteLabel=stringResource(R.string.trips_delete_one,date)
+    val kmh=stringResource(R.string.unit_kmh)
+    val km=stringResource(R.string.unit_km)
+    Surface(modifier.fillMaxWidth(),shape=shape,color=MaterialTheme.colorScheme.surfaceContainer) {
+        Row(Modifier.fillMaxWidth().heightIn(min=72.dp)
+            .semantics {customActions=listOf(CustomAccessibilityAction(deleteLabel) {delete();true})}
+            .combinedClickable(role=Role.Button,onClickLabel=stringResource(R.string.trips_details),
+                onLongClick={haptics.performHapticFeedback(HapticFeedbackType.LongPress);delete()},onClick=open)
+            .padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+            Surface(Modifier.size(44.dp),shape=MaterialShapes.Cookie6Sided.toShape(),color=MaterialTheme.colorScheme.secondaryContainer,
+                contentColor=MaterialTheme.colorScheme.onSecondaryContainer) {
+                Box(contentAlignment=Alignment.Center) {Text(day,style=MaterialTheme.typography.titleMediumEmphasized.copy(fontFeatureSettings="tnum"))}
             }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(motion.defaultSpatialSpec(), expandFrom = Alignment.Top) + fadeIn(motion.fastEffectsSpec()),
-                exit = shrinkVertically(motion.defaultSpatialSpec(), shrinkTowards = Alignment.Top) + fadeOut(motion.fastEffectsSpec()),
-            ) {
-                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TripFigure(stringResource(R.string.trip_duration), V12Protocol.formatDuration(trip.durationMs / 1000), "", Modifier.weight(1f))
-                        TripFigure(stringResource(R.string.trip_max), trip.maxSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
-                        TripFigure(stringResource(R.string.trip_avg), trip.avgSpeed.fmt(1), stringResource(R.string.unit_kmh), Modifier.weight(1f))
-                    }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = open) { Text(stringResource(R.string.trips_details)) }
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = delete) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.trips_delete_one, date)) }
-                    }
-                }
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                Text("$weekday, $time",style=MaterialTheme.typography.titleMediumEmphasized,maxLines=1,overflow=TextOverflow.Ellipsis)
+                Text("${V12Protocol.formatDuration(trip.durationMs/1000)} · ${trip.avgSpeed.fmt(1)} $kmh",
+                    style=MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings="tnum"),color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1)
             }
+            Text("${trip.distanceKm.fmt(2)} $km",style=MaterialTheme.typography.titleMediumEmphasized.copy(fontFeatureSettings="tnum"),
+                color=MaterialTheme.colorScheme.primary,maxLines=1,softWrap=false)
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

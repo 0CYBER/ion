@@ -88,7 +88,7 @@ class ScreenshotTest {
         TripsScreen(listOf(TripSummary(1_762_400_000_000, 460_000_000, 450_000_000, 1234.5, 58.0, 24.3, 41000.0, 900.0, 18.0, 52)), Actions(), {})
     }
     @Test fun tripsEmpty() = shot("trips_empty", dark = true) { TripsScreen(emptyList(), Actions(), {}) }
-    @Test fun settings() = shot("settings") { SettingsScreen({}, {}) }
+    @Test fun settings() = shot("settings") { SettingsScreen(SettingsLinks()) {} }
     /** Ride detail with a synthetic GPS loop: the route canvas, scrubber and per-point stats. */
     @Test fun tripDetail() = shot("trip_detail", dark = true) {
         val track = List(120) { i ->

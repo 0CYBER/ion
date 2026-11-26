@@ -126,7 +126,7 @@ private val LightDesign.Template.usesFirst get() = this != LightDesign.Template.
     deleting?.let { d ->
         // Its copy on the wheel can go too, when there is one and the wheel is reachable.
         val copy = wheel.storedLights?.firstOrNull { it.id == d.wheelId && !it.temporary }
-        AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.light_delete_title, d.title())) },
+        AlertDialog(onDismissRequest = { deleting = null }, icon = { Icon(Icons.Rounded.DeleteOutline, null) }, title = { Text(stringResource(R.string.light_delete_title, d.title())) },
             text = { Text(stringResource(if (copy != null) R.string.light_delete_text_wheel else R.string.light_delete_text)) },
             confirmButton = {
                 Row {
@@ -170,7 +170,7 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
         Column(Modifier.selectableGroup()) {
             options.forEach { (effect, label) ->
                 val on = effect == selected
-                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(IonShapes.m))
+                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(IonShapes.l))
                     .selectable(on, enabled = safe, role = Role.RadioButton) {
                         if (effect == V12Protocol.LightEffect.PERSONAL) {
                             pickPersonal(true)
@@ -208,14 +208,14 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
 
 /** A plain row that does one thing when tapped, in the settings style. */
 @Composable private fun ActionRow(icon: ImageVector, title: String, hint: String?, modifier: Modifier = Modifier, enabled: Boolean = true, click: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xs)) {
-        Row(modifier.fillMaxWidth().heightIn(min = 76.dp).clickable(enabled = enabled, role = Role.Button, onClick = click)
-            .padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = rowShape()) {
+        Row(modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(enabled = enabled, role = Role.Button, onClick = click)
+            .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             SettingIcon(icon, false)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium,
+                Text(title, style = MaterialTheme.typography.titleMediumEmphasized,
                     color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = .38f))
-                hint?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                hint?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
     }
@@ -226,7 +226,7 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
     val error = t.error != null
     Surface(color = if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = if (error) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(IonShapes.l)) {
+        shape = RoundedCornerShape(IonShapes.li)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(when { error -> Icons.Rounded.ErrorOutline; t.done -> Icons.Rounded.CheckCircle; else -> Icons.Rounded.Upload }, null, Modifier.size(22.dp))
@@ -243,23 +243,25 @@ internal fun lightPersonal(mode: Int?, picked: Boolean) = picked || mode == V12P
 }
 
 @Composable private fun DesignRow(d: LightDesign, onWheel: Boolean, canSend: Boolean, edit: () -> Unit, send: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xs)) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = rowShape()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 88.dp).clickable(role = Role.Button, onClickLabel = stringResource(R.string.light_edit), onClick = edit)
-            .padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+            .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = RoundedCornerShape(IonShapes.m)) {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = RoundedCornerShape(IonShapes.l)) {
                 PlayingWheel(d, Modifier.padding(6.dp).height(60.dp).aspectRatio(LedLayout.WIDTH))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(d.title(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(d.title(), style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val frames = d.frames().size
                 Text(listOfNotNull(templateLabel(d.template), pluralStringResource(R.plurals.light_frames, frames, frames),
                     stringResource(R.string.light_interval_value, (d.intervalMs / 1000.0).fmt(2))).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (onWheel) Text(stringResource(R.string.light_on_wheel_badge), style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary)
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (onWheel) Surface(color = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = RoundedCornerShape(IonShapes.s), modifier = Modifier.padding(top = 2.dp)) {
+                    Text(stringResource(R.string.light_on_wheel_badge), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                }
             }
-            FilledTonalIconButton(onClick = send, enabled = canSend, modifier = Modifier.size(48.dp)) {
+            FilledTonalIconButton(onClick = send, enabled = canSend, shapes = IconButtonDefaults.shapes(), modifier = Modifier.size(48.dp)) {
                 Icon(if (onWheel) Icons.Rounded.Refresh else Icons.Rounded.Upload, stringResource(R.string.light_send))
             }
         }
@@ -322,7 +324,7 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
         effects?.forEach { e ->
             val title = storedTitle(e, designs)
             val ion = LightDesign.isIonId(e.id)
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xs)) {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = rowShape()) {
                 Row(Modifier.fillMaxWidth().heightIn(min = 76.dp).padding(start = 18.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Ion's own uploads are previewed from the design that made them; the wheel's files are not read back.
@@ -331,26 +333,26 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
                         PlayingWheel(source, Modifier.padding(4.dp).height(40.dp).aspectRatio(LedLayout.WIDTH))
                     } else SettingIcon(if (ion) Icons.Rounded.Palette else Icons.Rounded.Lightbulb, false)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title, style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(stringResource(if (ion) R.string.light_from_ion else R.string.light_from_vendor), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    FilledTonalIconButton(onClick = { turnOn(e.id) }, enabled = safe, modifier = Modifier.size(48.dp)) {
+                    FilledTonalIconButton(onClick = { turnOn(e.id) }, enabled = safe, shapes = IconButtonDefaults.shapes(), modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Rounded.PlayArrow, stringResource(R.string.light_turn_on_named, title))
                     }
-                    IconButton(onClick = { delete(e) }, enabled = safe) {
+                    IconButton(onClick = { delete(e) }, enabled = safe, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.light_delete_wheel_title, title))
                     }
                 }
             }
         }
-        if (stored == null || effects.isNullOrEmpty()) Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(IonShapes.xs)) {
+        if (stored == null || effects.isNullOrEmpty()) Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = rowShape()) {
             Text(stringResource(if (stored == null) R.string.light_on_wheel_unknown else R.string.light_on_wheel_empty),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 20.dp))
         }
         if (leftovers.isNotEmpty()) Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            shape = RoundedCornerShape(IonShapes.xs)) {
+            shape = rowShape()) {
             Row(Modifier.fillMaxWidth().heightIn(min = 76.dp).padding(start = 18.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(Icons.Rounded.ErrorOutline, null, Modifier.size(22.dp))
@@ -391,10 +393,10 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize()) {
                 TopAppBar(title = { Text(stringResource(if (isNew) R.string.light_new else R.string.light_effect), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    navigationIcon = { IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, stringResource(R.string.cancel)) } },
+                    navigationIcon = { IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) { Icon(Icons.Rounded.Close, stringResource(R.string.cancel)) } },
                     actions = {
                         onDelete?.let { IconButton(onClick = it) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.delete)) } }
-                        Button(onClick = { save(result) }, modifier = Modifier.padding(end = 8.dp).testTag("light-save")) { Text(stringResource(R.string.save)) }
+                        Button(onClick = { save(result) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.padding(end = 8.dp).testTag("light-save")) { Text(stringResource(R.string.save)) }
                     })
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -407,7 +409,8 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
                         if (f[led] != brush) frames = frames.toMutableList().also { it[current] = f.toMutableList().also { p -> p[led] = brush } }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        FilledIconToggleButton(checked = playing, onCheckedChange = { playing = it }, enabled = frames.size > 1, modifier = Modifier.size(48.dp)) {
+                        FilledIconToggleButton(checked = playing, onCheckedChange = { playing = it }, enabled = frames.size > 1, shapes = IconButtonDefaults.toggleableShapes(),
+                            modifier = Modifier.size(56.dp)) {
                             Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (playing) R.string.light_pause else R.string.light_play))
                         }
                         Spacer(Modifier.weight(1f))
@@ -435,10 +438,11 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
                             LightEffects.INTERVAL_MS.first.toFloat()..LightEffects.INTERVAL_MS.last.toFloat(), true,
                             { interval = ((it / 50).roundToInt() * 50).coerceIn(LightEffects.INTERVAL_MS) })
                     }
-                    Text(stringResource(R.string.light_start_template), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.light_start_template), style = MaterialTheme.typography.titleSmallEmphasized, color = MaterialTheme.colorScheme.primary)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         LightDesign.Template.generators.forEach { t ->
-                            AssistChip(onClick = { template = t }, label = { Text(templateLabel(t)) }, modifier = Modifier.heightIn(min = 48.dp))
+                            AssistChip(onClick = { template = t }, label = { Text(templateLabel(t)) }, shape = RoundedCornerShape(IonShapes.s),
+                                leadingIcon = { Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(AssistChipDefaults.IconSize)) }, modifier = Modifier.heightIn(min = 48.dp))
                         }
                     }
                 }
@@ -501,16 +505,16 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
                 }
             }
         }
-        FilledTonalIconButton(onClick = custom, modifier = Modifier.size(44.dp)) { Icon(Icons.Rounded.Colorize, stringResource(R.string.light_custom_color)) }
+        FilledTonalIconButton(onClick = custom, shapes = IconButtonDefaults.shapes(), modifier = Modifier.size(44.dp)) { Icon(Icons.Rounded.Colorize, stringResource(R.string.light_custom_color)) }
     }
 }
 
 @Composable private fun FrameStrip(frames: List<List<Int>>, current: Int, enabled: Boolean, select: (Int) -> Unit, add: () -> Unit, remove: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.light_frame_n, current + 1, frames.size), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            IconButton(onClick = remove, enabled = enabled && frames.size > 1) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.light_delete_frame)) }
-            FilledTonalButton(onClick = add, enabled = enabled && frames.size < LightEffects.MAX_FRAMES, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.light_frame_n, current + 1, frames.size), style = MaterialTheme.typography.titleMediumEmphasized, modifier = Modifier.weight(1f))
+            IconButton(onClick = remove, enabled = enabled && frames.size > 1, shapes = IconButtonDefaults.shapes()) { Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.light_delete_frame)) }
+            FilledTonalButton(onClick = add, enabled = enabled && frames.size < LightEffects.MAX_FRAMES, shapes = ButtonDefaults.shapes(), modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.light_add_frame))
             }
         }
@@ -520,8 +524,8 @@ private fun DrawScope.drawTracks(at: (Float, Float) -> Offset, scale: Float, col
             itemsIndexed(frames) { i, f ->
                 val on = i == current
                 Surface(color = if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = RoundedCornerShape(IonShapes.m),
-                    modifier = Modifier.border(if (on) 2.dp else 0.dp, if (on) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(IonShapes.m))
+                    shape = RoundedCornerShape(IonShapes.l),
+                    modifier = Modifier.border(if (on) 2.dp else 0.dp, if (on) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(IonShapes.l))
                         .selectable(on, enabled = enabled, role = Role.Tab) { select(i) }) {
                     Column(Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         WheelLeds(f, Modifier.height(56.dp).aspectRatio(LedLayout.WIDTH), tracks = false)
