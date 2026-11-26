@@ -176,10 +176,13 @@
     <string name="trips_import_wrong">Not an Ion archive: pick an &quot;All rides (ZIP)&quot; file</string>
     <string name="trips_import_failed">Could not read the archive</string>
     <string name="trips_delete">Delete ride</string>
+    <string name="trip_duration">Duration</string>
     <string name="trips_details">Details</string>
     <string name="control_light_effect">Side lights</string>
     <string name="control_light_effect_off">Off</string>
     <string name="control_light_effect_music">Follow music</string>
+    <string name="trips_expanded">Expanded</string>
+    <string name="trips_collapsed">Collapsed</string>
     <string name="trips_delete_one">Delete ride %1$s</string>
     <string name="trips_month">%1$s · %2$s km</string>
     <string name="trips_total">Total</string>

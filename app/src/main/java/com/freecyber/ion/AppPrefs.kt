@@ -22,6 +22,14 @@ class AppPrefs(context: Context) {
         darkState.value = value
         prefs.edit { if (value == null) remove("dark") else putBoolean("dark", value) }
     }
+    /** Orion (original) or Material design; Orion by default. */
+    private val designState = MutableStateFlow(UiDesign.of(prefs.getString("design", null)))
+    val design: StateFlow<UiDesign> = designState.asStateFlow()
+    fun setDesign(value: UiDesign) { designState.value = value; prefs.edit { putString("design", value.name) } }
+    /** The first-run style page is shown once; picking a design anywhere counts as having chosen. */
+    private val designChosenState = MutableStateFlow(prefs.getBoolean("design_chosen", false))
+    val designChosen: StateFlow<Boolean> = designChosenState.asStateFlow()
+    fun setDesignChosen() { designChosenState.value = true; prefs.edit { putBoolean("design_chosen", true) } }
     /** Material You: wallpaper colours on Android 12+, on by default. */
     private val dynamicState = MutableStateFlow(prefs.getBoolean("dynamic_color", true))
     val dynamicColor: StateFlow<Boolean> = dynamicState.asStateFlow()

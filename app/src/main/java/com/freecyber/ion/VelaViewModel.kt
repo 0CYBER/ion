@@ -51,6 +51,7 @@ class VelaViewModel(app: Application) : AndroidViewModel(app) {
     fun setDark(value: Boolean?) = graph.prefs.setDark(value)
     val dynamicColor: StateFlow<Boolean> get() = graph.prefs.dynamicColor
     val palette: StateFlow<IonPalette> get() = graph.prefs.palette
+    val design: StateFlow<UiDesign> get() = graph.prefs.design
     private val tick=flow {
         while(true) {emit(SystemClock.elapsedRealtime());delay(Timing.POLL_DELAY_MS)}
     }

@@ -24,11 +24,11 @@ import org.robolectric.annotation.GraphicsMode
 class RidePresentationTest {
     @get:Rule val rule=createComposeRule()
 
-    @Test fun navigationBarSitsBelowContentAndLastTileScrollsClearOfIt() {
+    @Test fun floatingDockOverlaysContentAndLastTileScrollsClearOfIt() {
         rule.setContent { IonTheme(false) { IonApp(Samples.live(),false,PrefsUi(),Actions()) } }
         val content=rule.onNodeWithTag("app-content").getUnclippedBoundsInRoot()
         val dock=rule.onNodeWithTag("navigation-dock").getUnclippedBoundsInRoot()
-        assertTrue("Content must end where the navigation bar begins",content.bottom<=dock.top)
+        assertTrue("Content must continue behind the floating dock",content.bottom>dock.bottom)
         rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("График"))
         rule.onNode(hasScrollToIndexAction()).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {it(0f,10_000f)}
         val last=rule.onNodeWithText("График").getUnclippedBoundsInRoot()

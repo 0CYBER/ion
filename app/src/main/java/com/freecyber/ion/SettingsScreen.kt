@@ -97,6 +97,8 @@ internal class SettingsLinks(val app: ()->Unit={},val appearance: ()->Unit={},va
  */
 @Composable internal fun AppearanceScreen(dark: Boolean,theme: ThemeSettings,actions: Actions,onBack: ()->Unit) {
     IonPage(stringResource(R.string.appearance),stringResource(R.string.appearance_hint),onBack) {
+        item(key="design-title",contentType="section") {SectionHeader(stringResource(R.string.design_title))}
+        item(key="design",contentType="design") {DesignPicker(UiDesign.MATERIAL,dark,theme,actions.design)}
         item(key="preview",contentType="preview") {SchemePreview()}
         item(key="theme-title",contentType="section") {SectionHeader(stringResource(R.string.theme_title))}
         item(key="themes",contentType="choices") {ThemeModeGroup(theme.mode,actions.themeMode)}
@@ -193,7 +195,7 @@ internal class SettingsLinks(val app: ()->Unit={},val appearance: ()->Unit={},va
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Surface(color=c.primaryContainer,contentColor=c.onPrimaryContainer,shape=RoundedCornerShape(IonShapes.li)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=14.dp),verticalAlignment=Alignment.Bottom) {
-                    Text("23.4",style=MaterialTheme.typography.displayMediumEmphasized.copy(fontFeatureSettings="tnum"))
+                    Text(23.4.fmt(1),style=MaterialTheme.typography.displayMediumEmphasized.copy(fontFeatureSettings="tnum"))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.speed_unit),style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=8.dp))
                     Spacer(Modifier.weight(1f))
@@ -206,11 +208,13 @@ internal class SettingsLinks(val app: ()->Unit={},val appearance: ()->Unit={},va
                 PreviewTile("78%",Icons.Rounded.BatteryFull,c.tertiaryContainer,c.onTertiaryContainer,Modifier.weight(1f))
                 PreviewTile("42%",Icons.Rounded.Equalizer,c.secondaryContainer,c.onSecondaryContainer,Modifier.weight(1f))
             }
-            Row(Modifier.fillMaxWidth().padding(top=4.dp),horizontalArrangement=Arrangement.SpaceEvenly) {
+            // The floating dock in miniature: a raised pill, the selected destination filled with primary.
+            Row(Modifier.align(Alignment.CenterHorizontally).padding(top=4.dp).clip(CircleShape).background(c.surfaceContainerHighest).padding(4.dp),
+                horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                 listOf(Icons.Rounded.Speed,Icons.Rounded.History,Icons.Rounded.Settings,Icons.Rounded.TripOrigin).forEachIndexed {i,icon ->
-                    Box(Modifier.width(56.dp).height(32.dp).clip(CircleShape).background(if(i==0) c.secondaryContainer else Color.Transparent),
+                    Box(Modifier.width(if(i==0) 56.dp else 36.dp).height(32.dp).clip(CircleShape).background(if(i==0) c.primary else Color.Transparent),
                         contentAlignment=Alignment.Center) {
-                        Icon(icon,null,Modifier.size(20.dp),tint=if(i==0) c.onSecondaryContainer else c.onSurfaceVariant)
+                        Icon(icon,null,Modifier.size(20.dp),tint=if(i==0) c.onPrimary else c.onSurfaceVariant)
                     }
                 }
             }

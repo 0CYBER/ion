@@ -52,6 +52,8 @@ class MainActivity : ComponentActivity() {
             val preference by model.dark.collectAsStateWithLifecycle()
             val dynamicColor by model.dynamicColor.collectAsStateWithLifecycle()
             val palette by model.palette.collectAsStateWithLifecycle()
+            val design by model.design.collectAsStateWithLifecycle()
+            val designChosen by model.prefs.designChosen.collectAsStateWithLifecycle()
             val themeSettings = ThemeSettings(when (preference) { null -> ThemeMode.SYSTEM; true -> ThemeMode.DARK; false -> ThemeMode.LIGHT },
                 dynamicColor, palette)
             val dashboard by model.prefs.dashboard.collectAsStateWithLifecycle()
@@ -167,9 +169,12 @@ class MainActivity : ComponentActivity() {
                 isAppearanceLightStatusBars=!dark; isAppearanceLightNavigationBars=!dark
             } }
             KeepRideScreenOn(ui,background.keepScreenOn)
-            IonTheme(dark, themeSettings) {
+            // Held above the theme: switching designs replaces everything below it.
+            val designSwitched = rememberDesignSwitched(design, counting = !onboarding)
+            DesignTheme(design, dark, themeSettings) {
                 BackHandler(onboarding) { finishOnboarding(false) }
-                if (onboarding) ConnectionOnboarding(
+                if (onboarding && !designChosen) StyleStep(design, dark, themeSettings, model.prefs::setDesign, model.prefs::setDesignChosen)
+                else if (onboarding) DesignOnboarding(design,
                     bluetoothAllowed, notificationsAllowed, locationAllowed, batteryUnrestricted,
                     requestBluetooth = { bluetoothAskedAt = SystemClock.elapsedRealtime(); permission.launch(model.ble.permissions()) },
                     requestNotifications = { if (Build.VERSION.SDK_INT >= 33) {
@@ -181,13 +186,13 @@ class MainActivity : ComponentActivity() {
                     locationServicesEnabled = !companionWheel.supported || locationServicesAllowed,
                     requestLocationServices = { runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                     addWheel = { finishOnboarding(true) }, later = { finishOnboarding(false) },
-                ) else IonAppContent({ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
-                    themeFollowsSystem=preference==null,theme=themeSettings,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns,lightLast=lightLast),Actions(scan={permitted(null)},connect={permitted(it)},
+                ) else DesignApp(design,{ui.value},dark,PrefsUi(dashboard,alerts,background,trips=trips,
+                    themeFollowsSystem=preference==null,theme=themeSettings,design=design,update=updateUi,sounds=soundLabels,lightDesigns=lightDesigns,lightLast=lightLast),Actions(scan={permitted(null)},connect={permitted(it)},
                     disconnect=model::disconnect,stopScan=model.ble::stopScan,forget=model::forget,
                     readAll=model.ble::readAll,read=model.ble::read,write=model.ble::apply,password=model.ble::setPassword,
                     theme={model.setDark(!dark)},followSystemTheme={model.setDark(if(it) null else dark)},
                     themeMode={ model.setDark(when (it) { ThemeMode.SYSTEM -> null; ThemeMode.LIGHT -> false; ThemeMode.DARK -> true }) },
-                    dynamicColor=model.prefs::setDynamicColor,palette=model.prefs::setPalette,permissions={onboarding=true},
+                    dynamicColor=model.prefs::setDynamicColor,palette=model.prefs::setPalette,design=model.prefs::setDesign,permissions={onboarding=true},
                     setDashboard=model.prefs::setDashboard,setSoundLabels=model.prefs::setSoundLabels,
                     lights=LightUi(setDesigns=model.prefs::setLightDesigns,upload={ d -> model.ble.uploadLight(d, model.prefs.lightDesigns.value) },
                         list=model.ble::listLights,clearTransfer=model.ble::clearLightTransfer,delete=model.ble::deleteLights,setLast=model.prefs::setLightLast),setAlerts=model.prefs::setAlerts,setBackground={ config ->
@@ -200,7 +205,7 @@ class MainActivity : ComponentActivity() {
                     importTrips={ backupPicker.launch(arrayOf("application/zip","application/x-zip-compressed","application/octet-stream")) },
                     tripTrack=model.history::track,tripHasTelemetry=model.history::hasTelemetry,
                     tripTimeline={ id -> model.journal.csv(id).takeIf { it.isFile }?.useLines { TripTimeline.parse(it) }.orEmpty() },update=updateActions),
-                    initialTab=if (startOnWheel) Tabs.WHEEL else Tabs.RIDE)
+                    initialTab=if (startOnWheel) Tabs.WHEEL else Tabs.RIDE, switched=designSwitched)
                 // One silent check per launch, never on top of the first-run setup.
                 LaunchedEffect(onboarding) { if (!onboarding) updater.checkOnLaunch() }
                 if (!onboarding) UpdateDialog(updateUi, updateActions)

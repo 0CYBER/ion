@@ -20,4 +20,12 @@
     <string name="trip_export_section">Экспорт</string>
     <string name="trip_export_csv_hint">Вся телеметрия поездки, для таблиц</string>
     <string name="trip_export_gpx_hint">Маршрут для карт и Strava</string>
+    <string name="design_title">Дизайн</string>
+    <string name="design_orion">Orion</string>
+    <string name="design_orion_hint">Фирменный вид Ion</string>
+    <string name="design_material">Material</string>
+    <string name="design_material_hint">Material 3 Expressive и Material You</string>
+    <string name="setup_style_title">Выбери стиль</string>
+    <string name="setup_style_hint">Его можно сменить в любой момент: Настройки → Оформление.</string>
+    <string name="setup_style_continue">Продолжить</string>
 </resources>

@@ -39,6 +39,13 @@ enum class IonPalette(val seed: Color, val title: Int) {
     companion object { fun of(name: String?) = entries.firstOrNull { it.name == name } ?: VIOLET }
 }
 
+/** Which of the two designs draws the app: Orion (the original Ion look, default) or Material 3 Expressive. */
+enum class UiDesign(val title: Int, val hint: Int) {
+    ORION(R.string.design_orion, R.string.design_orion_hint),
+    MATERIAL(R.string.design_material, R.string.design_material_hint);
+    companion object { fun of(name: String?) = entries.firstOrNull { it.name == name } ?: ORION }
+}
+
 /** How the app picks light or dark. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 

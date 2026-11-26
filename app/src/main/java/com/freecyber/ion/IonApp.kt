@@ -25,6 +25,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /** Navigation order. Ride history is a destination of its own, between the ride screen and settings. */
 internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETTINGS = 2; const val WHEEL = 3 }
@@ -34,9 +50,9 @@ internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETT
     IonAppContent({ui},dark,prefs,actions,initialTab)
 
 /** Defer live-state reads to the destination; static settings and the navigation bar do not observe telemetry. */
-@Composable internal fun IonAppContent(ui: ()->VelaUi,dark: Boolean,prefs: PrefsUi,actions: Actions,initialTab: Int=0) {
+@Composable internal fun IonAppContent(ui: ()->VelaUi,dark: Boolean,prefs: PrefsUi,actions: Actions,initialTab: Int=0,initialRoutes: List<String> = emptyList()) {
     var tab by rememberSaveable {mutableIntStateOf(initialTab)}
-    var routes by rememberSaveable {mutableStateOf(emptyList<String>())}
+    var routes by rememberSaveable {mutableStateOf(initialRoutes)}
     val detail=routes.lastOrNull()
     // Direction of the last stack move: pushing slides the new page in from the end edge, Back from the start edge.
     var pushed by remember {mutableStateOf(true)}
@@ -58,15 +74,11 @@ internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETT
         val rail=maxWidth>maxHeight && maxHeight<480.dp
         // Pages below a tab are full screen; the bar returns with the tab (navigation lives at the top level).
         val showBar=detail==null
+        // The floating dock hovers over the page: lists scroll behind it and end clear of it.
+        val clearance=if(rail || !showBar) 0.dp else DockHeight+DockMargin*2+WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        CompositionLocalProvider(LocalDockClearance provides clearance) {
         Scaffold(containerColor=MaterialTheme.colorScheme.surface,contentColor=MaterialTheme.colorScheme.onSurface,
-            contentWindowInsets=WindowInsets(0),
-            bottomBar={
-                if(!rail) AnimatedVisibility(showBar,
-                    enter=expandVertically(motion.defaultSpatialSpec(),expandFrom=Alignment.Top)+fadeIn(motion.defaultEffectsSpec()),
-                    exit=shrinkVertically(motion.fastSpatialSpec(),shrinkTowards=Alignment.Top)+fadeOut(motion.fastEffectsSpec())) {
-                    IonNavigationBar(tab,::select)
-                }
-            }) {inset ->
+            contentWindowInsets=WindowInsets(0)) {inset ->
             Row(Modifier.fillMaxSize().padding(inset).consumeWindowInsets(inset)) {
                 if(rail) IonRail(tab,::select)
                 // Pages draw their own top app bar, which owns the status bar inset; the shell keeps the side and bottom insets.
@@ -122,6 +134,12 @@ internal object Tabs { const val RIDE = 0; const val HISTORY = 1; const val SETT
                 }
             }
         }
+        }
+        if(!rail) AnimatedVisibility(showBar,Modifier.align(Alignment.BottomCenter),
+            enter=slideInVertically(motion.defaultSpatialSpec()) {it}+fadeIn(motion.defaultEffectsSpec()),
+            exit=slideOutVertically(motion.fastSpatialSpec()) {it}+fadeOut(motion.fastEffectsSpec())) {
+            Box(Modifier.navigationBarsPadding().padding(DockMargin)) {IonDock(tab,::select)}
+        }
     }
     if(forget) AlertDialog(onDismissRequest={forget=false},icon={Icon(Icons.Rounded.LinkOff,null)},
         title={Text(stringResource(R.string.forget_title))},
@@ -135,18 +153,59 @@ private val DockLabels=listOf(R.string.nav_ride,R.string.nav_history,R.string.na
 private val DockIcons=listOf(Icons.Rounded.Speed,Icons.Rounded.History,Icons.Rounded.Settings,Icons.Rounded.TripOrigin)
 private val DockIconsOutlined=listOf(Icons.Outlined.SpeedOutlined,Icons.Outlined.HistoryOutlined,Icons.Outlined.SettingsOutlined,Icons.Outlined.WheelOutlined)
 
-/** Flexible (short) navigation bar: 64 dp, icon above label, pill indicator on the selected destination. */
-@Composable private fun IonNavigationBar(tab: Int,select: (Int)->Unit) {
-    // Very large fonts: labels stay as accessible names only, so four destinations still fit one row.
-    val showLabel=LocalDensity.current.fontScale<=1.3f
-    ShortNavigationBar(Modifier.testTag("navigation-dock"),containerColor=MaterialTheme.colorScheme.surfaceContainer) {
-        DockLabels.forEachIndexed {index,label ->
-            val selected=tab==index
-            val title=stringResource(label)
-            ShortNavigationBarItem(selected=selected,onClick={select(index)},
-                icon={Icon(if(selected) DockIcons[index] else DockIconsOutlined[index],null)},
-                label=if(showLabel) {{Text(title,maxLines=1)}} else null,
-                modifier=Modifier.semantics {contentDescription=title})
+private val DockHeight=64.dp
+private val DockMargin=12.dp
+
+/**
+ * Floating dock in the Material 3 Expressive toolbar style: an elevated pill above the content. One tonal indicator
+ * slides between destinations on the expressive spatial spring and stretches to carry the selected label; the
+ * selected icon is filled, the others outlined. Every item keeps its full name for TalkBack at any font scale.
+ */
+@Composable private fun IonDock(tab: Int,select: (Int)->Unit) {
+    val scheme=MaterialTheme.colorScheme
+    val motion=MaterialTheme.motionScheme
+    val density=LocalDensity.current
+    // Very large fonts: the selected label stays an accessible name only, so four destinations still fit.
+    val showLabel=density.fontScale<=1.3f
+    val bounds=remember {mutableStateMapOf<Int,Pair<Float,Float>>()}
+    val target=bounds[tab]
+    val x=remember {Animatable(0f)}
+    val w=remember {Animatable(0f)}
+    LaunchedEffect(target) {
+        val (tx,tw)=target ?: return@LaunchedEffect
+        if(w.value==0f) {x.snapTo(tx);w.snapTo(tw);return@LaunchedEffect}
+        launch {x.animateTo(tx,motion.defaultSpatialSpec())}
+        launch {w.animateTo(tw,motion.defaultSpatialSpec())}
+    }
+    Surface(Modifier.testTag("navigation-dock").height(DockHeight),shape=CircleShape,color=scheme.surfaceContainer,
+        shadowElevation=6.dp,tonalElevation=3.dp) {
+        Box(Modifier.padding(8.dp)) {
+            if(w.value>0f) Box(Modifier.offset {IntOffset(x.value.roundToInt(),0)}.width(with(density) {w.value.toDp()})
+                .fillMaxHeight().clip(CircleShape).background(scheme.primary))
+            Row(Modifier.selectableGroup().fillMaxHeight(),horizontalArrangement=Arrangement.spacedBy(4.dp),verticalAlignment=Alignment.CenterVertically) {
+                DockLabels.forEachIndexed {index,label ->
+                    val selected=tab==index
+                    val title=stringResource(label)
+                    val tint by animateColorAsState(if(selected) scheme.onPrimary else scheme.onSurfaceVariant,motion.fastEffectsSpec(),label="dock-tint")
+                    val interaction=remember {MutableInteractionSource()}
+                    val pressed by interaction.collectIsPressedAsState()
+                    val scale by animateFloatAsState(if(pressed) .88f else 1f,motion.fastSpatialSpec(),label="dock-press")
+                    Row(Modifier.fillMaxHeight().widthIn(min=48.dp).clip(CircleShape)
+                        .onPlaced {bounds[index]=it.positionInParent().x to it.size.width.toFloat()}
+                        .selectable(selected=selected,role=Role.Tab,interactionSource=interaction,indication=ripple(),onClick={select(index)})
+                        .semantics {contentDescription=title}
+                        .padding(horizontal=if(selected && showLabel) 18.dp else 12.dp),
+                        horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
+                        Icon(if(selected) DockIcons[index] else DockIconsOutlined[index],null,
+                            Modifier.size(24.dp).graphicsLayer {scaleX=scale;scaleY=scale},tint=tint)
+                        AnimatedVisibility(selected && showLabel,
+                            enter=expandHorizontally(motion.defaultSpatialSpec())+fadeIn(motion.defaultEffectsSpec()),
+                            exit=shrinkHorizontally(motion.fastSpatialSpec())+fadeOut(motion.fastEffectsSpec())) {
+                            Row {Spacer(Modifier.width(8.dp));Text(title,style=MaterialTheme.typography.labelLargeEmphasized,color=tint,maxLines=1)}
+                        }
+                    }
+                }
+            }
         }
     }
 }

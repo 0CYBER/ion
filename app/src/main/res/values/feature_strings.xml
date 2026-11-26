@@ -176,10 +176,13 @@
     <string name="trips_import_wrong">Это не архив Ion: нужен файл «Все поездки (ZIP)»</string>
     <string name="trips_import_failed">Не удалось прочитать архив</string>
     <string name="trips_delete">Удалить поездку</string>
+    <string name="trip_duration">Длительность</string>
     <string name="trips_details">Подробнее</string>
     <string name="control_light_effect">Боковая подсветка</string>
     <string name="control_light_effect_off">Выключена</string>
     <string name="control_light_effect_music">В такт музыке</string>
+    <string name="trips_expanded">Развёрнуто</string>
+    <string name="trips_collapsed">Свёрнуто</string>
     <string name="trips_delete_one">Удалить поездку %1$s</string>
     <string name="trips_month">%1$s · %2$s км</string>
     <string name="trips_total">Всего</string>

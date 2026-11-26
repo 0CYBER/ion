@@ -19,4 +19,12 @@
     <string name="trip_export_section">Export</string>
     <string name="trip_export_csv_hint">All telemetry of the ride, for spreadsheets</string>
     <string name="trip_export_gpx_hint">The route, for maps and Strava</string>
+    <string name="design_title">Design</string>
+    <string name="design_orion">Orion</string>
+    <string name="design_orion_hint">Ion\'s own look</string>
+    <string name="design_material">Material</string>
+    <string name="design_material_hint">Material 3 Expressive and Material You</string>
+    <string name="setup_style_title">Choose a style</string>
+    <string name="setup_style_hint">You can change it any time in Settings → Appearance.</string>
+    <string name="setup_style_continue">Continue</string>
 </resources>

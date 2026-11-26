@@ -94,5 +94,20 @@ class M3Shots {
         ControlScreen(live.copy(wheel = live.wheel.copy(settings = settings, storedLights = listOf(LightEffects.Stored(25032, 230)))),
             ControlCategory.LIGHTS, {}, {}, lights = LightUi(listOf(LightDesign(1, "Радуга", LightDesign.Template.RAINBOW, intervalMs = 150)))) {}
     }
+    @Test fun orionRide() {
+        rule.setContent { com.freecyber.ion.orion.IonTheme(false) { com.freecyber.ion.orion.IonApp(Samples.live(), false, PrefsUi(trips = trips, design = UiDesign.ORION), Actions()) } }
+        rule.onRoot().captureRoboImage("build/outputs/m3/orion_ride.png")
+    }
+    @Test fun orionAppearance() {
+        rule.setContent { com.freecyber.ion.orion.IonTheme(true) {
+            Surface(color = MaterialTheme.colorScheme.background) { com.freecyber.ion.orion.AppearanceScreen(true, false, {}, {}, ThemeSettings(dynamic = false)) {} }
+        } }
+        rule.onRoot().captureRoboImage("build/outputs/m3/orion_appearance.png")
+    }
+    @Test fun styleOrion() {
+        rule.setContent { com.freecyber.ion.orion.IonTheme(false) { StyleStep(UiDesign.ORION, false, ThemeSettings(dynamic = false), {}) {} } }
+        rule.onRoot().captureRoboImage("build/outputs/m3/style_orion.png")
+    }
+    @Test fun styleMaterial() = shot("style_material", dark = true) { StyleStep(UiDesign.MATERIAL, true, ThemeSettings(dynamic = false), {}) {} }
     @Test fun trip() = shot("trip", dark = true) { TripDetailScreen(trips.first(), emptyList(), {}, {}, {}, hasCsv = true) }
 }
